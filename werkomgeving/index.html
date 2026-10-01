@@ -137,13 +137,14 @@ const plusDays = n => { const d = new Date(); d.setDate(d.getDate() + n); return
 const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { } } };
 const fromList = v => Array.isArray(v) ? v.join(", ") : (v ?? "");
 
-let mcp = null, filesApi = null, sampleApi = null;
+let mcp = null, filesApi = null, sampleApi = null, booted = false;
 
 async function boot() {
   render();
   try { mcp = await claude.use("mcp"); } catch { mcp = null; }
   try { filesApi = await claude.use("files"); } catch { filesApi = null; }
   try { sampleApi = await claude.use("sample"); } catch { sampleApi = null; }
+  booted = true;
   render();
 }
 
@@ -169,7 +170,8 @@ function parseResult(r) {
   if (typeof p !== "string" && !Array.isArray(p)) p = (r && r.content || []).filter(c => c.type === "text").map(c => c.text).join("\n");
   if (Array.isArray(p)) return p;
   try { const j = JSON.parse(p); if (Array.isArray(j)) return j; if (j && typeof j.result === "string") p = j.result; } catch { }
-  const m = String(p).match(/<untrusted-data-[^>]*>\s*([\s\S]*?)\s*<\/untrusted-data-/);
+  // De tekst noemt de grenstag twee keer: eerst in de waarschuwing, daarna rond de data. Alleen de tag direct voor [ of { telt.
+  const m = String(p).match(/<untrusted-data-[^>]*>\s*([\[{][\s\S]*?)\s*<\/untrusted-data-/);
   if (m) return JSON.parse(m[1]);
   throw new Error("Onverwacht antwoord van Supabase: " + String(p).slice(0, 160));
 }
@@ -224,7 +226,9 @@ function render() {
   const main = $("#main");
   main.innerHTML = "";
   if (!mcp) {
-    main.innerHTML = `<div class="banner"><b>Verbinding met Supabase wordt gemaakt</b>Lukt dat niet, open deze pagina dan in claude.ai en sta de Supabase-koppeling toe.</div>`;
+    main.innerHTML = booted
+      ? `<div class="banner bad"><b>Geen verbinding met Supabase</b>Deze weergave kan geen koppelingen gebruiken. Open de pagina in claude.ai (browser of app) en sta de Supabase-koppeling toe. Staat de koppeling uit, zet hem dan aan onder Instellingen > Connectors.</div>`
+      : `<div class="banner"><b>Verbinding met Supabase wordt gemaakt</b>Een moment.</div>`;
     if (tab !== "beheer") return;
   }
   TABS.find(t => t.id === tab).view(main);
