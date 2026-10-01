@@ -1,0 +1,630 @@
+<title>Salesbureau</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: vaste kop met tabbladen, daaronder een werkvlak; klantkaart schuift als paneel van rechts over de lijst. */
+:root{
+  --bg:#eef0f2; --surface:#ffffff; --surface-2:#f6f7f8; --line:#d9dde1; --line-strong:#b9c0c7;
+  --fg:#1c2329; --fg-soft:#56616b; --accent:#0d5c63; --accent-fg:#ffffff; --accent-soft:#dcecee;
+  --good:#1e7a46; --good-soft:#dff1e6; --warn:#9a5a00; --warn-soft:#fbecd2; --bad:#b3261e; --bad-soft:#f9dfdc;
+  --shadow:0 12px 40px rgba(20,30,40,.18);
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-head:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12171b; --surface:#1a2127; --surface-2:#20282f; --line:#2c353d; --line-strong:#43505b;
+  --fg:#e6eaed; --fg-soft:#9aa6b0; --accent:#5cc0c8; --accent-fg:#0b1a1c; --accent-soft:#17353a;
+  --good:#6fd09a; --good-soft:#173324; --warn:#f0b960; --warn-soft:#3a2b10; --bad:#ff8a80; --bad-soft:#3d1c19;
+  --shadow:0 12px 40px rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12171b; --surface:#1a2127; --surface-2:#20282f; --line:#2c353d; --line-strong:#43505b;
+  --fg:#e6eaed; --fg-soft:#9aa6b0; --accent:#5cc0c8; --accent-fg:#0b1a1c; --accent-soft:#17353a;
+  --good:#6fd09a; --good-soft:#173324; --warn:#f0b960; --warn-soft:#3a2b10; --bad:#ff8a80; --bad-soft:#3d1c19;
+  --shadow:0 12px 40px rgba(0,0,0,.5); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:14px;line-height:1.5}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line);padding:10px 16px 0}
+.top-in{max-width:1180px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px}
+.brand{display:flex;flex-direction:column;padding-bottom:8px;min-width:0}
+.brand b{font-family:var(--font-head);font-weight:600;font-size:20px;letter-spacing:.01em;line-height:1.1}
+.brand span{font-size:12px;color:var(--fg-soft)}
+.tabs{display:flex;gap:2px;overflow-x:auto;max-width:100%}
+.tab{background:none;border:0;border-bottom:3px solid transparent;padding:8px 12px 9px;cursor:pointer;color:var(--fg-soft);font-weight:500;white-space:nowrap}
+.tab:hover{color:var(--fg)}
+.tab[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.tab .n{font-family:var(--font-mono);font-size:11px;background:var(--bad);color:#fff;border-radius:9px;padding:0 6px;margin-left:6px}
+
+main{max-width:1180px;margin:0 auto;padding:18px 16px 60px}
+h2{font-family:var(--font-head);font-weight:600;font-size:18px;margin:0 0 4px;letter-spacing:.005em}
+h3{font-family:var(--font-head);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--fg-soft);margin:0 0 8px}
+.lead{color:var(--fg-soft);margin:0 0 14px;max-width:70ch}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px;min-width:0}
+.panel>.hd{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:8px}
+.stats{display:flex;flex-wrap:wrap;gap:8px 28px;margin:0 0 16px;padding:0;list-style:none}
+.stats li{display:flex;flex-direction:column}
+.stats b{font-family:var(--font-mono);font-weight:500;font-size:22px;font-variant-numeric:tabular-nums;line-height:1.2}
+.stats span{font-size:12px;color:var(--fg-soft)}
+
+.rows{display:flex;flex-direction:column}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:9px 6px;border-top:1px solid var(--line);cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left;width:100%}
+.row:first-child{border-top:0}
+.row:hover{background:var(--surface-2)}
+.row .t{font-weight:500;overflow-wrap:anywhere}
+.row .s{grid-column:1;color:var(--fg-soft);font-size:13px;overflow-wrap:anywhere}
+.row .r{grid-column:2;grid-row:1/3;align-self:center;text-align:right;font-family:var(--font-mono);font-size:12px;color:var(--fg-soft);font-variant-numeric:tabular-nums}
+.empty{color:var(--fg-soft);padding:14px 4px;font-size:13px}
+
+.pill{display:inline-block;font-size:11px;font-weight:500;border-radius:3px;padding:0 6px;margin-left:6px;vertical-align:1px;white-space:nowrap;background:var(--surface-2);color:var(--fg-soft);border:1px solid var(--line)}
+.pill.good{background:var(--good-soft);color:var(--good);border-color:transparent}
+.pill.warn{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.pill.bad{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.pill.acc{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center}
+.bar input[type=search],.bar select,.f input,.f select,.f textarea{background:var(--surface);border:1px solid var(--line-strong);border-radius:4px;padding:7px 9px;min-width:0}
+.bar input[type=search]{flex:1 1 220px}
+.f textarea{width:100%;resize:vertical}
+.btn{background:var(--surface);border:1px solid var(--line-strong);border-radius:4px;padding:7px 12px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.primary:hover{filter:brightness(1.08);color:var(--accent-fg)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.small{padding:3px 8px;font-size:12px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:6px 8px;border-top:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--fg-soft);font-weight:600;border-top:0}
+td.n,th.n{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.mono{font-family:var(--font-mono);font-size:12px}
+.pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:10px;color:var(--fg-soft)}
+
+.banner{border:1px solid var(--line-strong);background:var(--warn-soft);color:var(--fg);border-radius:6px;padding:10px 12px;margin-bottom:14px}
+.banner.bad{background:var(--bad-soft)}
+.banner b{display:block}
+
+.scrim{position:fixed;inset:0;background:rgba(10,15,20,.45);z-index:20}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(640px,100%);z-index:21;background:var(--bg);box-shadow:var(--shadow);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.dr-hd{display:flex;gap:12px;justify-content:space-between;align-items:flex-start;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--line)}
+.dr-hd h2{margin:0;overflow-wrap:anywhere}
+.dr-body{overflow-y:auto;padding:14px 16px 40px;display:flex;flex-direction:column;gap:14px}
+.kv{display:grid;grid-template-columns:minmax(110px,30%) minmax(0,1fr);gap:4px 12px;margin:0}
+.kv dt{color:var(--fg-soft);font-size:12px;padding-top:1px}
+.kv dd{margin:0;overflow-wrap:anywhere}
+.f{display:flex;flex-direction:column;gap:8px}
+.f .line{display:flex;flex-wrap:wrap;gap:8px}
+.f .line>*{flex:1 1 140px}
+.f label{font-size:12px;color:var(--fg-soft);display:flex;flex-direction:column;gap:3px}
+.chk{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 8px;align-items:start;padding:6px 0;border-top:1px solid var(--line)}
+.chk:first-child{border-top:0}
+.log{font-family:var(--font-mono);font-size:12px;background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:8px;max-height:260px;overflow:auto;white-space:pre-wrap}
+.prog{height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden;margin:6px 0}
+.prog i{display:block;height:100%;background:var(--accent);width:0}
+.mailbox{white-space:pre-wrap;font-family:var(--font-body)}
+.note{font-size:12px;color:var(--fg-soft)}
+@media (max-width:520px){.kv{grid-template-columns:1fr}.stats b{font-size:19px}}
+@media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.4}}}
+</style>
+
+<div class="top"><div class="top-in">
+  <div class="brand"><b>Salesbureau</b><span>Frank van de Wijgert Partijhandel</span></div>
+  <nav class="tabs" role="tablist" aria-label="Onderdelen" id="tabs"></nav>
+</div></div>
+<main id="main" aria-live="polite"></main>
+<div id="layer"></div>
+
+<script>
+"use strict";
+/* ---------- basis ---------- */
+const PID = "suwsagwkzflsahaptasy";
+const SERVER = "Supabase";
+const PROJECT_FILES_DIR = "sales/supabase-import/";
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const lit = v => v == null || v === "" ? "null" : "'" + String(v).replace(/\u0000/g, "").replace(/'/g, "''") + "'";
+const likeLit = s => lit("%" + String(s).replace(/[\\%_]/g, m => "\\" + m) + "%");
+const num = v => Number(v ?? 0);
+const eur = v => v == null ? "" : new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(num(v));
+const eur2 = v => v == null ? "" : new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(num(v));
+const int = v => new Intl.NumberFormat("nl-NL").format(num(v));
+const dt = v => { if (!v) return ""; const d = new Date(String(v).slice(0, 10) + "T12:00:00"); return isNaN(d) ? String(v) : d.toLocaleDateString("nl-NL", { day: "numeric", month: "short", year: "numeric" }); };
+const plusDays = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { } } };
+const fromList = v => Array.isArray(v) ? v.join(", ") : (v ?? "");
+
+let mcp = null, filesApi = null, sampleApi = null;
+
+async function boot() {
+  render();
+  try { mcp = await claude.use("mcp"); } catch { mcp = null; }
+  try { filesApi = await claude.use("files"); } catch { filesApi = null; }
+  try { sampleApi = await claude.use("sample"); } catch { sampleApi = null; }
+  render();
+}
+
+function explain(e) {
+  const c = e && e.code;
+  const map = {
+    server_not_connected: "De Supabase-koppeling ontbreekt. Voeg Supabase toe onder Instellingen > Connectors in claude.ai.",
+    needs_reauth: "De Supabase-koppeling moet opnieuw worden ingelogd. Doe dat onder Instellingen > Connectors in claude.ai.",
+    selection_required: "Je hebt meer dan één Supabase-koppeling. Kies er één wanneer daarom wordt gevraagd.",
+    not_in_manifest: "Toegang tot Supabase is voor deze pagina niet toegestaan. Laad de pagina opnieuw en sta de koppeling toe.",
+    consent_required: "Toegang tot Supabase is niet toegestaan. Laad de pagina opnieuw en sta de koppeling toe.",
+    blocked_by_policy: "Je organisatie blokkeert deze Supabase-actie.",
+    server_unavailable: "Supabase reageert niet. Probeer het zo opnieuw.",
+    not_granted: "Deze pagina mag de koppeling niet gebruiken. Laad de pagina opnieuw en sta de koppeling toe.",
+    capability_disabled: "Deze weergave kan geen koppelingen gebruiken. Open de pagina in claude.ai.",
+  };
+  return map[c] || ("Er ging iets mis: " + (e && e.message ? e.message : String(e)));
+}
+
+function parseResult(r) {
+  let p = r && r.payload;
+  if (p && typeof p === "object" && !Array.isArray(p) && "result" in p) p = p.result;
+  if (typeof p !== "string" && !Array.isArray(p)) p = (r && r.content || []).filter(c => c.type === "text").map(c => c.text).join("\n");
+  if (Array.isArray(p)) return p;
+  try { const j = JSON.parse(p); if (Array.isArray(j)) return j; if (j && typeof j.result === "string") p = j.result; } catch { }
+  const m = String(p).match(/<untrusted-data-[^>]*>\s*([\s\S]*?)\s*<\/untrusted-data-/);
+  if (m) return JSON.parse(m[1]);
+  throw new Error("Onverwacht antwoord van Supabase: " + String(p).slice(0, 160));
+}
+async function sql(q) {
+  if (!mcp) throw { code: "capability_disabled", message: "Geen koppeling beschikbaar" };
+  const r = await mcp.callTool(SERVER, "execute_sql", { project_id: PID, query: q }, { cache: false });
+  return parseResult(r);
+}
+
+/* ---------- klantquery ---------- */
+const GESLOTEN = "(failliet|faillissement|gesloten|opgeheven|liquidatie|stopgezet|beëindigd)";
+const BASE = `select v.id, v.naam, v.email, v.telefoon, v.taal, v.land, v.plaats, v.let_op, v.afgemeld, v.notities, v.relatiebeheer,
+  v.segment, v.prioriteit, v.orders, v.omzet, v.omzet_12m, v.laatste_order, v.laatst_gekocht,
+  p.bedrijfstype, p.status_bedrijf, p.zekerheid, p.samenvatting,
+  (coalesce(p.status_bedrijf,'') ~* '${GESLOTEN}') as gesloten
+  from klant_overzicht v left join klant_profielen p on lower(p.email) = lower(v.email)`;
+
+function badges(k) {
+  let h = "";
+  if (k.gesloten) h += `<span class="pill bad">bedrijf gestopt</span>`;
+  if (k.let_op) h += `<span class="pill warn">let op</span>`;
+  if (k.afgemeld) h += `<span class="pill bad">afgemeld</span>`;
+  if (k.segment === "actief") h += `<span class="pill good">actief</span>`;
+  else if (k.segment === "slapend") h += `<span class="pill">slapend${k.prioriteit ? " " + esc(k.prioriteit) : ""}</span>`;
+  else if (k.segment) h += `<span class="pill">${esc(k.segment)}</span>`;
+  if (k.bedrijfstype) h += `<span class="pill acc">${esc(k.bedrijfstype)}</span>`;
+  return h;
+}
+function klantRow(k, right) {
+  const sub = [k.plaats, k.land].filter(Boolean).join(", ");
+  const last = k.laatste_order ? `laatst besteld ${dt(k.laatste_order)}` : "nog nooit besteld";
+  return `<button class="row" data-klant="${esc(k.id)}"><span class="t">${esc(k.naam)}${badges(k)}</span>
+    <span class="s">${esc(sub)}${sub ? " · " : ""}${esc(last)}${k.orders ? " · " + int(k.orders) + " orders" : ""}</span>
+    <span class="r">${right ?? (k.omzet ? eur(k.omzet) : "")}</span></button>`;
+}
+function wireRows(root) { root.querySelectorAll("[data-klant]").forEach(b => b.addEventListener("click", () => openKlant(b.dataset.klant))); }
+
+/* ---------- tabbladen ---------- */
+const TABS = [
+  { id: "vandaag", label: "Vandaag", view: vVandaag },
+  { id: "klanten", label: "Klanten", view: vKlanten },
+  { id: "voorraad", label: "Voorraad naar kopers", view: vVoorraad },
+  { id: "opvolging", label: "Opvolging", view: vOpvolging },
+  { id: "beheer", label: "Gegevens", view: vBeheer },
+];
+let tab = store.get("tab") || "vandaag";
+if (!TABS.some(t => t.id === tab)) tab = "vandaag";
+let openCount = 0;
+function render() {
+  $("#tabs").innerHTML = TABS.map(t => `<button class="tab" role="tab" aria-selected="${t.id === tab}" data-t="${t.id}">${esc(t.label)}${t.id === "opvolging" && openCount ? `<span class="n">${openCount}</span>` : ""}</button>`).join("");
+  $("#tabs").querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => { tab = b.dataset.t; store.set("tab", tab); render(); }));
+  const main = $("#main");
+  main.innerHTML = "";
+  if (!mcp) {
+    main.innerHTML = `<div class="banner"><b>Verbinding met Supabase wordt gemaakt</b>Lukt dat niet, open deze pagina dan in claude.ai en sta de Supabase-koppeling toe.</div>`;
+    if (tab !== "beheer") return;
+  }
+  TABS.find(t => t.id === tab).view(main);
+}
+function showError(el, e) { el.innerHTML = `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`; }
+
+/* ---------- Vandaag ---------- */
+async function vVandaag(main) {
+  main.insertAdjacentHTML("beforeend", `<h2>Vandaag</h2><p class="lead">Wie je deze week een mail moet sturen. Alles hieronder komt uit je eigen orders en opvolgingen. Er wordt niets automatisch verstuurd.</p><div id="v-body"><p class="empty">Laden…</p></div>`);
+  const body = $("#v-body");
+  try {
+    const [stats, due, slap, jaar] = await Promise.all([
+      sql(`select count(*) filter (where segment='actief') actief, count(*) filter (where segment='slapend') slapend, count(*) filter (where segment='nooit besteld') nooit, count(*) totaal,
+           (select count(*) from opvolging where not afgehandeld and opvolgdatum <= current_date) open from klant_overzicht`),
+      sql(`select o.id oid, o.soort, o.tekst, o.opvolgdatum, k.id, k.naam, k.plaats, k.land from opvolging o join klanten k on k.id=o.klant_id
+           where not o.afgehandeld and o.opvolgdatum <= current_date order by o.opvolgdatum limit 30`),
+      sql(`${BASE} where v.segment='slapend' and v.prioriteit in ('A','B') and v.email is not null and not v.afgemeld
+           and coalesce(v.let_op,'')='' and coalesce(p.status_bedrijf,'') !~* '${GESLOTEN}'
+           and not exists (select 1 from opvolging x where x.klant_id=v.id and x.soort='mail' and x.aangemaakt > now() - interval '30 days')
+           order by v.prioriteit, v.omzet desc limit 12`),
+      sql(`${BASE} where v.laatste_order between current_date - 400 and current_date - 340 and v.email is not null and not v.afgemeld
+           and coalesce(v.let_op,'')='' and coalesce(p.status_bedrijf,'') !~* '${GESLOTEN}'
+           and not exists (select 1 from opvolging x where x.klant_id=v.id and x.soort='mail' and x.aangemaakt > now() - interval '30 days')
+           order by v.omzet desc limit 12`),
+    ]);
+    const s = stats[0] || {};
+    openCount = num(s.open);
+    const empty = !num(s.totaal);
+    body.innerHTML = `
+      ${empty ? `<div class="banner"><b>De database is nog leeg</b>Ga naar het tabblad Gegevens en laad klanten, artikelen en orders. Daarna vult dit scherm zich.</div>` : ""}
+      <ul class="stats"><li><b>${int(s.totaal)}</b><span>klanten</span></li><li><b>${int(s.actief)}</b><span>actief (kocht in 12 mnd)</span></li><li><b>${int(s.slapend)}</b><span>slapend</span></li><li><b>${int(s.nooit)}</b><span>nooit besteld</span></li><li><b>${int(s.open)}</b><span>opvolgingen aan de beurt</span></li></ul>
+      <div class="grid">
+        <section class="panel"><div class="hd"><h3>Opvolging aan de beurt</h3></div>${
+          due.length ? `<div class="rows">${due.map(d => `<button class="row" data-klant="${esc(d.id)}"><span class="t">${esc(d.naam)}<span class="pill acc">${esc(d.soort)}</span></span><span class="s">${esc(d.tekst || "")}</span><span class="r">${dt(d.opvolgdatum)}</span></button>`).join("")}</div>` : `<p class="empty">Niets achterstallig.</p>`}</section>
+        <section class="panel"><div class="hd"><h3>Slapende klanten, eerst de beste</h3></div>${
+          slap.length ? `<div class="rows">${slap.map(k => klantRow(k)).join("")}</div>` : `<p class="empty">Geen slapende A- of B-klanten met e-mailadres zonder recente mail.</p>`}
+          <p class="note">A = 6 of meer orders, B = 3 tot 6. Klanten die de laatste 30 dagen een gelogde mail kregen, staan hier niet.</p></section>
+        <section class="panel"><div class="hd"><h3>Kochten rond deze tijd vorig jaar</h3></div>${
+          jaar.length ? `<div class="rows">${jaar.map(k => klantRow(k)).join("")}</div>` : `<p class="empty">Geen klanten gevonden.</p>`}
+          <p class="note">Laatste order tussen 340 en 400 dagen geleden: het moment om weer aanbod te sturen.</p></section>
+      </div>`;
+    wireRows(body);
+    renderTabsOnly();
+  } catch (e) { showError(body, e); }
+}
+function renderTabsOnly() {
+  const t = $('[data-t="opvolging"]'); if (!t) return;
+  t.innerHTML = `Opvolging${openCount ? `<span class="n">${openCount}</span>` : ""}`;
+}
+
+/* ---------- Klanten ---------- */
+const kl = { q: "", seg: "", land: "", page: 0 };
+async function vKlanten(main) {
+  main.insertAdjacentHTML("beforeend", `<h2>Klanten</h2><p class="lead">Zoek op naam, plaats, land of e-mailadres.</p>
+    <form class="bar" id="k-bar"><input type="search" id="k-q" placeholder="Zoek klant" value="${esc(kl.q)}">
+    <select id="k-seg" aria-label="Segment"><option value="">Alle segmenten</option><option value="actief">Actief</option><option value="slapend">Slapend</option><option value="nooit besteld">Nooit besteld</option></select>
+    <button class="btn primary" type="submit">Zoeken</button></form><div id="k-body"><p class="empty">Laden…</p></div>`);
+  $("#k-seg").value = kl.seg;
+  $("#k-bar").addEventListener("submit", e => { e.preventDefault(); kl.q = $("#k-q").value.trim(); kl.seg = $("#k-seg").value; kl.page = 0; loadKlanten(); });
+  $("#k-seg").addEventListener("change", () => { kl.seg = $("#k-seg").value; kl.page = 0; loadKlanten(); });
+  loadKlanten();
+}
+async function loadKlanten() {
+  const body = $("#k-body"); if (!body) return;
+  const PAGE = 40, w = [];
+  if (kl.q) { const l = likeLit(kl.q); w.push(`(v.naam ilike ${l} or v.plaats ilike ${l} or v.land ilike ${l} or v.email ilike ${l})`); }
+  if (kl.seg) w.push(`v.segment = ${lit(kl.seg)}`);
+  const where = w.length ? "where " + w.join(" and ") : "";
+  try {
+    const [rows, cnt] = await Promise.all([
+      sql(`${BASE} ${where} order by (v.segment='actief') desc, v.omzet desc, v.naam limit ${PAGE} offset ${kl.page * PAGE}`),
+      sql(`select count(*) n from klant_overzicht v ${where}`),
+    ]);
+    const n = num(cnt[0] && cnt[0].n);
+    body.innerHTML = `<div class="panel">${rows.length ? `<div class="rows">${rows.map(k => klantRow(k)).join("")}</div>` : `<p class="empty">Geen klanten gevonden.</p>`}
+      <div class="pager"><span>${n ? `${kl.page * PAGE + 1} tot ${Math.min(n, (kl.page + 1) * PAGE)} van ${int(n)}` : ""}</span>
+      <button class="btn small" id="k-prev" ${kl.page ? "" : "disabled"}>Vorige</button><button class="btn small" id="k-next" ${(kl.page + 1) * PAGE < n ? "" : "disabled"}>Volgende</button></div></div>`;
+    wireRows(body);
+    $("#k-prev").addEventListener("click", () => { kl.page--; loadKlanten(); });
+    $("#k-next").addEventListener("click", () => { kl.page++; loadKlanten(); });
+  } catch (e) { showError(body, e); }
+}
+
+/* ---------- klantkaart ---------- */
+let cur = null;
+function closeLayer() { $("#layer").innerHTML = ""; cur = null; }
+function drawer(title, sub, html) {
+  $("#layer").innerHTML = `<div class="scrim" id="scrim"></div><aside class="drawer" role="dialog" aria-label="${esc(title)}"><div class="dr-hd"><div style="min-width:0"><h2>${esc(title)}</h2><div class="note">${sub}</div></div><button class="btn small" id="dr-x">Sluiten</button></div><div class="dr-body" id="dr-body">${html}</div></aside>`;
+  $("#scrim").addEventListener("click", closeLayer); $("#dr-x").addEventListener("click", closeLayer);
+}
+async function openKlant(id) {
+  drawer("Klant laden…", "", `<p class="empty">Laden…</p>`);
+  try {
+    const [k, pr, od, fu] = await Promise.all([
+      sql(`${BASE} where v.id = ${num(id)}`),
+      sql(`select p.* from klant_profielen p join klanten k on lower(k.email)=lower(p.email) where k.id=${num(id)} limit 1`),
+      sql(`select nummer, datum, status, omschrijving, prijs from orders where klant_id=${num(id)} order by datum desc, nummer desc limit 40`),
+      sql(`select id, soort, tekst, opvolgdatum, afgehandeld, aangemaakt from opvolging where klant_id=${num(id)} order by afgehandeld, opvolgdatum nulls last, id desc`),
+    ]);
+    if (!k[0]) { drawer("Klant niet gevonden", "", `<p class="empty">Deze klant bestaat niet meer.</p>`); return; }
+    cur = { k: k[0], p: pr[0] || null, orders: od, fu };
+    drawKlant();
+  } catch (e) { drawer("Klant", "", `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`); }
+}
+function kv(pairs) {
+  const rows = pairs.filter(([, v]) => v !== null && v !== undefined && v !== "" && !(Array.isArray(v) && !v.length));
+  return rows.length ? `<dl class="kv">${rows.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(fromList(b))}</dd>`).join("")}</dl>` : `<p class="empty">Nog geen gegevens.</p>`;
+}
+function drawKlant() {
+  const { k, p, orders, fu } = cur;
+  const sub = [k.plaats, k.land].filter(Boolean).map(esc).join(", ") + badges(k);
+  const warn = [];
+  if (k.gesloten) warn.push("Uit het onderzoek blijkt dat dit bedrijf mogelijk is gestopt of failliet. Niet mailen.");
+  if (k.let_op) warn.push("Let op: " + k.let_op);
+  const html = `
+    ${warn.map(w => `<div class="banner bad">${esc(w)}</div>`).join("")}
+    <section class="panel"><h3>Gegevens</h3>${kv([["E-mail", k.email], ["Telefoon", k.telefoon], ["Taal", k.taal], ["Relatiebeheer", k.relatiebeheer],
+      ["Orders", k.orders ? `${int(k.orders)} orders, ${eur(k.omzet)} totaal, ${eur(k.omzet_12m)} laatste 12 maanden` : "Nog geen orders"], ["Laatst gekocht", k.laatst_gekocht]])}</section>
+    <section class="panel"><h3>Wie is dit (uit internetonderzoek)</h3>${p ? kv([["Samenvatting", p.samenvatting], ["Zekerheid", p.zekerheid], ["Website", p.website], ["Type", p.bedrijfstype], ["Sector", p.sector],
+      ["Verkoopt", p.wat_ze_verkopen], ["Doelgroep", p.doelgroep], ["Kanalen", p.verkoopkanalen], ["Online aan consumenten", p.online_consumentenverkoop],
+      ["Landen", p.landen_actief], ["Vestigingen", p.aantal_vestigingen], ["Prijssegment", p.prijssegment], ["Seizoen", p.seizoen], ["Inkoop", p.inkoop_kenmerken],
+      ["Past bij", p.relevante_productgroepen], ["Past niet bij", p.niet_relevant], ["Status bedrijf", p.status_bedrijf], ["Eigen notitie", p.eigen_notitie]]) : `<p class="empty">Voor deze klant is nog geen profiel geladen.</p>`}</section>
+    <section class="panel"><h3>Jouw notities</h3><form class="f" id="f-not"><textarea id="n-txt" rows="3" placeholder="Wat weet jij over deze klant?">${esc(k.notities || "")}</textarea>
+      <div class="line"><button class="btn" type="submit">Notitie opslaan</button><button class="btn" type="button" id="b-afm">${k.afgemeld ? "Weer opnemen in mailingen" : "Markeer als afgemeld"}</button></div><div class="note" id="n-msg"></div></form></section>
+    <section class="panel"><h3>Mail</h3><p class="note">Claude schrijft een concept. Jij leest, past aan en verstuurt zelf.</p>
+      <button class="btn primary" id="b-mail" ${k.email && sampleApi ? "" : "disabled"}>Mail opstellen</button>${k.email ? "" : `<span class="note"> Geen e-mailadres bekend.</span>`}${sampleApi ? "" : `<span class="note"> Mails opstellen werkt alleen in claude.ai.</span>`}
+      <div id="mail-area"></div></section>
+    <section class="panel"><h3>Opvolging</h3>${fu.length ? `<div class="rows">${fu.map(f => `<div class="chk" style="grid-template-columns:minmax(0,1fr) auto"><div><span class="pill ${f.afgehandeld ? "" : "acc"}">${esc(f.soort)}</span> ${esc(f.tekst || "")}<div class="note">${f.opvolgdatum ? "opvolgen op " + dt(f.opvolgdatum) : "gelogd " + dt(f.aangemaakt)}${f.afgehandeld ? " · afgehandeld" : ""}</div></div>${f.afgehandeld ? "" : `<button class="btn small" data-done="${f.id}">Afgehandeld</button>`}</div>`).join("")}</div>` : `<p class="empty">Nog geen opvolging.</p>`}
+      <form class="f" id="f-fu" style="margin-top:10px"><div class="line"><label>Soort<select id="fu-soort"><option value="mail">mail</option><option value="offerte">offerte</option><option value="reactie">reactie</option><option value="notitie">notitie</option></select></label>
+      <label>Opvolgen op<input id="fu-dat" type="date" value="${plusDays(7)}"></label></div><label>Wat<input id="fu-txt" type="text" placeholder="Bijvoorbeeld: offerte Rietjes Bio gestuurd"></label><div><button class="btn" type="submit">Opvolging toevoegen</button></div></form></section>
+    <section class="panel"><h3>Orders</h3>${orders.length ? `<div class="tbl"><table><thead><tr><th>Datum</th><th>Order</th><th class="n">Bedrag</th></tr></thead><tbody>${orders.map(o => `<tr><td class="mono">${dt(o.datum)}</td><td>${esc(o.omschrijving || "")}<div class="note">${esc(o.status || "")} · ${esc(o.nummer)}</div></td><td class="n">${eur(o.prijs)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="empty">Nog geen orders.</p>`}</section>`;
+  drawer(k.naam, sub, html);
+  $("#f-not").addEventListener("submit", async e => { e.preventDefault(); const m = $("#n-msg"); m.textContent = "Opslaan…";
+    try { await sql(`update klanten set notities=${lit($("#n-txt").value.trim())} where id=${num(k.id)}`); k.notities = $("#n-txt").value.trim(); m.textContent = "Opgeslagen."; } catch (er) { m.textContent = explain(er); } });
+  $("#b-afm").addEventListener("click", async () => { try { await sql(`update klanten set afgemeld=${!k.afgemeld} where id=${num(k.id)}`); k.afgemeld = !k.afgemeld; drawKlant(); } catch (er) { $("#n-msg").textContent = explain(er); } });
+  $("#f-fu").addEventListener("submit", async e => { e.preventDefault();
+    try { await sql(`insert into opvolging (klant_id, soort, tekst, opvolgdatum) values (${num(k.id)}, ${lit($("#fu-soort").value)}, ${lit($("#fu-txt").value.trim())}, ${lit($("#fu-dat").value)})`); await openKlant(k.id); } catch (er) { alert0(er); } });
+  document.querySelectorAll("[data-done]").forEach(b => b.addEventListener("click", async () => { try { await sql(`update opvolging set afgehandeld=true where id=${num(b.dataset.done)}`); await openKlant(k.id); } catch (er) { alert0(er); } }));
+  $("#b-mail").addEventListener("click", startMail);
+}
+function alert0(e) { const b = $("#dr-body"); if (b) b.insertAdjacentHTML("afterbegin", `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`); }
+
+/* ---------- mail opstellen ---------- */
+let mailSel = [];
+async function startMail() {
+  const { k, orders } = cur, area = $("#mail-area");
+  area.innerHTML = `<p class="empty">Artikelen zoeken die passen…</p>`;
+  const words = [...new Set(orders.slice(0, 4).flatMap(o => String(o.omschrijving || "").split(/[\s,\/()-]+/).filter(w => w.length >= 5).slice(0, 2)))].slice(0, 6);
+  try {
+    const match = words.length ? `or a.naam ilike any (array[${words.map(likeLit).join(",")}])` : "";
+    const rows = await sql(`select a.artikel_nr, a.naam, a.groep, a.voorraad, a.verkoopprijs, a.webshop_url,
+      (false ${match}) as past from artikelen a where a.voorraad > 0 and a.verkoopprijs > 0
+      order by (false ${match}) desc, a.voorraad * a.verkoopprijs desc limit 12`);
+    mailSel = rows.map((a, i) => ({ ...a, on: i < 5 }));
+    drawMailPicker();
+  } catch (e) { showError(area, e); }
+}
+function drawMailPicker() {
+  const area = $("#mail-area");
+  area.innerHTML = `<h3 style="margin-top:12px">Welke artikelen mogen erin?</h3>
+    ${mailSel.length ? mailSel.map((a, i) => `<label class="chk"><input type="checkbox" data-i="${i}" ${a.on ? "checked" : ""}><span>${esc(a.naam)}${a.past ? `<span class="pill acc">past bij eerdere orders</span>` : ""}<div class="note mono">art. ${esc(a.artikel_nr)} · voorraad ${int(a.voorraad)}</div></span><span class="mono">${eur2(a.verkoopprijs)}</span></label>`).join("") : `<p class="empty">Er staan nog geen artikelen in de database. Laad ze via het tabblad Gegevens.</p>`}
+    <form class="f" id="f-find" style="margin-top:8px"><div class="line"><input id="find-q" type="search" placeholder="Ander artikel zoeken"><button class="btn" type="submit">Zoek</button></div></form><div id="find-res"></div>
+    <label class="f" style="margin-top:8px"><span class="note">Extra wens voor de mail (optioneel)</span><input id="m-wens" type="text" placeholder="Bijvoorbeeld: noem dat we pallets kunnen leveren"></label>
+    <div style="margin-top:8px"><button class="btn primary" id="b-write">Concept schrijven</button></div><div id="m-out"></div>`;
+  area.querySelectorAll("input[data-i]").forEach(c => c.addEventListener("change", () => { mailSel[c.dataset.i].on = c.checked; }));
+  $("#f-find").addEventListener("submit", async e => { e.preventDefault(); const q = $("#find-q").value.trim(); if (!q) return;
+    try { const r = await sql(`select artikel_nr, naam, groep, voorraad, verkoopprijs, webshop_url from artikelen where voorraad>0 and (naam ilike ${likeLit(q)} or artikel_nr::text = ${lit(q)}) order by voorraad desc limit 8`);
+      $("#find-res").innerHTML = r.length ? r.map((a, i) => `<div class="chk" style="grid-template-columns:minmax(0,1fr) auto auto"><span>${esc(a.naam)}<div class="note mono">art. ${esc(a.artikel_nr)} · voorraad ${int(a.voorraad)}</div></span><span class="mono">${eur2(a.verkoopprijs)}</span><button class="btn small" data-add="${i}">Toevoegen</button></div>`).join("") : `<p class="empty">Niets gevonden.</p>`;
+      $("#find-res").querySelectorAll("[data-add]").forEach(b => b.addEventListener("click", () => { const a = r[b.dataset.add]; if (!mailSel.some(x => x.artikel_nr === a.artikel_nr)) mailSel.push({ ...a, on: true }); drawMailPicker(); }));
+    } catch (er) { showError($("#find-res"), er); } });
+  $("#b-write").addEventListener("click", writeMail);
+}
+const TAAL = { NL: "Nederlands", EN: "Engels", DE: "Duits" };
+let mailCtl = null;
+async function writeMail() {
+  const { k, p, orders } = cur, out = $("#m-out"), picked = mailSel.filter(a => a.on);
+  if (!picked.length) { out.innerHTML = `<p class="empty">Kies minstens één artikel.</p>`; return; }
+  const profiel = p ? Object.entries({ type: p.bedrijfstype, sector: p.sector, verkoopt: p.wat_ze_verkopen, doelgroep: p.doelgroep, kanalen: fromList(p.verkoopkanalen), landen: fromList(p.landen_actief), past_bij: fromList(p.relevante_productgroepen), past_niet_bij: fromList(p.niet_relevant), samenvatting: p.samenvatting, zekerheid: p.zekerheid, eigen_notitie_michel: p.eigen_notitie }).filter(([, v]) => v).map(([a, b]) => `${a}: ${b}`).join("\n") : "geen profiel bekend";
+  const prompt = `Je schrijft namens Michel van Frank van de Wijgert Partijhandel (Tilburg, handel in non-food restpartijen) één korte, persoonlijke verkoopmail aan een zakelijke klant.
+
+Taal van de mail: ${TAAL[k.taal] || "Nederlands"}.
+Ontvanger: ${k.naam}${k.plaats ? ", " + k.plaats : ""}${k.land ? " (" + k.land + ")" : ""}.
+Klantsegment: ${k.segment}${k.prioriteit ? " " + k.prioriteit : ""}; ${num(k.orders)} orders eerder, laatste order ${k.laatste_order ? dt(k.laatste_order) : "geen"}.
+Eerder gekocht: ${orders.slice(0, 5).map(o => o.omschrijving).filter(Boolean).join(" | ") || "niets bekend"}.
+Wat we over de klant weten:
+${profiel}
+Notities van Michel: ${k.notities || "geen"}
+
+Artikelen die je mag noemen (alleen deze, met exact deze prijzen en voorraad):
+${picked.map(a => `- art.nr ${a.artikel_nr} | ${a.naam} | € ${Number(a.verkoopprijs).toFixed(2)} excl. btw | voorraad ${a.voorraad}${a.webshop_url ? " | " + a.webshop_url : ""}`).join("\n")}
+
+Regels:
+- Maximaal ongeveer 120 woorden plus de artikelregels. Geen opsmuk, geen emoji's, geen gedachtestreepjes.
+- Verzin niets over de klant. Een persoonlijke openingszin mag alleen steunen op de gegevens hierboven, en alleen als de zekerheid niet "laag" is. Anders open je neutraal.
+- Laat een artikel weg als de naam een beperking noemt die voor deze klant geldt, zoals "Geen verkoop Benelux" of "niet naar Action". Zeg in dat geval niets over het weglaten.
+- Prijzen zijn per stuk excl. btw. Sluit af met: op = op, en dat de klant kan reageren met artikel en aantal waarna jij een offerte maakt.
+- Ondertekening: "Met vriendelijke groet,\\nMichel\\nFrank van de Wijgert Partijhandel".
+${$("#m-wens") && $("#m-wens").value.trim() ? "- Extra wens van Michel: " + $("#m-wens").value.trim() : ""}
+Antwoord alleen met JSON: {"onderwerp": "...", "tekst": "..."}`;
+  out.innerHTML = `<p class="empty" id="m-wait">Concept wordt geschreven…</p>`;
+  $("#b-write").disabled = true;
+  mailCtl = new AbortController();
+  try {
+    const r = await sampleApi.json(prompt, { signal: mailCtl.signal, cache: false });
+    drawDraft(String(r.onderwerp || ""), String(r.tekst || ""));
+  } catch (e) {
+    out.innerHTML = `<div class="banner bad"><b>Het concept is niet gelukt</b>${esc(e && e.code === "not_granted" ? "Je hebt Claude voor deze pagina niet toegestaan." : e && e.code === "rate_limited" ? "Je zit aan je gebruikslimiet. Probeer het later opnieuw." : "Probeer het opnieuw.")}</div>`;
+  } finally { const b = $("#b-write"); if (b) b.disabled = false; }
+}
+function drawDraft(onderwerp, tekst) {
+  const { k } = cur, out = $("#m-out");
+  out.innerHTML = `<form class="f" id="f-draft" style="margin-top:10px"><label>Aan<input type="text" id="d-to" value="${esc(k.email || "")}" readonly></label>
+    <label>Onderwerp<input type="text" id="d-sub" value="${esc(onderwerp)}"></label>
+    <label>Tekst<textarea id="d-txt" rows="14">${esc(tekst)}</textarea></label>
+    <div class="line"><a class="btn" id="d-open" href="#" target="_blank" rel="noopener">Open in mailprogramma</a><button type="button" class="btn" id="d-copy">Kopieer tekst</button><button type="button" class="btn primary" id="d-sent">Ik heb deze mail verstuurd</button></div>
+    <div class="note" id="d-msg">Er is niets verstuurd. Als het mailprogramma niet opent, kopieer dan de tekst. Met de laatste knop leg je vast dat je mailde en komt er over 7 dagen een opvolging.</div></form>`;
+  const upd = () => { $("#d-open").href = `mailto:${encodeURIComponent(k.email || "")}?subject=${encodeURIComponent($("#d-sub").value)}&body=${encodeURIComponent($("#d-txt").value)}`; };
+  upd(); $("#d-sub").addEventListener("input", upd); $("#d-txt").addEventListener("input", upd);
+  $("#d-copy").addEventListener("click", async () => { const t = $("#d-txt"); try { await navigator.clipboard.writeText(t.value); $("#d-msg").textContent = "Tekst gekopieerd."; } catch { t.select(); $("#d-msg").textContent = "Selecteer de tekst en kopieer met Ctrl+C."; } });
+  $("#d-sent").addEventListener("click", async () => {
+    const names = mailSel.filter(a => a.on).map(a => a.artikel_nr).join(", ");
+    try { await sql(`insert into opvolging (klant_id, soort, tekst, opvolgdatum) values (${num(k.id)}, 'mail', ${lit("Aanbodmail verstuurd: art. " + names + " (" + $("#d-sub").value + ")")}, ${lit(plusDays(7))})`); await openKlant(k.id); } catch (er) { $("#d-msg").textContent = explain(er); } });
+}
+
+/* ---------- Voorraad naar kopers ---------- */
+async function vVoorraad(main) {
+  main.insertAdjacentHTML("beforeend", `<h2>Voorraad naar kopers</h2><p class="lead">Kies een partij en zie welke klanten dit of iets vergelijkbaars eerder kochten, en welke volgens het onderzoek erbij passen.</p>
+    <form class="bar" id="a-bar"><input type="search" id="a-q" placeholder="Zoek artikel of artikelnummer"><button class="btn primary" type="submit">Zoeken</button></form>
+    <div class="grid"><section class="panel" id="a-list"><p class="empty">Zoek een artikel, of kijk hieronder naar de grootste partijen.</p></section><section class="panel" id="a-buyers"><p class="empty">Kies links een artikel.</p></section></div>`);
+  $("#a-bar").addEventListener("submit", e => { e.preventDefault(); loadArt($("#a-q").value.trim()); });
+  loadArt("");
+}
+async function loadArt(q) {
+  const box = $("#a-list"); if (!box) return;
+  try {
+    const rows = await sql(`select artikel_nr, naam, groep, voorraad, verkoopprijs, inkoopprijs from artikelen where voorraad>0 ${q ? `and (naam ilike ${likeLit(q)} or artikel_nr::text=${lit(q)})` : ""} order by voorraad * coalesce(verkoopprijs,0) desc limit 30`);
+    box.innerHTML = rows.length ? `<div class="hd"><h3>${q ? "Gevonden artikelen" : "Grootste partijen op voorraadwaarde"}</h3></div><div class="rows">${rows.map((a, i) => `<button class="row" data-a="${i}"><span class="t">${esc(a.naam)}</span><span class="s mono">art. ${esc(a.artikel_nr)} · ${esc(a.groep || "")} · voorraad ${int(a.voorraad)}</span><span class="r">${eur2(a.verkoopprijs)}</span></button>`).join("")}</div>` : `<p class="empty">Geen artikelen gevonden. Laad ze eventueel via het tabblad Gegevens.</p>`;
+    box.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => loadKopers(rows[b.dataset.a])));
+  } catch (e) { showError(box, e); }
+}
+async function loadKopers(a, termOverride) {
+  const box = $("#a-buyers");
+  const stop = new Set(["voor", "met", "van", "mix", "div", "set", "kleur", "kleuren", "assorti", "stuks"]);
+  const term = termOverride ?? String(a.naam).split(/[\s,\/()-]+/).filter(w => w.length >= 4 && !stop.has(w.toLowerCase())).slice(0, 2).join(" ");
+  box.innerHTML = `<p class="empty">Zoeken…</p>`;
+  try {
+    const kopers = term ? await sql(`${BASE.replace("from klant_overzicht v", `from (select o.klant_id, count(*) n, max(o.datum) laatst from orders o where o.omschrijving ilike ${likeLit(term)} and o.klant_id is not null group by o.klant_id) x join klant_overzicht v on v.id = x.klant_id`).replace("select v.id,", "select x.n as keer, x.laatst, v.id,")} where not v.afgemeld and coalesce(p.status_bedrijf,'') !~* '${GESLOTEN}' order by x.laatst desc limit 40`) : [];
+    const groep = a.groep && a.groep !== "Overige" ? await sql(`${BASE} where ${lit(a.groep)} = any(p.relevante_productgroepen) and not v.afgemeld and v.email is not null and coalesce(p.status_bedrijf,'') !~* '${GESLOTEN}' order by v.omzet desc limit 25`) : [];
+    const ids = new Set(kopers.map(k => String(k.id)));
+    box.innerHTML = `<div class="hd"><h3>${esc(a.naam)}</h3></div>
+      <form class="bar" id="t-bar"><input type="search" id="t-q" value="${esc(term)}" aria-label="Zoekwoord in eerdere orders"><button class="btn" type="submit">Zoek in orders</button></form>
+      <p class="note">Klanten met een eerdere order waarin "${esc(term)}" voorkomt, met de meest recente bovenaan.</p>
+      ${kopers.length ? `<div class="rows">${kopers.map(k => klantRow(k, `${int(k.keer)}× · ${dt(k.laatst)}`)).join("")}</div>` : `<p class="empty">Geen eerdere kopers gevonden voor dit zoekwoord.</p>`}
+      ${groep.length ? `<h3 style="margin-top:14px">Passen volgens het onderzoek (${esc(a.groep)})</h3><div class="rows">${groep.filter(k => !ids.has(String(k.id))).map(k => klantRow(k)).join("")}</div>` : ""}`;
+    wireRows(box);
+    $("#t-bar").addEventListener("submit", e => { e.preventDefault(); loadKopers(a, $("#t-q").value.trim()); });
+  } catch (e) { showError(box, e); }
+}
+
+/* ---------- Opvolging ---------- */
+async function vOpvolging(main) {
+  main.insertAdjacentHTML("beforeend", `<h2>Opvolging</h2><p class="lead">Elke gelogde mail, offerte en reactie met de datum waarop je terugkomt.</p><div id="o-body"><p class="empty">Laden…</p></div>`);
+  try {
+    const rows = await sql(`select o.id oid, o.soort, o.tekst, o.opvolgdatum, o.afgehandeld, o.aangemaakt, k.id, k.naam, k.plaats, k.land from opvolging o join klanten k on k.id=o.klant_id order by o.afgehandeld, o.opvolgdatum nulls last, o.id desc limit 200`);
+    const open = rows.filter(r => !r.afgehandeld), done = rows.filter(r => r.afgehandeld).slice(0, 30);
+    openCount = open.filter(r => r.opvolgdatum && String(r.opvolgdatum).slice(0, 10) <= plusDays(0)).length; renderTabsOnly();
+    const line = r => `<div class="chk" style="grid-template-columns:minmax(0,1fr) auto"><button class="row" data-klant="${esc(r.id)}" style="padding:0;border:0"><span class="t">${esc(r.naam)}<span class="pill acc">${esc(r.soort)}</span></span><span class="s">${esc(r.tekst || "")}</span></button>
+      <span class="mono note">${r.opvolgdatum ? dt(r.opvolgdatum) : ""}${r.afgehandeld ? "" : ` <button class="btn small" data-done="${r.oid}">Afgehandeld</button>`}</span></div>`;
+    $("#o-body").innerHTML = `<div class="grid"><section class="panel"><h3>Open (${open.length})</h3>${open.length ? open.map(line).join("") : `<p class="empty">Niets open.</p>`}</section><section class="panel"><h3>Afgehandeld</h3>${done.length ? done.map(line).join("") : `<p class="empty">Nog niets afgehandeld.</p>`}</section></div>`;
+    wireRows($("#o-body"));
+    document.querySelectorAll("[data-done]").forEach(b => b.addEventListener("click", async () => { try { await sql(`update opvolging set afgehandeld=true where id=${num(b.dataset.done)}`); render(); } catch (e) { showError($("#o-body"), e); } }));
+  } catch (e) { showError($("#o-body"), e); }
+}
+
+/* ---------- Gegevens laden ---------- */
+function parseCSV(t) {
+  if (t.charCodeAt(0) === 0xFEFF) t = t.slice(1);
+  const rows = []; let row = [], f = "", q = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (q) { if (c === '"') { if (t[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+    else if (c === '"') q = true;
+    else if (c === ",") { row.push(f); f = ""; }
+    else if (c === "\n") { row.push(f); rows.push(row); row = []; f = ""; }
+    else if (c !== "\r") f += c;
+  }
+  if (f !== "" || row.length) { row.push(f); rows.push(row); }
+  const h = rows.shift().map(x => x.trim());
+  return rows.filter(r => r.length > 1 || (r[0] && r[0].trim())).map(r => Object.fromEntries(h.map((k, i) => [k, (r[i] ?? "").replace(/\u0000/g, "")])));
+}
+const isInt = v => /^\d+$/.test(String(v).trim());
+const numOrBlank = v => { const n = Number(String(v).trim().replace(",", ".")); return String(v).trim() !== "" && Number.isFinite(n) ? String(n) : ""; };
+const dateOrBlank = v => /^\d{4}-\d{2}-\d{2}/.test(String(v).trim()) ? String(v).trim() : "";
+function dedupe(rows, keyFn) { const m = new Map(); rows.forEach(r => m.set(keyFn(r), r)); return [...m.values()]; }
+function jsonLit(rows) {
+  const js = JSON.stringify(rows);
+  let tag = "j"; while (js.includes("$" + tag + "$")) tag += "x";
+  return `$${tag}$${js}$${tag}$::jsonb`;
+}
+const SETS = [
+  { key: "klanten", label: "Klanten", file: "1_klanten.csv", size: 300,
+    prep: rows => dedupe(rows.filter(r => isInt(r.id) && r.naam.trim()), r => r.id),
+    sql: rows => `insert into klanten (id, relatie_nr, naam, email, telefoon, taal, land, plaats, relatiebeheer, let_op, bron)
+      select (r->>'id')::bigint, nullif(r->>'relatie_nr','')::int, r->>'naam', nullif(r->>'email',''), nullif(r->>'telefoon',''),
+        case when upper(r->>'taal') in ('NL','EN','DE') then upper(r->>'taal') else 'NL' end, nullif(r->>'land',''), nullif(r->>'plaats',''),
+        nullif(r->>'relatiebeheer',''), nullif(r->>'let_op',''), case when r->>'bron' in ('relaties','orders','prospect') then r->>'bron' else 'relaties' end
+      from jsonb_array_elements(${jsonLit(rows)}) r
+      on conflict (id) do update set relatie_nr=excluded.relatie_nr, naam=excluded.naam, email=excluded.email, telefoon=excluded.telefoon,
+        taal=excluded.taal, land=excluded.land, plaats=excluded.plaats, relatiebeheer=excluded.relatiebeheer, let_op=excluded.let_op`,
+    after: `select setval(pg_get_serial_sequence('klanten','id'), (select max(id) from klanten))` },
+  { key: "artikelen", label: "Artikelen", file: "2_artikelen.csv", size: 300,
+    prep: rows => dedupe(rows.filter(r => isInt(r.artikel_nr) && r.naam.trim()).map(r => ({ ...r, voorraad: String(Math.round(Number(numOrBlank(r.voorraad) || 0))), inkoopprijs: numOrBlank(r.inkoopprijs), verkoopprijs: numOrBlank(r.verkoopprijs), aangemaakt: dateOrBlank(r.aangemaakt) })), r => r.artikel_nr),
+    sql: rows => `insert into artikelen (artikel_nr, naam, groep, voorraad, inkoopprijs, verkoopprijs, aangemaakt, foto_url, ean, webshop_url)
+      select (r->>'artikel_nr')::int, r->>'naam', nullif(r->>'groep',''), coalesce(nullif(r->>'voorraad','')::int,0), nullif(r->>'inkoopprijs','')::numeric,
+        nullif(r->>'verkoopprijs','')::numeric, nullif(r->>'aangemaakt','')::timestamptz, nullif(r->>'foto_url',''), nullif(r->>'ean',''), nullif(r->>'webshop_url','')
+      from jsonb_array_elements(${jsonLit(rows)}) r
+      on conflict (artikel_nr) do update set naam=excluded.naam, groep=excluded.groep, voorraad=excluded.voorraad, inkoopprijs=excluded.inkoopprijs,
+        verkoopprijs=excluded.verkoopprijs, aangemaakt=excluded.aangemaakt, foto_url=excluded.foto_url, ean=excluded.ean, webshop_url=excluded.webshop_url, bijgewerkt=now()` },
+  { key: "orders", label: "Orders", file: "3_orders.csv", size: 400,
+    prep: rows => dedupe(rows.filter(r => isInt(r.nummer) && dateOrBlank(r.datum)).map(r => ({ ...r, klant_id: isInt(r.klant_id) ? r.klant_id : "", inkoop: numOrBlank(r.inkoop), prijs: numOrBlank(r.prijs) })), r => r.nummer),
+    sql: rows => `insert into orders (nummer, datum, klant_id, klantnaam, status, omschrijving, inkoop, prijs)
+      select (r->>'nummer')::bigint, (r->>'datum')::date, (select k.id from klanten k where k.id = nullif(r->>'klant_id','')::bigint),
+        coalesce(nullif(r->>'klantnaam',''),'onbekend'), nullif(r->>'status',''), nullif(r->>'omschrijving',''), nullif(r->>'inkoop','')::numeric, nullif(r->>'prijs','')::numeric
+      from jsonb_array_elements(${jsonLit(rows)}) r
+      on conflict (nummer) do update set datum=excluded.datum, klant_id=excluded.klant_id, klantnaam=excluded.klantnaam, status=excluded.status,
+        omschrijving=excluded.omschrijving, inkoop=excluded.inkoop, prijs=excluded.prijs` },
+  { key: "klant_profielen", label: "Klantprofielen", file: "4_klant_profielen.csv", size: 30,
+    prep: rows => dedupe(rows.filter(r => r.email.includes("@")).map(r => {
+      const o = { ...r, email: r.email.trim() };
+      ["verkoopkanalen", "landen_actief", "relevante_productgroepen", "niet_relevant"].forEach(c => { if (!String(o[c]).startsWith("{")) o[c] = ""; });
+      try { JSON.parse(o.profiel); } catch { o.profiel = ""; }
+      return o;
+    }), r => r.email.toLowerCase()),
+    sql: rows => `insert into klant_profielen (email, naam, gevonden, officiele_naam, website, bedrijfstype, sector, wat_ze_verkopen, doelgroep, verkoopkanalen, online_consumentenverkoop,
+        landen_actief, aantal_vestigingen, prijssegment, seizoen, inkoop_kenmerken, relevante_productgroepen, niet_relevant, status_bedrijf, zekerheid, samenvatting, profiel, bijgewerkt)
+      select r->>'email', nullif(r->>'naam',''), nullif(r->>'gevonden',''), nullif(r->>'officiele_naam',''), nullif(r->>'website',''), nullif(r->>'bedrijfstype',''), nullif(r->>'sector',''),
+        nullif(r->>'wat_ze_verkopen',''), nullif(r->>'doelgroep',''), nullif(r->>'verkoopkanalen','')::text[], nullif(r->>'online_consumentenverkoop',''), nullif(r->>'landen_actief','')::text[],
+        nullif(r->>'aantal_vestigingen',''), nullif(r->>'prijssegment',''), nullif(r->>'seizoen',''), nullif(r->>'inkoop_kenmerken',''), nullif(r->>'relevante_productgroepen','')::text[],
+        nullif(r->>'niet_relevant','')::text[], nullif(r->>'status_bedrijf',''), nullif(r->>'zekerheid',''), nullif(r->>'samenvatting',''), nullif(r->>'profiel','')::jsonb, now()
+      from jsonb_array_elements(${jsonLit(rows)}) r
+      on conflict (email) do update set naam=excluded.naam, gevonden=excluded.gevonden, officiele_naam=excluded.officiele_naam, website=excluded.website, bedrijfstype=excluded.bedrijfstype,
+        sector=excluded.sector, wat_ze_verkopen=excluded.wat_ze_verkopen, doelgroep=excluded.doelgroep, verkoopkanalen=excluded.verkoopkanalen, online_consumentenverkoop=excluded.online_consumentenverkoop,
+        landen_actief=excluded.landen_actief, aantal_vestigingen=excluded.aantal_vestigingen, prijssegment=excluded.prijssegment, seizoen=excluded.seizoen, inkoop_kenmerken=excluded.inkoop_kenmerken,
+        relevante_productgroepen=excluded.relevante_productgroepen, niet_relevant=excluded.niet_relevant, status_bedrijf=excluded.status_bedrijf, zekerheid=excluded.zekerheid,
+        samenvatting=excluded.samenvatting, profiel=excluded.profiel, bijgewerkt=now()` },
+];
+async function readCsv(file) {
+  if (!filesApi) throw { code: "capability_disabled", message: "Projectbestanden zijn hier niet beschikbaar. Open de pagina in claude.ai." };
+  let last;
+  for (const path of [PROJECT_FILES_DIR + file, "/" + PROJECT_FILES_DIR + file, "/mnt/project-files/" + PROJECT_FILES_DIR + file]) {
+    try { const r = await filesApi.read(path); return new TextDecoder("utf-8").decode(r.bytes); } catch (e) { last = e; }
+  }
+  throw last;
+}
+let importing = false;
+async function importSet(set, log, prog) {
+  log(`${set.label}: bestand lezen…`);
+  let rows;
+  try { rows = set.prep(parseCSV(await readCsv(set.file))); }
+  catch (e) { log(`${set.label}: niet gelezen (${e && (e.code || e.message)}). Staat ${set.file} in ${PROJECT_FILES_DIR}?`); return; }
+  log(`${set.label}: ${int(rows.length)} rijen te laden`);
+  let done = 0, fail = 0, shown = 0;
+  for (let i = 0; i < rows.length; i += set.size) {
+    const chunk = rows.slice(i, i + set.size);
+    try { await sql(set.sql(chunk)); done += chunk.length; }
+    catch (e) {
+      if (e && ["server_not_connected", "needs_reauth", "not_in_manifest", "consent_required", "blocked_by_policy", "not_granted", "capability_disabled"].includes(e.code)) throw e;
+      for (const r of chunk) {
+        try { await sql(set.sql([r])); done++; } catch (e2) { fail++; if (shown++ < 4) log(`  rij overgeslagen (${r[Object.keys(r)[0]]}): ${(e2 && e2.message || "").slice(0, 140)}`); }
+      }
+    }
+    prog(Math.min(1, (i + chunk.length) / rows.length));
+  }
+  if (set.after && done) await sql(set.after);
+  log(`${set.label}: ${int(done)} geladen${fail ? `, ${int(fail)} overgeslagen` : ""}.`);
+}
+async function vBeheer(main) {
+  main.insertAdjacentHTML("beforeend", `<h2>Gegevens</h2><p class="lead">Laad de exports uit het projectbestand naar de database. Opnieuw laden is veilig: bestaande rijen worden bijgewerkt, jouw notities, afmeldingen en opvolgingen blijven staan.</p>
+    <div class="grid"><section class="panel"><h3>In de database</h3><div id="b-counts"><p class="empty">Laden…</p></div></section>
+    <section class="panel"><h3>Laden uit projectbestanden</h3><p class="note">Bron: ${esc(PROJECT_FILES_DIR)}. Volgorde: klanten, artikelen, orders, profielen.</p>
+      <div class="line" style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0"><button class="btn primary" id="b-all">Alles laden</button>${SETS.map(s => `<button class="btn" data-set="${s.key}">${esc(s.label)}</button>`).join("")}</div>
+      <div class="prog"><i id="b-prog"></i></div><div class="log" id="b-log" aria-live="polite">Nog niets geladen in deze sessie.</div></section></div>`);
+  const refresh = async () => {
+    try { const r = await sql(`select 'klanten' t, count(*) n from klanten union all select 'artikelen', count(*) from artikelen union all select 'orders', count(*) from orders union all select 'klantprofielen', count(*) from klant_profielen union all select 'opvolging', count(*) from opvolging`);
+      $("#b-counts").innerHTML = `<ul class="stats">${r.map(x => `<li><b>${int(x.n)}</b><span>${esc(x.t)}</span></li>`).join("")}</ul>`; }
+    catch (e) { showError($("#b-counts"), e); }
+  };
+  if (mcp) refresh();
+  const log = m => { const l = $("#b-log"); if (!l) return; l.textContent = (l.textContent.startsWith("Nog niets") ? "" : l.textContent + "\n") + m; l.scrollTop = l.scrollHeight; };
+  const prog = f => { const p = $("#b-prog"); if (p) p.style.width = Math.round(f * 100) + "%"; };
+  const run = async list => {
+    if (importing) return; importing = true; document.querySelectorAll("#main .btn").forEach(b => b.disabled = true);
+    try { for (const s of list) { prog(0); await importSet(s, log, prog); } log("Klaar."); }
+    catch (e) { log("Gestopt: " + explain(e)); }
+    importing = false; document.querySelectorAll("#main .btn").forEach(b => b.disabled = false); refresh();
+  };
+  $("#b-all").addEventListener("click", () => run(SETS));
+  document.querySelectorAll("[data-set]").forEach(b => b.addEventListener("click", () => run([SETS.find(s => s.key === b.dataset.set)])));
+}
+
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeLayer(); });
+boot();
+</script>
