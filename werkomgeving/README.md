@@ -12,7 +12,7 @@ Onderdelen
 - Offertes: aanvraag, reservering en offerte met regels; omzetten naar order (regels, orderregels, voorraad afboeken).
 - Orders: overzicht, status wijzigen, inhoud.
 - Campagnes: artikelen, ontvangers, geopend en reactie vastleggen. Verstuurt nooit zelf iets.
-- Opvolging en Gegevens (CSV's uit de projectbestanden laden).
+- Opvolging en Gegevens (CSV's uit de projectbestanden laden; klanten en orders worden nooit overschreven, omdat de klantkoppeling op orders en de MyBusiness-gegevens op klanten vanuit de database komen).
 
 Regels
 - De pagina verstuurt geen mail. Claude schrijft een concept, Michel verstuurt zelf.

@@ -1083,8 +1083,7 @@ const SETS = [
         case when upper(r->>'taal') in ('NL','EN','DE') then upper(r->>'taal') else 'NL' end, nullif(r->>'land',''), nullif(r->>'plaats',''),
         nullif(r->>'relatiebeheer',''), nullif(r->>'let_op',''), case when r->>'bron' in ('relaties','orders','prospect') then r->>'bron' else 'relaties' end
       from jsonb_array_elements(${jsonLit(rows)}) r
-      on conflict (id) do update set relatie_nr=excluded.relatie_nr, naam=excluded.naam, email=excluded.email, telefoon=excluded.telefoon,
-        taal=excluded.taal, land=excluded.land, plaats=excluded.plaats, relatiebeheer=excluded.relatiebeheer, let_op=excluded.let_op`,
+      on conflict do nothing`,
     after: `select setval(pg_get_serial_sequence('klanten','id'), (select max(id) from klanten))` },
   { key: "artikelen", label: "Artikelen", file: "2_artikelen.csv", size: 300,
     prep: rows => dedupe(rows.filter(r => isInt(r.artikel_nr) && r.naam.trim()).map(r => ({ ...r, voorraad: String(Math.round(Number(numOrBlank(r.voorraad) || 0))), inkoopprijs: numOrBlank(r.inkoopprijs), verkoopprijs: numOrBlank(r.verkoopprijs), aangemaakt: dateOrBlank(r.aangemaakt) })), r => r.artikel_nr),
@@ -1100,8 +1099,7 @@ const SETS = [
       select (r->>'nummer')::bigint, (r->>'datum')::date, (select k.id from klanten k where k.id = nullif(r->>'klant_id','')::bigint),
         coalesce(nullif(r->>'klantnaam',''),'onbekend'), nullif(r->>'status',''), nullif(r->>'omschrijving',''), nullif(r->>'inkoop','')::numeric, nullif(r->>'prijs','')::numeric
       from jsonb_array_elements(${jsonLit(rows)}) r
-      on conflict (nummer) do update set datum=excluded.datum, klant_id=excluded.klant_id, klantnaam=excluded.klantnaam, status=excluded.status,
-        omschrijving=excluded.omschrijving, inkoop=excluded.inkoop, prijs=excluded.prijs` },
+      on conflict (nummer) do update set klant_id=coalesce(orders.klant_id, excluded.klant_id)` },
   { key: "klant_profielen", label: "Klantprofielen", file: "4_klant_profielen.csv", size: 30,
     prep: rows => dedupe(rows.filter(r => r.email.includes("@")).map(r => {
       const o = { ...r, email: r.email.trim() };
@@ -1156,7 +1154,7 @@ async function importSet(set, log, prog) {
   log(`${set.label}: ${int(done)} geladen${fail ? `, ${int(fail)} overgeslagen` : ""}.`);
 }
 async function vBeheer(main) {
-  main.insertAdjacentHTML("beforeend", `<h2>Gegevens</h2><p class="lead">Laad de exports uit het projectbestand naar de database. Opnieuw laden is veilig: bestaande rijen worden bijgewerkt, jouw notities, afmeldingen en opvolgingen blijven staan.</p>
+  main.insertAdjacentHTML("beforeend", `<h2>Gegevens</h2><p class="lead">Laad de exports uit het projectbestand naar de database. Opnieuw laden is veilig: klanten en orders die al bestaan blijven ongewijzigd (alleen nieuwe worden toegevoegd), artikelen en profielen worden bijgewerkt. Offertes, notities, afmeldingen en opvolgingen blijven altijd staan.</p>
     <div class="grid"><section class="panel"><h3>In de database</h3><div id="b-counts"><p class="empty">Laden…</p></div></section>
     <section class="panel"><h3>Laden uit projectbestanden</h3><p class="note">Bron: ${esc(PROJECT_FILES_DIR)}. Volgorde: klanten, artikelen, orders, profielen.</p>
       <div class="line" style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0"><button class="btn primary" id="b-all">Alles laden</button>${SETS.map(s => `<button class="btn" data-set="${s.key}">${esc(s.label)}</button>`).join("")}</div>
