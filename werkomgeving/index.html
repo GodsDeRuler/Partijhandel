@@ -327,15 +327,17 @@ const TABS = [
   { id: "inkoop", label: "Inkoop", view: vInkoop },
   { id: "campagnes", label: "Campagnes", view: vCampagnes },
   { id: "opvolging", label: "Opvolging", view: vOpvolging },
+  { id: "prijzen", label: "Prijzen", view: vPrijzen },
+  { id: "voorraad", label: "Voorraad", view: vVrd },
   { id: "facturen", label: "Facturen", view: vFacturen },
   { id: "stam", label: "Stamgegevens", view: vStam },
   { id: "beheer", label: "Gegevens", view: vBeheer },
 ];
 const GROUPS = [
   { id: "overzicht", label: "Overzicht", tabs: ["dashboard", "vandaag", "kaart"] },
-  { id: "verkoop", label: "Verkoop", tabs: ["klanten", "offertes", "orders"] },
+  { id: "verkoop", label: "Verkoop", tabs: ["klanten", "offertes", "orders", "prijzen"] },
   { id: "uitvoering", label: "Uitvoering", tabs: ["uitvoering"] },
-  { id: "artikelen", label: "Artikelen", tabs: ["assortiment", "inkoop"] },
+  { id: "artikelen", label: "Artikelen", tabs: ["assortiment", "voorraad", "inkoop"] },
   { id: "financieel", label: "Financieel", tabs: ["facturen"] },
   { id: "marketing", label: "Marketing", tabs: ["campagnes", "opvolging"] },
   { id: "onderhoud", label: "Onderhoud", tabs: ["stam", "beheer"] },
@@ -812,21 +814,31 @@ async function artikelForm(nr) {
     if (nr) a = (await sql(`select * from artikelen where artikel_nr = ${num(nr)}`))[0] || {};
     else next = num((await sql(`select coalesce(max(artikel_nr), 100000) + 1 n from artikelen`))[0].n);
     if (!groepenCache) groepenCache = (await sql(`select groep, count(*) n from artikelen where groep is not null group by 1 order by 2 desc`)).map(r => r.groep);
+    const [c, levs, merken] = await Promise.all([getCfg(), sql(`select id, naam from leveranciers order by naam`), sql(`select id, naam from merken order by naam`)]);
+    const oud = num(a.voorraad);
     $("#dr-body").innerHTML = `<form class="f panel" id="af">
       <div class="line">${fld("af-nr", "Artikelnummer", nr || next, "number", nr ? "readonly" : "required")}${fld("af-groep", "Groep", a.groep, "text", `list="af-groepen"`)}</div><datalist id="af-groepen">${groepenCache.map(g => `<option value="${esc(g)}">`).join("")}</datalist>
       ${fld("af-naam", "Naam", a.naam, "text", "required")}
-      <div class="line">${fld("af-vr", "Voorraad", a.voorraad ?? 0, "number", `step="1"`)}${fld("af-ink", "Inkoopprijs", a.inkoopprijs, "number", `step="0.01"`)}${fld("af-vk", "Verkoopprijs", a.verkoopprijs, "number", `step="0.01"`)}</div>
+      <div class="line">${fld("af-vr", "Voorraad", a.voorraad ?? 0, "number", `step="1"`)}${fld("af-min", "Minimale voorraad", a.minimale_voorraad, "number", `step="1" min="0"`)}${fld("af-loc", "Locatie", a.locatie)}</div>
+      <div class="line">${fld("af-ink", "Inkoopprijs", a.inkoopprijs, "number", `step="0.01"`)}${fld("af-vk", "Verkoopprijs", a.verkoopprijs, "number", `step="0.01"`)}${sel("af-btw", "Btw-groep", [["", "Hoog (standaard)"], ...c.btw.map(b => [b.id, b.naam])], a.btw_groep_id)}</div>
+      <div class="line">${sel("af-lev", "Leverancier", [["", "Geen"], ...levs.map(l => [l.id, l.naam])], a.leverancier_id)}${sel("af-merk", "Merk", [["", "Geen"], ...merken.map(m => [m.id, m.naam])], a.merk_id)}${fld("af-merknw", "Of nieuw merk", "")}</div>
+      <div class="line">${fld("af-ver", "Verpakking (pallet/omdoos, bv. 400/10)", a.verpakking)}${fld("af-hs", "HS-code", a.hs_code)}${fld("af-her", "Land van herkomst", a.herkomst)}</div>
       <div class="line">${fld("af-ean", "EAN", a.ean)}${fld("af-web", "Webshop-link", a.webshop_url, "url")}</div>
       ${fld("af-foto", "Foto-link", a.foto_url, "url")}
+      <div class="line"><label class="mandl"><input type="checkbox" id="af-fav" ${a.favoriet ? "checked" : ""}> Favoriet</label><label class="mandl"><input type="checkbox" id="af-act" ${a.actief === false ? "" : "checked"}> In gebruik</label></div>
       <div><button class="btn primary" type="submit">${nr ? "Opslaan" : "Artikel toevoegen"}</button></div><div class="note" id="af-msg">${nr ? "" : "Een foto toon je in het assortiment door <span class=mono>sales/aanbodpagina/fotos/&lt;artikelnummer&gt;.jpg</span> in de projectbestanden te zetten."}</div></form>`;
     $("#af").addEventListener("submit", async e => {
       e.preventDefault(); const m = $("#af-msg"); m.textContent = "Opslaan…";
       try {
-        const v = { nr: num(gv("af-nr")), naam: gv("af-naam"), groep: gv("af-groep"), vr: Math.round(num(gv("af-vr"))), ink: numLit(gv("af-ink")), vk: numLit(gv("af-vk")), ean: gv("af-ean"), web: gv("af-web"), foto: gv("af-foto") };
-        if (nr) await sql(`update artikelen set naam=${lit(v.naam)}, groep=${lit(v.groep)}, voorraad=${v.vr}, inkoopprijs=${v.ink}, verkoopprijs=${v.vk}, ean=${lit(v.ean)}, webshop_url=${lit(v.web)}, foto_url=${lit(v.foto)}, bijgewerkt=now() where artikel_nr=${num(nr)}`);
+        const v = { nr: num(gv("af-nr")), naam: gv("af-naam"), groep: gv("af-groep"), vr: Math.round(num(gv("af-vr"))), ink: numLit(gv("af-ink")), vk: numLit(gv("af-vk")), ean: gv("af-ean"), web: gv("af-web"), foto: gv("af-foto"),
+          min: numLit(gv("af-min")) === "null" ? "null" : Math.round(num(gv("af-min"))), loc: gv("af-loc"), btw: gv("af-btw") ? num(gv("af-btw")) : "null", lev: gv("af-lev") ? num(gv("af-lev")) : "null", ver: gv("af-ver"), hs: gv("af-hs"), her: gv("af-her"), fav: $("#af-fav").checked, act: $("#af-act").checked };
+        let merk = gv("af-merk") ? num(gv("af-merk")) : "null";
+        if (gv("af-merknw")) { merk = num((await sql(`with n as (insert into merken (naam) values (${lit(gv("af-merknw"))}) on conflict (naam) do nothing returning id) select id from n union all select id from merken where naam = ${lit(gv("af-merknw"))} limit 1`))[0].id); }
+        const velden = `naam=${lit(v.naam)}, groep=${lit(v.groep)}, voorraad=${v.vr}, inkoopprijs=${v.ink}, verkoopprijs=${v.vk}, ean=${lit(v.ean)}, webshop_url=${lit(v.web)}, foto_url=${lit(v.foto)}, minimale_voorraad=${v.min}, locatie=${lit(v.loc)}, btw_groep_id=${v.btw}, leverancier_id=${v.lev}, merk_id=${merk}, verpakking=${lit(v.ver)}, hs_code=${lit(v.hs)}, herkomst=${lit(v.her)}, favoriet=${v.fav}, actief=${v.act}`;
+        if (nr) await sql(`update artikelen set ${velden}, bijgewerkt=now() where artikel_nr=${num(nr)}` + (v.vr !== oud ? `; insert into voorraad_mutaties (artikel_nr, aantal, soort, opmerking) values (${num(nr)}, ${v.vr - oud}, 'correctie', 'Handmatig gewijzigd bij het artikel')` : ""));
         else {
           const dup = await sql(`select 1 from artikelen where artikel_nr=${v.nr}`); if (dup.length) { m.textContent = "Dit artikelnummer bestaat al."; return; }
-          await sql(`insert into artikelen (artikel_nr, naam, groep, voorraad, inkoopprijs, verkoopprijs, ean, webshop_url, foto_url, aangemaakt) values (${v.nr}, ${lit(v.naam)}, ${lit(v.groep)}, ${v.vr}, ${v.ink}, ${v.vk}, ${lit(v.ean)}, ${lit(v.web)}, ${lit(v.foto)}, now())`);
+          await sql(`insert into artikelen (artikel_nr, naam, voorraad, aangemaakt) values (${v.nr}, ${lit(v.naam)}, 0, now()); update artikelen set ${velden} where artikel_nr=${v.nr}` + (v.vr ? `; insert into voorraad_mutaties (artikel_nr, aantal, soort, opmerking) values (${v.nr}, ${v.vr}, 'correctie', 'Beginvoorraad bij aanmaken')` : ""));
         }
         groepenCache = null; m.textContent = "Opgeslagen."; if (tab === "assortiment") loadAssortiment();
       } catch (er) { m.textContent = explain(er); }
@@ -902,7 +914,7 @@ function drawOfferte() {
     try {
       const r = await sql(`select artikel_nr, naam, voorraad, verkoopprijs, inkoopprijs from artikelen where naam ilike ${likeLit(q)} or artikel_nr::text = ${lit(q)} order by voorraad desc limit 8`);
       $("#of-res").innerHTML = r.length ? r.map((a, i) => `<div class="chk" style="grid-template-columns:minmax(0,1fr) auto auto"><span>${esc(a.naam)}<div class="note mono">art. ${esc(a.artikel_nr)} · voorraad ${int(a.voorraad)}</div></span><span class="mono">${eur2(a.verkoopprijs)}</span><button type="button" class="btn small" data-add="${i}">Toevoegen</button></div>`).join("") : `<p class="empty">Niets gevonden.</p>`;
-      $("#of-res").querySelectorAll("[data-add]").forEach(b => b.addEventListener("click", () => { syncOfr(); const a = r[b.dataset.add]; o.lines.push({ artikel_nr: a.artikel_nr, omschrijving: a.naam, aantal: 1, prijs: a.verkoopprijs, inkoop: a.inkoopprijs }); drawOfferte(); }));
+      $("#of-res").querySelectorAll("[data-add]").forEach(b => b.addEventListener("click", async () => { syncOfr(); const a = r[b.dataset.add]; let p = a.verkoopprijs, bron = ""; try { ({ prijs: p, bron } = await prijsVoor(o.klant.id, a.artikel_nr, 1)); } catch { } o.lines.push({ artikel_nr: a.artikel_nr, omschrijving: a.naam + (bron ? ` (${bron})` : ""), aantal: 1, prijs: p, inkoop: a.inkoopprijs }); drawOfferte(); }));
     } catch (er) { showError($("#of-res"), er); }
   });
   const save = async () => {
@@ -936,6 +948,7 @@ function drawOfferte() {
         o as (insert into orders (nummer, datum, klant_id, klantnaam, status, omschrijving, inkoop, prijs) select n.nr, current_date, ${num(o.klant.id)}, ${lit(o.klant.naam)}, 'In bewerking', left(tot.oms, 500), tot.inkoop, tot.prijs from n, tot returning nummer),
         r as (insert into order_regels (order_nummer, artikel_nr, omschrijving, aantal, prijs, inkoop) select o.nummer, l.artikel_nr, l.omschrijving, l.aantal, l.prijs, l.inkoop from o, offerte_regels l where l.offerte_id = ${num(id)} and not l.vervallen returning 1),
         u as (update artikelen a set voorraad = a.voorraad - s.aantal, bijgewerkt = now() from (select artikel_nr, sum(aantal)::int aantal from offerte_regels where offerte_id = ${num(id)} and not vervallen and artikel_nr is not null group by 1) s where a.artikel_nr = s.artikel_nr and ${boek ? "true" : "false"} returning 1),
+        mu as (insert into voorraad_mutaties (artikel_nr, aantal, soort, referentie) select s.artikel_nr, -s.aantal, 'verkoop', 'Order ' || (select nr from n) from (select artikel_nr, sum(aantal)::int aantal from offerte_regels where offerte_id = ${num(id)} and not vervallen and artikel_nr is not null group by 1) s where ${boek ? "true" : "false"} returning 1),
         f as (update offertes set status = 'besteld', order_nummer = (select nummer from o) where id = ${num(id)} returning 1)
         select nummer from o`);
       openOrder(r[0].nummer);
@@ -1224,7 +1237,8 @@ function drawInkoop() {
       const alles = nieuw.filter(l => !l.vervallen).every(l => num(l.ontvangen) >= num(l.aantal));
       await sql(`with inp(id, n) as (values ${ins.map(x => `(${num(x.l.id)}, ${x.n})`).join(", ")}),
         u as (update inkoop_regels r set ontvangen = r.ontvangen + inp.n from inp where r.id = inp.id and r.inkooporder_id = ${num(o.id)} returning r.artikel_nr, inp.n),
-        a as (update artikelen a set voorraad = coalesce(a.voorraad, 0) + s.n, bijgewerkt = now() from (select artikel_nr, sum(n)::int n from u where artikel_nr is not null group by 1) s where a.artikel_nr = s.artikel_nr returning 1)
+        a as (update artikelen a set voorraad = coalesce(a.voorraad, 0) + s.n, bijgewerkt = now() from (select artikel_nr, sum(n)::int n from u where artikel_nr is not null group by 1) s where a.artikel_nr = s.artikel_nr returning 1),
+        mu as (insert into voorraad_mutaties (artikel_nr, aantal, soort, referentie) select artikel_nr, sum(n)::int, 'inkoop', 'Inkooporder ' || ${num(o.id)} from u where artikel_nr is not null group by artikel_nr returning 1)
         update inkooporders set status = ${lit(alles ? "ontvangen" : "deels")} where id = ${num(o.id)}`);
       await openInkoop(o.id); if ($("#ik-msg")) $("#ik-msg").textContent = "Ontvangst geboekt en voorraad bijgewerkt."; if (tab === "inkoop") loadInkoop();
     } catch (er) { msg(explain(er)); }
@@ -1602,7 +1616,7 @@ async function drawFactuur() {
       try {
         const r = await sql(`select a.artikel_nr, a.naam, a.voorraad, a.verkoopprijs, bg.percentage from artikelen a left join btw_groepen bg on bg.id = a.btw_groep_id where a.naam ilike ${likeLit(q)} or a.artikel_nr::text = ${lit(q)} order by a.voorraad desc limit 8`);
         $("#fa-res").innerHTML = r.length ? r.map((a, i2) => `<div class="chk" style="grid-template-columns:minmax(0,1fr) auto auto"><span>${esc(a.naam)}<div class="note mono">art. ${esc(a.artikel_nr)}</div></span><span class="mono">${eur2(a.verkoopprijs)}</span><button type="button" class="btn small" data-add="${i2}">Toevoegen</button></div>`).join("") : `<p class="empty">Niets gevonden.</p>`;
-        $("#fa-res").querySelectorAll("[data-add]").forEach(b => b.addEventListener("click", () => { syncFa(); const a = r[b.dataset.add]; f.lines.push({ artikel_nr: a.artikel_nr, omschrijving: a.naam, aantal: 1, prijs: a.verkoopprijs, btw_pct: a.percentage != null ? num(a.percentage) : 21 }); drawFactuur(); }));
+        $("#fa-res").querySelectorAll("[data-add]").forEach(b => b.addEventListener("click", async () => { syncFa(); const a = r[b.dataset.add]; let p = a.verkoopprijs; try { p = (await prijsVoor(k.id, a.artikel_nr, 1)).prijs; } catch { } f.lines.push({ artikel_nr: a.artikel_nr, omschrijving: a.naam, aantal: 1, prijs: p, btw_pct: a.percentage != null ? num(a.percentage) : 21 }); drawFactuur(); }));
       } catch (er) { showError($("#fa-res"), er); }
     });
     const save = async () => {
@@ -1656,6 +1670,187 @@ async function drawFactuur() {
       draftBox($("#fa-draft"), k.factuur_email || k.email, `${f.type === "credit" ? "Creditnota" : "Factuur"} ${f.nummer}`, tekst, null);
     });
   }
+}
+
+/* ---------- Prijzen: prijsafspraken, staffels en prijslijst ---------- */
+async function prijsVoor(klantId, artikelNr, aantal) {
+  const r = (await sql(`select a.verkoopprijs,
+    (select p.prijs from prijsafspraken p where p.klant_id = ${num(klantId)} and p.artikel_nr = a.artikel_nr and p.vanaf <= current_date and (p.tot is null or p.tot >= current_date) order by p.vanaf desc, p.id desc limit 1) afspraak,
+    (select s.prijs from staffelprijzen s where s.artikel_nr = a.artikel_nr and s.actief and s.vanaf_aantal <= ${Math.max(1, Math.round(num(aantal)))} order by s.vanaf_aantal desc limit 1) staffel
+    from artikelen a where a.artikel_nr = ${num(artikelNr)}`))[0] || {};
+  if (r.afspraak != null) return { prijs: r.afspraak, bron: "prijsafspraak" };
+  if (r.staffel != null) return { prijs: r.staffel, bron: "staffel" };
+  return { prijs: r.verkoopprijs, bron: "" };
+}
+const prz = { s: "afspraken", q: "", staffelArt: null, pl: null };
+const PRIJS_ONDERDELEN = [["afspraken", "Prijsafspraken per klant"], ["staffels", "Staffelprijzen per artikel"], ["prijslijst", "Prijslijst per klant"]];
+async function vPrijzen(main) {
+  main.insertAdjacentHTML("beforeend", `<h2>Prijzen</h2><p class="lead">Vaste prijzen voor een klant, staffels per artikel en een prijslijst om te mailen. Bij een offerte of factuur wordt de prijs automatisch toegepast: eerst de prijsafspraak, dan de staffel, anders de normale verkoopprijs.</p>
+    <div class="bar"><select id="pz-s" aria-label="Onderdeel">${PRIJS_ONDERDELEN.map(s => `<option value="${s[0]}">${s[1]}</option>`).join("")}</select></div><div id="pz-body"><p class="empty">Laden…</p></div>`);
+  $("#pz-s").value = prz.s;
+  $("#pz-s").addEventListener("change", () => { prz.s = $("#pz-s").value; loadPrijzen(); });
+  loadPrijzen();
+}
+function loadPrijzen() { const b = $("#pz-body"); if (!b) return; ({ afspraken: loadAfspraken, staffels: loadStaffels, prijslijst: loadPrijslijst })[prz.s](b).catch(e => showError(b, e)); }
+async function loadAfspraken(body) {
+  const rows = await sql(`select p.id, p.prijs, p.vanaf, p.tot, p.opmerking, k.id klant_id, k.naam, a.artikel_nr, a.naam artikel, a.verkoopprijs from prijsafspraken p join klanten k on k.id = p.klant_id join artikelen a on a.artikel_nr = p.artikel_nr
+    where ${prz.q ? `(k.naam ilike ${likeLit(prz.q)} or a.naam ilike ${likeLit(prz.q)}) and ` : ""}(p.tot is null or p.tot >= current_date) order by k.naam, a.naam limit 200`);
+  body.innerHTML = `<form class="bar" id="pa-bar"><input type="search" id="pa-q" placeholder="Zoek op klant of artikel" value="${esc(prz.q)}"><button class="btn" type="submit">Zoek</button><button class="btn primary" type="button" id="pa-new">Nieuwe prijsafspraak</button></form>
+    <div class="panel">${rows.length ? `<div class="tbl"><table><thead><tr><th>Klant</th><th>Artikel</th><th class="n">Afspraak</th><th class="n">Normaal</th><th>Geldig</th><th></th></tr></thead><tbody>${rows.map((r, i) => `<tr><td><button class="btn small" data-k="${esc(r.klant_id)}">${esc(r.naam)}</button></td><td>${esc(r.artikel)}<div class="note mono">art. ${esc(r.artikel_nr)}</div></td><td class="n">${eur2(r.prijs)}</td><td class="n">${eur2(r.verkoopprijs)}</td><td>vanaf ${dt(r.vanaf)}${r.tot ? ` tot ${dt(r.tot)}` : ""}${r.opmerking ? `<div class="note">${esc(r.opmerking)}</div>` : ""}</td><td><button class="btn small" data-end="${i}">Beëindigen</button></td></tr>`).join("")}</tbody></table></div>` : `<p class="empty">Geen lopende prijsafspraken.</p>`}</div>`;
+  $("#pa-bar").addEventListener("submit", e => { e.preventDefault(); prz.q = gv("pa-q"); loadPrijzen(); });
+  $("#pa-new").addEventListener("click", () => klantPicker("Prijsafspraak voor welke klant?", k => afspraakForm(k)));
+  body.querySelectorAll("[data-k]").forEach(b => b.addEventListener("click", () => openKlant(b.dataset.k)));
+  body.querySelectorAll("[data-end]").forEach(b => b.addEventListener("click", async () => { try { await sql(`update prijsafspraken set tot = current_date - 1 where id = ${num(rows[b.dataset.end].id)}`); loadPrijzen(); } catch (e) { showError(body, e); } }));
+}
+function afspraakForm(k, art) {
+  drawer("Nieuwe prijsafspraak", esc(k.naam), `<form class="bar" id="af2-find"><input type="search" id="af2-q" placeholder="Zoek artikel" value="${esc(art ? art.naam : "")}"><button class="btn" type="submit">Zoek</button></form><div id="af2-res"></div>
+    <form class="f panel" id="af2-f"><div class="note" id="af2-art">${art ? esc(art.naam) + " (art. " + esc(art.artikel_nr) + ")" : "Kies eerst een artikel."}</div>
+      <div class="line">${fld("af2-prijs", "Prijs per stuk (excl. btw)", "", "number", 'step="0.01" min="0"')}${fld("af2-vanaf", "Geldig vanaf", plusDays(0), "date")}${fld("af2-tot", "Tot (leeg is onbeperkt)", "", "date")}</div>${fld("af2-opm", "Opmerking", "")}
+      <div><button class="btn primary" type="submit">Opslaan</button></div><div class="note" id="af2-msg"></div></form>`);
+  let gekozen = art || null;
+  $("#af2-find").addEventListener("submit", async e => {
+    e.preventDefault(); const q = gv("af2-q"); if (!q) return;
+    try {
+      const r = await sql(`select artikel_nr, naam, verkoopprijs from artikelen where naam ilike ${likeLit(q)} or artikel_nr::text = ${lit(q)} order by naam limit 8`);
+      $("#af2-res").innerHTML = r.map((a, i) => `<div class="chk" style="grid-template-columns:minmax(0,1fr) auto auto"><span>${esc(a.naam)}<div class="note mono">art. ${esc(a.artikel_nr)}</div></span><span class="mono">${eur2(a.verkoopprijs)}</span><button type="button" class="btn small" data-pick="${i}">Kiezen</button></div>`).join("") || `<p class="empty">Niets gevonden.</p>`;
+      $("#af2-res").querySelectorAll("[data-pick]").forEach(b => b.addEventListener("click", () => { gekozen = r[b.dataset.pick]; $("#af2-art").textContent = `${gekozen.naam} (art. ${gekozen.artikel_nr}), normaal ${eur2(gekozen.verkoopprijs)}`; $("#af2-prijs").value = gekozen.verkoopprijs ?? ""; $("#af2-res").innerHTML = ""; }));
+    } catch (er) { showError($("#af2-res"), er); }
+  });
+  $("#af2-f").addEventListener("submit", async e => {
+    e.preventDefault(); const m = $("#af2-msg");
+    if (!gekozen) { m.textContent = "Kies eerst een artikel."; return; }
+    if (numLit(gv("af2-prijs")) === "null") { m.textContent = "Vul een prijs in."; return; }
+    m.textContent = "Opslaan…";
+    try {
+      await sql(`update prijsafspraken set tot = ${lit(gv("af2-vanaf"))}::date - 1 where klant_id = ${num(k.id)} and artikel_nr = ${num(gekozen.artikel_nr)} and (tot is null or tot >= ${lit(gv("af2-vanaf"))}::date) and vanaf < ${lit(gv("af2-vanaf"))}::date;
+        insert into prijsafspraken (klant_id, artikel_nr, prijs, vanaf, tot, opmerking) values (${num(k.id)}, ${num(gekozen.artikel_nr)}, ${numLit(gv("af2-prijs"))}, ${lit(gv("af2-vanaf"))}, ${lit(gv("af2-tot"))}, ${lit(gv("af2-opm"))})`);
+      closeLayer(); if (tab === "prijzen") loadPrijzen();
+    } catch (er) { m.textContent = explain(er); }
+  });
+  if (art) $("#af2-prijs").value = art.verkoopprijs ?? "";
+}
+async function loadStaffels(body) {
+  body.innerHTML = `<form class="bar" id="sf-bar"><input type="search" id="sf-q" placeholder="Zoek artikel" value="${esc(prz.staffelArt ? prz.staffelArt.naam : "")}"><button class="btn primary" type="submit">Zoek</button></form><div class="grid"><section class="panel" id="sf-list"><p class="empty">Zoek een artikel om de staffels te zien en te wijzigen.</p></section><section class="panel" id="sf-art"></section></div>`;
+  $("#sf-bar").addEventListener("submit", async e => {
+    e.preventDefault(); const q = gv("sf-q"); if (!q) return;
+    try {
+      const r = await sql(`select artikel_nr, naam, verkoopprijs, (select count(*) from staffelprijzen s where s.artikel_nr = a.artikel_nr and s.actief) n from artikelen a where naam ilike ${likeLit(q)} or artikel_nr::text = ${lit(q)} order by naam limit 20`);
+      $("#sf-list").innerHTML = r.length ? `<div class="rows">${r.map((a, i) => `<button class="row" data-a="${i}"><span class="t">${esc(a.naam)}</span><span class="s mono">art. ${esc(a.artikel_nr)} · ${int(a.n)} staffels</span><span class="r">${eur2(a.verkoopprijs)}</span></button>`).join("")}</div>` : `<p class="empty">Niets gevonden.</p>`;
+      $("#sf-list").querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => { prz.staffelArt = r[b.dataset.a]; drawStaffels(); }));
+    } catch (er) { showError($("#sf-list"), er); }
+  });
+  if (prz.staffelArt) drawStaffels();
+}
+async function drawStaffels() {
+  const a = prz.staffelArt, box = $("#sf-art"); if (!box) return;
+  const rows = await sql(`select id, vanaf_aantal, prijs from staffelprijzen where artikel_nr = ${num(a.artikel_nr)} and actief order by vanaf_aantal`);
+  box.innerHTML = `<div class="hd"><h3>${esc(a.naam)}</h3><span class="note mono">normaal ${eur2(a.verkoopprijs)}</span></div>${rows.length ? `<div class="tbl"><table><thead><tr><th class="n">Vanaf aantal</th><th class="n">Prijs</th><th></th></tr></thead><tbody>${rows.map((r, i) => `<tr><td class="n">${int(r.vanaf_aantal)}</td><td class="n">${eur2(r.prijs)}</td><td><button class="btn small" data-off="${i}">Weg</button></td></tr>`).join("")}</tbody></table></div>` : `<p class="empty">Nog geen staffels.</p>`}
+    <form class="f" id="sf-new" style="margin-top:10px"><div class="line">${fld("sf-n", "Vanaf aantal", "", "number", 'min="1" step="1"')}${fld("sf-p", "Prijs per stuk", "", "number", 'step="0.01" min="0"')}</div><div><button class="btn" type="submit">Staffel toevoegen</button></div><div class="note" id="sf-msg"></div></form>`;
+  box.querySelectorAll("[data-off]").forEach(b => b.addEventListener("click", async () => { try { await sql(`update staffelprijzen set actief = false where id = ${num(rows[b.dataset.off].id)}`); drawStaffels(); } catch (er) { $("#sf-msg").textContent = explain(er); } }));
+  $("#sf-new").addEventListener("submit", async e => {
+    e.preventDefault(); const m = $("#sf-msg"), n = Math.round(num(gv("sf-n")));
+    if (n < 1 || numLit(gv("sf-p")) === "null") { m.textContent = "Vul aantal en prijs in."; return; }
+    try { await sql(`update staffelprijzen set actief = false where artikel_nr = ${num(a.artikel_nr)} and vanaf_aantal = ${n} and actief; insert into staffelprijzen (artikel_nr, vanaf_aantal, prijs) values (${num(a.artikel_nr)}, ${n}, ${numLit(gv("sf-p"))})`); drawStaffels(); } catch (er) { m.textContent = explain(er); }
+  });
+}
+async function loadPrijslijst(body) {
+  body.innerHTML = `<div class="bar"><button class="btn primary" id="pl-k">${prz.pl ? "Andere klant kiezen" : "Klant kiezen"}</button>${prz.pl ? `<span>Prijslijst voor <b>${esc(prz.pl.naam)}</b></span>` : ""}</div><div id="pl-body">${prz.pl ? `<p class="empty">Laden…</p>` : `<p class="empty">Kies een klant. De lijst toont de artikelen op voorraad met de prijs voor die klant.</p>`}</div>`;
+  $("#pl-k").addEventListener("click", () => klantPicker("Prijslijst voor welke klant?", k => { prz.pl = k; closeLayer(); loadPrijzen(); }));
+  if (!prz.pl) return;
+  const rows = await sql(`select a.artikel_nr, a.naam, a.groep, a.verpakking, a.voorraad, a.verkoopprijs,
+    (select p.prijs from prijsafspraken p where p.klant_id = ${num(prz.pl.id)} and p.artikel_nr = a.artikel_nr and p.vanaf <= current_date and (p.tot is null or p.tot >= current_date) order by p.vanaf desc, p.id desc limit 1) afspraak,
+    (select s.prijs from staffelprijzen s where s.artikel_nr = a.artikel_nr and s.actief order by s.vanaf_aantal limit 1) staffel
+    from artikelen a where a.voorraad > 0 and a.verkoopprijs is not null and coalesce(a.actief, true) order by a.groep nulls last, a.naam limit 600`);
+  const pr = r => r.afspraak != null ? r.afspraak : r.verkoopprijs;
+  $("#pl-body").innerHTML = `<div class="panel"><div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px"><button class="btn" id="pl-copy">Kopieer voor Excel</button><button class="btn" id="pl-print">Afdrukken of pdf</button></div><div class="note" id="pl-msg">${int(rows.length)} artikelen op voorraad${rows.length >= 600 ? " (eerste 600)" : ""}. Prijzen excl. btw, af magazijn. Vet gedrukt is een afgesproken prijs.</div>
+    <div class="tbl" id="pak" style="background:#fff;color:#111;margin-top:8px"><h3 style="color:#555">Prijslijst ${esc(prz.pl.naam)} · ${dt(plusDays(0))}</h3><table style="color:#111"><thead><tr><th style="color:#555">Art.nr</th><th style="color:#555">Artikel</th><th style="color:#555">Verpakking</th><th class="n" style="color:#555">Voorraad</th><th class="n" style="color:#555">Prijs</th></tr></thead><tbody>${rows.map(r => `<tr style="border-top:1px solid #ccc"><td class="mono">${esc(r.artikel_nr)}</td><td>${esc(r.naam)}</td><td>${esc(r.verpakking || "")}</td><td class="n">${int(r.voorraad)}</td><td class="n">${r.afspraak != null ? `<b>${eur2(pr(r))}</b>` : eur2(pr(r))}${r.staffel != null && r.afspraak == null ? `<div class="note" style="color:#555">staffel vanaf ${eur2(r.staffel)}</div>` : ""}</td></tr>`).join("")}</tbody></table></div></div>`;
+  $("#pl-print").addEventListener("click", () => { try { window.print(); } catch { $("#pl-msg").textContent = "Afdrukken lukt hier niet. Gebruik Ctrl+P."; } });
+  $("#pl-copy").addEventListener("click", async () => {
+    const t = ["Art.nr\tArtikel\tVerpakking\tVoorraad\tPrijs", ...rows.map(r => [r.artikel_nr, r.naam, r.verpakking || "", r.voorraad, String(pr(r)).replace(".", ",")].join("\t"))].join("\n");
+    try { await navigator.clipboard.writeText(t); $("#pl-msg").textContent = "Gekopieerd. Plak in Excel."; } catch { $("#pl-msg").textContent = "Kopiëren lukt hier niet."; }
+  });
+}
+
+/* ---------- Voorraad: analyse, journaal, inventarisatie en inkoopplanning ---------- */
+const vrd = { s: "analyse", q: "", soort: "" };
+const VRD_ONDERDELEN = [["analyse", "Voorraadanalyse"], ["journaal", "Voorraadjournaal"], ["inventarisatie", "Inventarisatie"], ["planning", "Minimale voorraad en inkoopplanning"]];
+const SOORT_MUTATIE = { inkoop: "Inkoop", verkoop: "Verkoop", correctie: "Correctie", inventarisatie: "Inventarisatie", retour: "Retour" };
+async function vVrd(main) {
+  main.insertAdjacentHTML("beforeend", `<h2>Voorraad</h2><p class="lead">Wat er ligt, wat erbij kwam en eruit ging, tellen en bijbestellen. Elke wijziging van de voorraad komt in het journaal.</p>
+    <div class="bar"><select id="vr-s" aria-label="Onderdeel">${VRD_ONDERDELEN.map(s => `<option value="${s[0]}">${s[1]}</option>`).join("")}</select></div><div id="vr-body"><p class="empty">Laden…</p></div>`);
+  $("#vr-s").value = vrd.s;
+  $("#vr-s").addEventListener("change", () => { vrd.s = $("#vr-s").value; loadVrd(); });
+  loadVrd();
+}
+function loadVrd() { const b = $("#vr-body"); if (!b) return; ({ analyse: loadVrdAnalyse, journaal: loadVrdJournaal, inventarisatie: loadVrdInv, planning: loadVrdPlanning })[vrd.s](b).catch(e => showError(b, e)); }
+async function loadVrdAnalyse(body) {
+  const [k, g, l, top] = await Promise.all([
+    sql(`select count(*) filter (where voorraad > 0) n, coalesce(sum(voorraad * inkoopprijs), 0) inkoop, coalesce(sum(voorraad * verkoopprijs), 0) verkoop, count(*) filter (where minimale_voorraad is not null and voorraad <= minimale_voorraad) onder from artikelen`),
+    sql(`select coalesce(groep, 'Overige') groep, coalesce(sum(voorraad * inkoopprijs), 0) w from artikelen where voorraad > 0 group by 1 order by 2 desc limit 12`),
+    sql(`select coalesce(l.naam, 'Geen leverancier bekend') lev, coalesce(sum(a.voorraad * a.inkoopprijs), 0) w from artikelen a left join leveranciers l on l.id = a.leverancier_id where a.voorraad > 0 group by 1 order by 2 desc limit 12`),
+    sql(`select artikel_nr, naam, voorraad, inkoopprijs, voorraad * inkoopprijs w from artikelen where voorraad > 0 and inkoopprijs is not null order by w desc limit 15`),
+  ]);
+  const x = k[0] || {}, marge = num(x.verkoop) ? Math.round((num(x.verkoop) - num(x.inkoop)) / num(x.verkoop) * 100) : 0;
+  body.innerHTML = `<div class="kpis">${kpi("Artikelen op voorraad", int(x.n))}${kpi("Voorraadwaarde inkoop", eur(x.inkoop))}${kpi("Voorraadwaarde verkoop", eur(x.verkoop), `marge ${marge}%`)}${kpi("Onder minimum", int(x.onder), "Stel een minimum in per artikel", num(x.onder) ? "bad" : "")}</div>
+    <div class="grid" style="margin-top:14px"><section class="panel"><h3>Waarde per groep (inkoop)</h3>${hbars(g, "groep", "w", eur)}</section><section class="panel"><h3>Waarde per leverancier (inkoop)</h3>${hbars(l, "lev", "w", eur)}</section></div>
+    <section class="panel" style="margin-top:14px"><h3>Grootste partijen op waarde</h3>${top.length ? `<div class="rows">${top.map(a => `<button class="row" data-a="${esc(a.artikel_nr)}"><span class="t">${esc(a.naam)}</span><span class="s mono">art. ${esc(a.artikel_nr)} · ${int(a.voorraad)} stuks à ${eur2(a.inkoopprijs)}</span><span class="r">${eur(a.w)}</span></button>`).join("")}</div>` : `<p class="empty">Geen voorraad.</p>`}</section>`;
+  body.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => artikelForm(b.dataset.a)));
+}
+async function loadVrdJournaal(body) {
+  body.innerHTML = `<form class="bar" id="vj-bar"><input type="search" id="vj-q" placeholder="Zoek artikel of artikelnummer" value="${esc(vrd.q)}"><select id="vj-s" aria-label="Soort"><option value="">Alle soorten</option>${Object.entries(SOORT_MUTATIE).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select><button class="btn primary" type="submit">Zoeken</button></form><div id="vj-list"><p class="empty">Laden…</p></div>`;
+  $("#vj-s").value = vrd.soort;
+  $("#vj-bar").addEventListener("submit", e => { e.preventDefault(); vrd.q = gv("vj-q"); vrd.soort = $("#vj-s").value; loadVrd(); });
+  const w = [vrd.q ? `(a.naam ilike ${likeLit(vrd.q)} or a.artikel_nr::text = ${lit(vrd.q)})` : "", vrd.soort ? `m.soort = ${lit(vrd.soort)}` : ""].filter(Boolean);
+  const rows = await sql(`select m.id, m.datum, m.aantal, m.soort, m.referentie, m.opmerking, a.artikel_nr, a.naam from voorraad_mutaties m join artikelen a on a.artikel_nr = m.artikel_nr ${w.length ? "where " + w.join(" and ") : ""} order by m.datum desc, m.id desc limit 100`);
+  $("#vj-list").innerHTML = `<div class="panel">${rows.length ? `<div class="tbl"><table><thead><tr><th>Datum</th><th>Artikel</th><th>Soort</th><th class="n">Aantal</th></tr></thead><tbody>${rows.map(r => `<tr><td class="mono">${dt(r.datum)}</td><td><button class="btn small" data-a="${esc(r.artikel_nr)}">${esc(r.naam)}</button>${r.referentie || r.opmerking ? `<div class="note">${esc([r.referentie, r.opmerking].filter(Boolean).join(" · "))}</div>` : ""}</td><td>${esc(SOORT_MUTATIE[r.soort] || r.soort)}</td><td class="n" style="color:var(--${num(r.aantal) < 0 ? "bad" : "good"})">${num(r.aantal) > 0 ? "+" : ""}${int(r.aantal)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="empty">Nog geen mutaties. Vanaf nu wordt elke wijziging (order, ontvangst, correctie, telling) hier vastgelegd. Wijzigingen van vóór dit overzicht zitten er niet in.</p>`}</div>`;
+  $("#vj-list").querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => artikelForm(b.dataset.a)));
+}
+async function loadVrdInv(body) {
+  body.innerHTML = `<form class="bar" id="vi-bar"><input type="search" id="vi-q" placeholder="Zoek artikel, groep of artikelnummer" value="${esc(vrd.q)}"><button class="btn primary" type="submit">Zoeken</button></form><div id="vi-list"><p class="empty">Zoek de artikelen die je telt. Vul bij elk artikel in wat je werkelijk telt, de rest blijft ongewijzigd.</p></div>`;
+  $("#vi-bar").addEventListener("submit", async e => {
+    e.preventDefault(); vrd.q = gv("vi-q"); const q = vrd.q, box = $("#vi-list"); if (!q) return;
+    try {
+      const rows = await sql(`select artikel_nr, naam, groep, voorraad, locatie from artikelen where naam ilike ${likeLit(q)} or groep ilike ${likeLit(q)} or artikel_nr::text = ${lit(q)} order by naam limit 40`);
+      box.innerHTML = rows.length ? `<div class="panel"><div class="tbl"><table><thead><tr><th>Artikel</th><th class="n">In systeem</th><th class="n">Geteld</th></tr></thead><tbody>${rows.map((r, i) => `<tr><td>${esc(r.naam)}<div class="note mono">art. ${esc(r.artikel_nr)}${r.locatie ? " · " + esc(r.locatie) : ""}</div></td><td class="n">${int(r.voorraad)}</td><td class="n"><input id="vi-${i}" type="number" min="0" step="1" style="width:90px"></td></tr>`).join("")}</tbody></table></div>
+        <div style="margin-top:10px"><button class="btn primary" id="vi-save">Telling boeken</button></div><div class="note" id="vi-msg"></div></div>` : `<p class="empty">Niets gevonden.</p>`;
+      if (!rows.length) return;
+      $("#vi-save").addEventListener("click", async () => {
+        const m = $("#vi-msg"), ins = [];
+        rows.forEach((r, i) => { const v = $(`#vi-${i}`).value; if (v !== "" && Math.round(num(v)) !== num(r.voorraad)) ins.push({ nr: r.artikel_nr, n: Math.max(0, Math.round(num(v))) }); });
+        if (!ins.length) { m.textContent = "Er is niets afwijkends ingevuld."; return; }
+        m.textContent = "Boeken…";
+        try {
+          await sql(`with inp(a, n) as (values ${ins.map(x => `(${num(x.nr)}, ${x.n})`).join(", ")}),
+            m as (insert into voorraad_mutaties (artikel_nr, aantal, soort, opmerking) select a.artikel_nr, inp.n - a.voorraad, 'inventarisatie', 'Telling' from inp join artikelen a on a.artikel_nr = inp.a where inp.n <> a.voorraad returning 1)
+            update artikelen a set voorraad = inp.n, bijgewerkt = now() from inp where a.artikel_nr = inp.a and a.voorraad <> inp.n`);
+          m.textContent = `${ins.length} artikelen gecorrigeerd. Zie het voorraadjournaal.`; $("#vi-bar").dispatchEvent(new Event("submit", { cancelable: true }));
+        } catch (er) { m.textContent = explain(er); }
+      });
+    } catch (er) { showError(box, er); }
+  });
+  if (vrd.q) $("#vi-bar").dispatchEvent(new Event("submit", { cancelable: true }));
+}
+async function loadVrdPlanning(body) {
+  const rows = await sql(`select a.artikel_nr, a.naam, a.voorraad, a.minimale_voorraad, a.leverancier_id, l.naam lev, a.inkoopprijs, coalesce(o.q, 0) onderweg
+    from artikelen a left join leveranciers l on l.id = a.leverancier_id
+    left join (select r.artikel_nr, sum(r.aantal - r.ontvangen) q from inkoop_regels r join inkooporders io on io.id = r.inkooporder_id where io.status in ('concept', 'besteld', 'deels') and not r.vervallen group by 1) o on o.artikel_nr = a.artikel_nr
+    where a.minimale_voorraad is not null and a.voorraad + coalesce(o.q, 0) <= a.minimale_voorraad order by l.naam nulls last, a.naam limit 300`);
+  if (!rows.length) { body.innerHTML = `<div class="panel"><p class="empty">Er is geen artikel onder zijn minimale voorraad. Per artikel stel je het minimum in bij het wijzigen van het artikel (veld Minimale voorraad). Artikelen die onder dat minimum zakken, verschijnen hier met een voorstel voor de inkoop, per leverancier.</p></div>`; return; }
+  const groepen = new Map(); rows.forEach(r => { const k = r.leverancier_id || "x"; if (!groepen.has(k)) groepen.set(k, { lev: r.lev, id: r.leverancier_id, rows: [] }); groepen.get(k).rows.push(r); });
+  body.innerHTML = [...groepen.values()].map((g, gi) => `<section class="panel" style="margin-bottom:12px"><div class="hd"><h3>${esc(g.lev || "Geen leverancier gekoppeld")}</h3>${g.id ? `<button class="btn small primary" data-mk="${gi}">Inkooporder maken</button>` : `<span class="note">Koppel een leverancier bij het artikel</span>`}</div>
+    <div class="tbl"><table><thead><tr><th>Artikel</th><th class="n">Voorraad</th><th class="n">Onderweg</th><th class="n">Minimum</th><th class="n">Bestellen</th></tr></thead><tbody>${g.rows.map((r, i) => `<tr><td><button class="btn small" data-a="${esc(r.artikel_nr)}">${esc(r.naam)}</button></td><td class="n">${int(r.voorraad)}</td><td class="n">${int(r.onderweg)}</td><td class="n">${int(r.minimale_voorraad)}</td><td class="n"><input id="pl-${gi}-${i}" type="number" min="0" step="1" value="${Math.max(1, num(r.minimale_voorraad) * 2 - num(r.voorraad) - num(r.onderweg))}" style="width:80px"></td></tr>`).join("")}</tbody></table></div></section>`).join("") + `<div class="note" id="pl-msg">Het voorstel is twee keer het minimum min wat er ligt en onderweg is. Pas de aantallen aan voor je de inkooporder maakt.</div>`;
+  body.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => artikelForm(b.dataset.a)));
+  const gl = [...groepen.values()];
+  body.querySelectorAll("[data-mk]").forEach(b => b.addEventListener("click", async () => {
+    const g = gl[b.dataset.mk], regels = g.rows.map((r, i) => ({ r, n: Math.round(num($(`#pl-${b.dataset.mk}-${i}`).value)) })).filter(x => x.n > 0);
+    if (!regels.length) { $("#pl-msg").textContent = "Vul bij minstens één artikel een aantal in."; return; }
+    try {
+      const id = (await sql(`with o as (insert into inkooporders (leverancier_id, status, opmerking) values (${num(g.id)}, 'concept', 'Voorstel uit minimale voorraad') returning id),
+        r as (insert into inkoop_regels (inkooporder_id, artikel_nr, omschrijving, aantal, inkoopprijs) select o.id, v.a::int, v.b::text, v.c::int, v.d::numeric from o cross join (values ${regels.map(x => `(${num(x.r.artikel_nr)}, ${lit(x.r.naam)}, ${x.n}, ${numLit(x.r.inkoopprijs)})`).join(", ")}) v(a, b, c, d) returning 1)
+        select id from o`))[0].id;
+      openInkoop(id);
+    } catch (er) { $("#pl-msg").textContent = explain(er); }
+  }));
 }
 
 /* ---------- Dashboard ---------- */
@@ -1848,6 +2043,11 @@ const SETS = [
         coalesce(nullif(r->>'klantnaam',''),'onbekend'), nullif(r->>'status',''), nullif(r->>'omschrijving',''), nullif(r->>'inkoop','')::numeric, nullif(r->>'prijs','')::numeric
       from jsonb_array_elements(${jsonLit(rows)}) r
       on conflict (nummer) do update set klant_id=coalesce(orders.klant_id, excluded.klant_id)` },
+  { key: "artikel_extra", label: "Artikelgegevens (leverancier, verpakking)", file: "5_artikel_extra.csv", size: 200,
+    prep: rows => dedupe(rows.filter(r => isInt(r.artikel_nr)), r => r.artikel_nr),
+    sql: rows => `insert into leveranciers (naam) select distinct on (lower(x.n)) x.n from (select nullif(trim(r->>'leverancier'), '') n from jsonb_array_elements(${jsonLit(rows)}) r) x where x.n is not null and not exists (select 1 from leveranciers l where lower(l.naam) = lower(x.n)) order by lower(x.n), x.n;
+      update artikelen a set leverancier_id = coalesce(lv.id, a.leverancier_id), verpakking = coalesce(nullif(r->>'verpakking', ''), a.verpakking), hs_code = coalesce(nullif(r->>'hs_code', ''), a.hs_code), herkomst = coalesce(nullif(r->>'herkomst', ''), a.herkomst)
+      from jsonb_array_elements(${jsonLit(rows)}) r left join leveranciers lv on lower(lv.naam) = lower(trim(r->>'leverancier')) where a.artikel_nr = (r->>'artikel_nr')::int` },
   { key: "klant_profielen", label: "Klantprofielen", file: "4_klant_profielen.csv", size: 30,
     prep: rows => dedupe(rows.filter(r => r.email.includes("@")).map(r => {
       const o = { ...r, email: r.email.trim() };
