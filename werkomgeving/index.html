@@ -346,7 +346,7 @@ function wireRows(root) { root.querySelectorAll("[data-klant]").forEach(b => b.a
 /* ---------- tabbladen ---------- */
 const TABS = [
   { id: "dashboard", label: "Dashboard", view: vDashboard },
-  { id: "vandaag", label: "Vandaag", view: vVandaag },
+  { id: "vandaag", label: "Te mailen", view: vVandaag },
   { id: "klanten", label: "Klanten", view: vKlanten },
   { id: "kaart", label: "Kaart", view: vKaart },
   { id: "assortiment", label: "Assortiment", view: vAssortiment },
@@ -364,12 +364,12 @@ const TABS = [
   { id: "beheer", label: "Gegevens", view: vBeheer },
 ];
 const GROUPS = [
-  { id: "overzicht", label: "Overzicht", tabs: ["dashboard", "vandaag", "kaart"] },
+  { id: "overzicht", label: "Overzicht", tabs: ["dashboard", "kaart"] },
   { id: "verkoop", label: "Verkoop", tabs: ["klanten", "offertes", "orders", "prijzen"] },
   { id: "uitvoering", label: "Uitvoering", tabs: ["uitvoering"] },
   { id: "artikelen", label: "Artikelen", tabs: ["assortiment", "voorraad", "inkoop"] },
   { id: "financieel", label: "Financieel", tabs: ["facturen", "rapporten"] },
-  { id: "marketing", label: "Marketing", tabs: ["campagnes", "opvolging"] },
+  { id: "marketing", label: "Marketing", tabs: ["vandaag", "campagnes", "opvolging"] },
   { id: "onderhoud", label: "Onderhoud", tabs: ["stam", "beheer"] },
 ];
 const groupOf = id => GROUPS.find(g => g.tabs.includes(id)) || GROUPS[0];
@@ -399,7 +399,7 @@ function showError(el, e) { el.innerHTML = `<div class="banner bad"><b>Dit lukte
 
 /* ---------- Vandaag ---------- */
 async function vVandaag(main) {
-  main.insertAdjacentHTML("beforeend", `<h2>Vandaag</h2><p class="lead">Wie je deze week een mail moet sturen. Alles hieronder komt uit je eigen orders en opvolgingen. Er wordt niets automatisch verstuurd.</p><div id="v-body"><p class="empty">Laden…</p></div>`);
+  main.insertAdjacentHTML("beforeend", `<h2>Te mailen</h2><p class="lead">Wie je deze week een mail moet sturen. Alles hieronder komt uit je eigen orders en opvolgingen. Er wordt niets automatisch verstuurd.</p><div id="v-body"><p class="empty">Laden…</p></div>`);
   const body = $("#v-body");
   try {
     const [stats, due, slap, jaar, wacht] = await Promise.all([
