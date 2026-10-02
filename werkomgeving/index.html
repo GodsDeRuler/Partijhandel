@@ -518,8 +518,8 @@ async function loadKopers(a, termOverride) {
   const term = termOverride ?? String(a.naam).split(/[\s,\/()-]+/).filter(w => w.length >= 4 && !stop.has(w.toLowerCase())).slice(0, 2).join(" ");
   box.innerHTML = `<p class="empty">Zoeken…</p>`;
   try {
-    const kopers = term ? await sql(`${BASE.replace("from klant_overzicht v", `from (select o.klant_id, count(*) n, max(o.datum) laatst from orders o where o.omschrijving ilike ${likeLit(term)} and o.klant_id is not null group by o.klant_id) x join klant_overzicht v on v.id = x.klant_id`).replace("select v.id,", "select x.n as keer, x.laatst, v.id,")} where not v.afgemeld and coalesce(p.status_bedrijf,'') !~* '${GESLOTEN}' order by x.laatst desc limit 40`) : [];
-    const groep = a.groep && a.groep !== "Overige" ? await sql(`${BASE} where ${lit(a.groep)} = any(p.relevante_productgroepen) and not v.afgemeld and v.email is not null and coalesce(p.status_bedrijf,'') !~* '${GESLOTEN}' order by v.omzet desc limit 25`) : [];
+    const kopers = term ? await sql(`${BASE.replace("from klant_overzicht v", `from (select o.klant_id, count(*) n, max(o.datum) laatst from orders o where o.omschrijving ilike ${likeLit(term)} and o.klant_id is not null group by o.klant_id) x join klant_overzicht v on v.id = x.klant_id`).replace("select v.id,", "select x.n as keer, x.laatst, v.id,")} where not v.afgemeld and coalesce(v.let_op,'')='' and coalesce(p.status_bedrijf,'') !~* '${GESLOTEN}' order by x.laatst desc limit 40`) : [];
+    const groep = a.groep && a.groep !== "Overige" ? await sql(`${BASE} where ${lit(a.groep)} = any(p.relevante_productgroepen) and not v.afgemeld and coalesce(v.let_op,'')='' and v.email is not null and coalesce(p.status_bedrijf,'') !~* '${GESLOTEN}' order by v.omzet desc limit 25`) : [];
     const ids = new Set(kopers.map(k => String(k.id)));
     box.innerHTML = `<div class="hd"><h3>${esc(a.naam)}</h3></div>
       <form class="bar" id="t-bar"><input type="search" id="t-q" value="${esc(term)}" aria-label="Zoekwoord in eerdere orders"><button class="btn" type="submit">Zoek in orders</button></form>
