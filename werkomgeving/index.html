@@ -1041,7 +1041,7 @@ async function artikelForm(nr) {
     $("#dr-body").innerHTML = `<form class="f panel" id="af">
       <div class="line">${fld("af-nr", "Artikelnummer", nr || next, "number", nr ? "readonly" : "required")}${fld("af-groep", "Groep", a.groep, "text", `list="af-groepen"`)}</div><datalist id="af-groepen">${groepenCache.map(g => `<option value="${esc(g)}">`).join("")}</datalist>
       ${fld("af-naam", "Naam", a.naam, "text", "required")}
-      <div class="line">${fld("af-vr", "Voorraad", a.voorraad ?? 0, "number", `step="1"`)}${fld("af-min", "Minimale voorraad", a.minimale_voorraad, "number", `step="1" min="0"`)}${fld("af-loc", "Locatie", a.locatie)}</div>
+      <div class="line">${fld("af-vr", "Voorraad", a.voorraad ?? 0, "number", `step="1"`)}${fld("af-loc", "Locatie", a.locatie)}</div>
       <div class="line">${fld("af-ink", "Inkoopprijs", a.inkoopprijs, "number", `step="0.01"`)}${fld("af-vk", "Verkoopprijs", a.verkoopprijs, "number", `step="0.01"`)}${sel("af-btw", "Btw-groep", [["", "Hoog (standaard)"], ...c.btw.map(b => [b.id, b.naam])], a.btw_groep_id)}</div>
       <div class="line">${sel("af-lev", "Leverancier", [["", "Geen"], ...levs.map(l => [l.id, l.naam])], a.leverancier_id)}${sel("af-merk", "Merk", [["", "Geen"], ...merken.map(m => [m.id, m.naam])], a.merk_id)}${fld("af-merknw", "Of nieuw merk", "")}</div>
       <div class="line">${fld("af-ver", "Verpakking (pallet/omdoos, bv. 400/10)", a.verpakking)}${fld("af-hs", "HS-code", a.hs_code)}${fld("af-her", "Land van herkomst", a.herkomst)}</div>
@@ -1054,10 +1054,10 @@ async function artikelForm(nr) {
       e.preventDefault(); const m = $("#af-msg"); m.textContent = "Opslaan…";
       try {
         const v = { nr: num(gv("af-nr")), naam: gv("af-naam"), groep: gv("af-groep"), vr: Math.round(num(gv("af-vr"))), ink: numLit(gv("af-ink")), vk: numLit(gv("af-vk")), ean: gv("af-ean"), web: gv("af-web"), foto: gv("af-foto"),
-          min: numLit(gv("af-min")) === "null" ? "null" : Math.round(num(gv("af-min"))), loc: gv("af-loc"), btw: gv("af-btw") ? num(gv("af-btw")) : "null", lev: gv("af-lev") ? num(gv("af-lev")) : "null", ver: gv("af-ver"), hs: gv("af-hs"), her: gv("af-her"), fav: $("#af-fav").checked, act: $("#af-act").checked };
+          loc: gv("af-loc"), btw: gv("af-btw") ? num(gv("af-btw")) : "null", lev: gv("af-lev") ? num(gv("af-lev")) : "null", ver: gv("af-ver"), hs: gv("af-hs"), her: gv("af-her"), fav: $("#af-fav").checked, act: $("#af-act").checked };
         let merk = gv("af-merk") ? num(gv("af-merk")) : "null";
         if (gv("af-merknw")) { merk = num((await sql(`with n as (insert into merken (naam) values (${lit(gv("af-merknw"))}) on conflict (naam) do nothing returning id) select id from n union all select id from merken where naam = ${lit(gv("af-merknw"))} limit 1`))[0].id); }
-        const velden = `naam=${lit(v.naam)}, groep=${lit(v.groep)}, voorraad=${v.vr}, inkoopprijs=${v.ink}, verkoopprijs=${v.vk}, ean=${lit(v.ean)}, webshop_url=${lit(v.web)}, foto_url=${lit(v.foto)}, minimale_voorraad=${v.min}, locatie=${lit(v.loc)}, btw_groep_id=${v.btw}, leverancier_id=${v.lev}, merk_id=${merk}, verpakking=${lit(v.ver)}, hs_code=${lit(v.hs)}, herkomst=${lit(v.her)}, favoriet=${v.fav}, actief=${v.act}`;
+        const velden = `naam=${lit(v.naam)}, groep=${lit(v.groep)}, voorraad=${v.vr}, inkoopprijs=${v.ink}, verkoopprijs=${v.vk}, ean=${lit(v.ean)}, webshop_url=${lit(v.web)}, foto_url=${lit(v.foto)}, locatie=${lit(v.loc)}, btw_groep_id=${v.btw}, leverancier_id=${v.lev}, merk_id=${merk}, verpakking=${lit(v.ver)}, hs_code=${lit(v.hs)}, herkomst=${lit(v.her)}, favoriet=${v.fav}, actief=${v.act}`;
         if (nr) await sql(`update artikelen set ${velden}, bijgewerkt=now() where artikel_nr=${num(nr)}` + (v.vr !== oud ? `; insert into voorraad_mutaties (artikel_nr, aantal, soort, opmerking) values (${num(nr)}, ${v.vr - oud}, 'correctie', 'Handmatig gewijzigd bij het artikel')` : ""));
         else {
           const dup = await sql(`select 1 from artikelen where artikel_nr=${v.nr}`); if (dup.length) { m.textContent = "Dit artikelnummer bestaat al."; return; }
@@ -2141,23 +2141,23 @@ async function loadPrijslijst(body) {
   });
 }
 
-/* ---------- Voorraad: analyse, journaal, inventarisatie en inkoopplanning ---------- */
+/* ---------- Voorraad: stand, analyse, journaal en inventarisatie ---------- */
 const vrd = { s: "stand", q: "", soort: "", f: "op", g: "", sort: "naam", page: 0 };
-const VRD_ONDERDELEN = [["stand", "Voorraad nu"], ["analyse", "Analyse"], ["journaal", "Journaal"], ["inventarisatie", "Tellen"], ["planning", "Bijbestellen"]];
+const VRD_ONDERDELEN = [["stand", "Voorraad nu"], ["analyse", "Analyse"], ["journaal", "Journaal"], ["inventarisatie", "Tellen"]];
 const SOORT_MUTATIE = { inkoop: "Inkoop", verkoop: "Verkoop", correctie: "Correctie", inventarisatie: "Inventarisatie", retour: "Retour", afboeking: "Afgeboekt", bijboeking: "Bijgeboekt" };
 const REDEN_AF = ["Verkocht zonder order", "Beschadigd of kapot", "Kwijt of verdwenen", "Weggegeven of monster", "Terug naar leverancier", "Vernietigd", "Anders"];
 const REDEN_BIJ = ["Retour van klant", "Gevonden bij het tellen", "Ontvangen zonder inkooporder", "Anders"];
 async function vVrd(main) {
-  main.insertAdjacentHTML("beforeend", `<h2>Voorraad</h2><p class="lead">Wat er nu ligt, afboeken en bijboeken met een reden, tellen en bijbestellen. Elke wijziging van de voorraad komt in het journaal.</p>
+  main.insertAdjacentHTML("beforeend", `<h2>Voorraad</h2><p class="lead">Wat er nu ligt, afboeken en bijboeken met een reden en tellen. Elke wijziging van de voorraad komt in het journaal.</p>
     <div class="pills" id="vr-s" role="tablist" aria-label="Onderdeel">${VRD_ONDERDELEN.map(s => `<button class="subtab" role="tab" data-s="${s[0]}" aria-selected="${s[0] === vrd.s}">${s[1]}</button>`).join("")}</div><div id="vr-body"><p class="empty">Laden…</p></div>`);
   $("#vr-s").querySelectorAll("[data-s]").forEach(b => b.addEventListener("click", () => { vrd.s = b.dataset.s; $("#vr-s").querySelectorAll("[data-s]").forEach(x => x.setAttribute("aria-selected", String(x === b))); loadVrd(); }));
   loadVrd();
 }
-function loadVrd() { const b = $("#vr-body"); if (!b) return; ({ stand: loadVrdStand, analyse: loadVrdAnalyse, journaal: loadVrdJournaal, inventarisatie: loadVrdInv, planning: loadVrdPlanning })[vrd.s](b).catch(e => showError(b, e)); }
+function loadVrd() { const b = $("#vr-body"); if (!b) return; ({ stand: loadVrdStand, analyse: loadVrdAnalyse, journaal: loadVrdJournaal, inventarisatie: loadVrdInv })[vrd.s](b).catch(e => showError(b, e)); }
 async function loadVrdStand(body) {
   const PAGE = 40;
   body.innerHTML = `<form class="bar" id="vs-bar"><input type="search" id="vs-q" placeholder="Zoek op naam, artikelnummer, EAN of locatie" value="${esc(vrd.q)}">
-    <select id="vs-f" aria-label="Tonen"><option value="op">Op voorraad</option><option value="min">Onder minimum</option><option value="nul">Uitverkocht</option><option value="alles">Alle artikelen</option></select>
+    <select id="vs-f" aria-label="Tonen"><option value="op">Op voorraad</option><option value="nul">Uitverkocht</option><option value="alles">Alle artikelen</option></select>
     <select id="vs-g" aria-label="Groep"><option value="">Alle groepen</option>${(groepenCache || []).map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join("")}</select>
     <select id="vs-sort" aria-label="Sorteren"><option value="naam">Naam</option><option value="aantal">Meeste stuks</option><option value="waarde">Hoogste waarde</option><option value="locatie">Locatie</option></select>
     <button class="btn primary" type="submit">Zoeken</button></form><div id="vs-kpi"></div><div id="vs-list"><p class="empty">Laden…</p></div>`;
@@ -2171,12 +2171,12 @@ async function loadVrdStand(body) {
     const w = [];
     if (vrd.q) w.push(`(a.naam ilike ${likeLit(vrd.q)} or a.artikel_nr::text = ${lit(vrd.q)} or a.ean = ${lit(vrd.q)} or a.locatie ilike ${likeLit(vrd.q)})`);
     if (vrd.g) w.push(`a.groep = ${lit(vrd.g)}`);
-    if (vrd.f === "op") w.push("a.voorraad > 0"); else if (vrd.f === "nul") w.push("a.voorraad <= 0"); else if (vrd.f === "min") w.push("a.minimale_voorraad is not null and a.voorraad <= a.minimale_voorraad");
+    if (vrd.f === "op") w.push("a.voorraad > 0"); else if (vrd.f === "nul") w.push("a.voorraad <= 0");;
     const where = w.length ? "where " + w.join(" and ") : "";
     const order = { naam: "a.naam", aantal: "a.voorraad desc, a.naam", waarde: "a.voorraad * coalesce(a.inkoopprijs, 0) desc, a.naam", locatie: "a.locatie nulls last, a.naam" }[vrd.sort];
     try {
       const [rows, tot] = await Promise.all([
-        sql(`select a.artikel_nr, a.naam, a.groep, a.locatie, a.voorraad, a.minimale_voorraad, a.inkoopprijs, a.verpakking, coalesce(o.q, 0) onderweg
+        sql(`select a.artikel_nr, a.naam, a.groep, a.locatie, a.voorraad, a.inkoopprijs, a.verpakking, coalesce(o.q, 0) onderweg
           from artikelen a left join (select r.artikel_nr, sum(r.aantal - r.ontvangen) q from inkoop_regels r join inkooporders io on io.id = r.inkooporder_id where io.status in ('besteld', 'deels') and not r.vervallen group by 1) o on o.artikel_nr = a.artikel_nr
           ${where} order by ${order}, a.artikel_nr limit ${PAGE} offset ${vrd.page * PAGE}`),
         sql(`select count(*) n, coalesce(sum(a.voorraad) filter (where a.voorraad > 0), 0) stuks, coalesce(sum(a.voorraad * a.inkoopprijs) filter (where a.voorraad > 0), 0) waarde from artikelen a ${where}`),
@@ -2184,9 +2184,8 @@ async function loadVrdStand(body) {
       const t = tot[0] || {}, n = num(t.n);
       $("#vs-kpi").innerHTML = `<div class="kpis" style="margin-bottom:12px">${kpi("Artikelen in deze lijst", int(n))}${kpi("Stuks op voorraad", int(t.stuks))}${kpi("Waarde (inkoop)", eur(t.waarde))}</div>`;
       box.innerHTML = rows.length ? `<div class="panel"><div class="tbl"><table class="vstand"><thead><tr><th>Artikel</th><th class="n">Voorraad</th><th class="n">Onderweg</th><th class="n">Waarde</th><th></th></tr></thead><tbody>${rows.map((r, i) => {
-        const laag = r.minimale_voorraad != null && num(r.voorraad) <= num(r.minimale_voorraad);
         return `<tr><td><button class="lnk" data-a="${i}">${esc(r.naam)}</button><div class="note mono">art. ${esc(r.artikel_nr)}${r.locatie ? " · locatie " + esc(r.locatie) : ""}${r.groep ? " · " + esc(r.groep) : ""}${r.verpakking ? " · " + esc(r.verpakking) : ""}</div></td>
-          <td class="n"><b class="vgr${num(r.voorraad) <= 0 ? " nul" : laag ? " laag" : ""}">${int(r.voorraad)}</b>${laag ? `<div class="note">minimum ${int(r.minimale_voorraad)}</div>` : ""}</td><td class="n">${num(r.onderweg) ? int(r.onderweg) : ""}</td><td class="n">${r.inkoopprijs != null ? eur(num(r.voorraad) * num(r.inkoopprijs)) : ""}</td>
+          <td class="n"><b class="vgr${num(r.voorraad) <= 0 ? " nul" : ""}">${int(r.voorraad)}</b></td><td class="n">${num(r.onderweg) ? int(r.onderweg) : ""}</td><td class="n">${r.inkoopprijs != null ? eur(num(r.voorraad) * num(r.inkoopprijs)) : ""}</td>
           <td class="vact"><button class="btn small" data-af="${i}">Afboeken</button><button class="btn small" data-bij="${i}">Bijboeken</button></td></tr>`;
       }).join("")}</tbody></table></div>
         <div class="pager"><span>${vrd.page * PAGE + 1} tot ${Math.min(n, (vrd.page + 1) * PAGE)} van ${int(n)}</span><button class="btn small" id="vs-prev" ${vrd.page ? "" : "disabled"}>Vorige</button><button class="btn small" id="vs-next" ${(vrd.page + 1) * PAGE < n ? "" : "disabled"}>Volgende</button></div></div>` : `<div class="panel"><p class="empty">Geen artikelen gevonden met deze keuze.</p></div>`;
@@ -2249,7 +2248,7 @@ async function voorraadBoeken(nr, richting) {
 }
 async function loadVrdAnalyse(body) {
   const [k, g, l, top, lt, oud] = await Promise.all([
-    sql(`select count(*) filter (where voorraad > 0) n, coalesce(sum(voorraad * inkoopprijs), 0) inkoop, coalesce(sum(voorraad * verkoopprijs), 0) verkoop, count(*) filter (where minimale_voorraad is not null and voorraad <= minimale_voorraad) onder from artikelen`),
+    sql(`select count(*) filter (where voorraad > 0) n, coalesce(sum(voorraad * inkoopprijs), 0) inkoop, coalesce(sum(voorraad * verkoopprijs), 0) verkoop from artikelen`),
     sql(`select coalesce(groep, 'Overige') groep, coalesce(sum(voorraad * inkoopprijs), 0) w from artikelen where voorraad > 0 group by 1 order by 2 desc limit 12`),
     sql(`select coalesce(l.naam, 'Geen leverancier bekend') lev, coalesce(sum(a.voorraad * a.inkoopprijs), 0) w from artikelen a left join leveranciers l on l.id = a.leverancier_id where a.voorraad > 0 group by 1 order by 2 desc limit 12`),
     sql(`select artikel_nr, naam, voorraad, inkoopprijs, voorraad * inkoopprijs w from artikelen where voorraad > 0 and inkoopprijs is not null order by w desc limit 15`),
@@ -2258,7 +2257,7 @@ async function loadVrdAnalyse(body) {
   ]);
   const lb = [1, 2, 3, 4].map(i => { const r = lt.find(y => String(y.k) === String(i)) || {}; return { i, n: num(r.n), w: num(r.w) }; }), lbTot = lb.reduce((t, r) => t + r.w, 0), over2 = lb[2].w + lb[3].w, over2n = lb[2].n + lb[3].n;
   const x = k[0] || {}, marge = num(x.verkoop) ? Math.round((num(x.verkoop) - num(x.inkoop)) / num(x.verkoop) * 100) : 0;
-  body.innerHTML = `<div class="kpis">${kpi("Artikelen op voorraad", int(x.n))}${kpi("Voorraadwaarde inkoop", eur(x.inkoop))}${kpi("Voorraadwaarde verkoop", eur(x.verkoop), `marge ${marge}%`)}${kpi("Onder minimum", int(x.onder), "Stel een minimum in per artikel", num(x.onder) ? "bad" : "")}</div>
+  body.innerHTML = `<div class="kpis">${kpi("Artikelen op voorraad", int(x.n))}${kpi("Voorraadwaarde inkoop", eur(x.inkoop))}${kpi("Voorraadwaarde verkoop", eur(x.verkoop), `marge ${marge}%`)}</div>
     <div class="grid" style="margin-top:14px"><section class="panel"><h3>Waarde per groep (inkoop)</h3>${hbars(g, "groep", "w", eur)}</section><section class="panel"><h3>Waarde per leverancier (inkoop)</h3>${hbars(l, "lev", "w", eur)}</section></div>
     <section class="panel" style="margin-top:14px"><h3>Langliggende voorraad</h3><p class="grootst ${over2 > 0 ? "bad" : ""}"><b class="mono">${eur(over2)}</b> <span>inkoopwaarde (${lbTot ? Math.round(over2 / lbTot * 100) : 0}% van de voorraad, ${int(over2n)} artikelen) ligt langer dan 2 jaar in het magazijn</span></p>${segBalk(lb.map(r => ({ t: LEEFTIJD[r.i], v: r.w, c: ["s1", "s2", "s3", "s4"][r.i - 1], txt: `${eur(r.w)} (${int(r.n)})` })))}
       ${oud.length ? `<div class="rows" style="margin-top:10px">${oud.map(a => `<button class="row" data-a="${esc(a.artikel_nr)}"><span class="t">${esc(a.naam)}</span><span class="s mono">art. ${esc(a.artikel_nr)} · aangemaakt ${dt(a.aangemaakt)} · ${int(a.voorraad)} stuks à ${eur2(a.inkoopprijs)}</span><span class="r">${eur(a.w)}</span></button>`).join("")}</div><p class="note">De 25 duurste partijen ouder dan 2 jaar. Leeftijd is de aanmaakdatum van het artikel in MyBusiness, niet de datum van de laatste inkoop.</p>` : ""}</section>
@@ -2299,29 +2298,6 @@ async function loadVrdInv(body) {
   });
   if (vrd.q) $("#vi-bar").dispatchEvent(new Event("submit", { cancelable: true }));
 }
-async function loadVrdPlanning(body) {
-  const rows = await sql(`select a.artikel_nr, a.naam, a.voorraad, a.minimale_voorraad, a.leverancier_id, l.naam lev, a.inkoopprijs, coalesce(o.q, 0) onderweg
-    from artikelen a left join leveranciers l on l.id = a.leverancier_id
-    left join (select r.artikel_nr, sum(r.aantal - r.ontvangen) q from inkoop_regels r join inkooporders io on io.id = r.inkooporder_id where io.status in ('concept', 'besteld', 'deels') and not r.vervallen group by 1) o on o.artikel_nr = a.artikel_nr
-    where a.minimale_voorraad is not null and a.voorraad + coalesce(o.q, 0) <= a.minimale_voorraad order by l.naam nulls last, a.naam limit 300`);
-  if (!rows.length) { body.innerHTML = `<div class="panel"><p class="empty">Er is geen artikel onder zijn minimale voorraad. Per artikel stel je het minimum in bij het wijzigen van het artikel (veld Minimale voorraad). Artikelen die onder dat minimum zakken, verschijnen hier met een voorstel voor de inkoop, per leverancier.</p></div>`; return; }
-  const groepen = new Map(); rows.forEach(r => { const k = r.leverancier_id || "x"; if (!groepen.has(k)) groepen.set(k, { lev: r.lev, id: r.leverancier_id, rows: [] }); groepen.get(k).rows.push(r); });
-  body.innerHTML = [...groepen.values()].map((g, gi) => `<section class="panel" style="margin-bottom:12px"><div class="hd"><h3>${esc(g.lev || "Geen leverancier gekoppeld")}</h3>${g.id ? `<button class="btn small primary" data-mk="${gi}">Inkooporder maken</button>` : `<span class="note">Koppel een leverancier bij het artikel</span>`}</div>
-    <div class="tbl"><table><thead><tr><th>Artikel</th><th class="n">Voorraad</th><th class="n">Onderweg</th><th class="n">Minimum</th><th class="n">Bestellen</th></tr></thead><tbody>${g.rows.map((r, i) => `<tr><td><button class="btn small" data-a="${esc(r.artikel_nr)}">${esc(r.naam)}</button></td><td class="n">${int(r.voorraad)}</td><td class="n">${int(r.onderweg)}</td><td class="n">${int(r.minimale_voorraad)}</td><td class="n"><input id="pl-${gi}-${i}" type="number" min="0" step="1" value="${Math.max(1, num(r.minimale_voorraad) * 2 - num(r.voorraad) - num(r.onderweg))}" style="width:80px"></td></tr>`).join("")}</tbody></table></div></section>`).join("") + `<div class="note" id="pl-msg">Het voorstel is twee keer het minimum min wat er ligt en onderweg is. Pas de aantallen aan voor je de inkooporder maakt.</div>`;
-  body.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => artikelForm(b.dataset.a)));
-  const gl = [...groepen.values()];
-  body.querySelectorAll("[data-mk]").forEach(b => b.addEventListener("click", async () => {
-    const g = gl[b.dataset.mk], regels = g.rows.map((r, i) => ({ r, n: Math.round(num($(`#pl-${b.dataset.mk}-${i}`).value)) })).filter(x => x.n > 0);
-    if (!regels.length) { $("#pl-msg").textContent = "Vul bij minstens één artikel een aantal in."; return; }
-    try {
-      const id = (await sql(`with o as (insert into inkooporders (leverancier_id, status, opmerking) values (${num(g.id)}, 'concept', 'Voorstel uit minimale voorraad') returning id),
-        r as (insert into inkoop_regels (inkooporder_id, artikel_nr, omschrijving, aantal, inkoopprijs) select o.id, v.a::int, v.b::text, v.c::int, v.d::numeric from o cross join (values ${regels.map(x => `(${num(x.r.artikel_nr)}, ${lit(x.r.naam)}, ${x.n}, ${numLit(x.r.inkoopprijs)})`).join(", ")}) v(a, b, c, d) returning 1)
-        select id from o`))[0].id;
-      openInkoop(id);
-    } catch (er) { $("#pl-msg").textContent = explain(er); }
-  }));
-}
-
 /* ---------- Rapporten ---------- */
 const RAPPORTEN = [
   ["omzet_maand", "Omzet per maand", true], ["omzet_klant", "Omzet per klant", true], ["omzet_land", "Omzet per land", true],
@@ -2446,7 +2422,7 @@ const DGO = {
   offertes: () => { of_.status = "open"; goTab("offertes"); }, volgen: () => { of_.status = "volgen"; goTab("offertes"); }, aanvragen: () => { of_.status = "aanvraag"; goTab("offertes"); },
   orders: () => { ord.view = "bord"; goTab("orders"); }, uitvoering: () => { uit.f = "open"; goTab("uitvoering"); },
   openstaand: () => { rap.r = "openstaand"; goTab("rapporten"); }, facturen: () => { fakf.f = "open"; goTab("facturen"); },
-  planning: () => { vrd.s = "planning"; goTab("voorraad"); }, voorraad: () => { vrd.s = "analyse"; goTab("voorraad"); }, inkoop: () => { ikf.status = "open"; goTab("inkoop"); },
+  voorraad: () => { vrd.s = "analyse"; goTab("voorraad"); }, inkoop: () => { ikf.status = "open"; goTab("inkoop"); },
   opvolging: () => goTab("opvolging"), klanten: () => goTab("klanten"), campagnes: () => goTab("campagnes"), assortiment: () => goTab("assortiment"),
   maand: () => { rap.r = "omzet_maand"; goTab("rapporten"); }, klantrap: () => { rap.r = "omzet_klant"; goTab("rapporten"); }, kaart: () => { const e = $("#km-panel"); if (e) e.scrollIntoView({ behavior: "smooth", block: "start" }); },
 };
@@ -2502,8 +2478,7 @@ async function vDashboard(main) {
         (select coalesce(sum(totaal_excl), 0) from facturen where status in ('definitief', 'betaald') and datum >= date_trunc('year', current_date)) gefact,
         (select count(*) from orders o where o.status in ('Te factureren', 'Geleverd') and o.klant_id is not null and not exists (select 1 from facturen f where f.order_nummer = o.nummer)) onfact_n,
         (select coalesce(sum(o.prijs), 0) from orders o where o.status in ('Te factureren', 'Geleverd') and o.klant_id is not null and not exists (select 1 from facturen f where f.order_nummer = o.nummer)) onfact_w`)),
-      safe(sql(`select (select count(*) from artikelen where minimale_voorraad is not null and voorraad <= minimale_voorraad) onder_min,
-        (select count(*) from artikelen where voorraad > 0 and (verkoopprijs is null or verkoopprijs <= 0)) zonder_prijs, (select count(*) from artikelen where voorraad > 0 and (inkoopprijs is null or inkoopprijs <= 0)) zonder_inkoop,
+      safe(sql(`select (select count(*) from artikelen where voorraad > 0 and (verkoopprijs is null or verkoopprijs <= 0)) zonder_prijs, (select count(*) from artikelen where voorraad > 0 and (inkoopprijs is null or inkoopprijs <= 0)) zonder_inkoop,
         (select count(*) from inkooporders where status in ('besteld', 'deels')) ink_open,
         (select coalesce(sum((r.aantal - r.ontvangen) * coalesce(r.inkoopprijs, 0)), 0) from inkoop_regels r join inkooporders io on io.id = r.inkooporder_id where io.status in ('besteld', 'deels') and not r.vervallen) ink_w,
         (select count(*) from inkooporders where status in ('besteld', 'deels') and verwacht < current_date) ink_laat`)),
@@ -2524,7 +2499,7 @@ async function vDashboard(main) {
     const att = [
       [pl.aanvragen, "aanvragen wachten op antwoord", "", "aanvragen"], [pl.volgen, "offertes verstuurd zonder reactie (5+ dagen)", "", "volgen"], [pl.te_laat, "opvolgingen te laat", num(pl.vandaag) ? `${int(pl.vandaag)} staan voor vandaag` : "", "opvolging"],
       [fin.laat_n, "facturen voorbij de vervaldatum", eur(fin.laat_w), "openstaand"], [fin.onfact_n, "orders nog niet gefactureerd (controleer eerst MyBusiness)", eur(fin.onfact_w), "facturen"],
-      [oud, "orders die al 30+ dagen openstaan", "", "uitvoering"], [vi.onder_min, "artikelen onder de minimale voorraad", "", "planning"], [vi.ink_laat, "inkooporders voorbij de verwachte datum", "", "inkoop"],
+      [oud, "orders die al 30+ dagen openstaan", "", "uitvoering"], [vi.ink_laat, "inkooporders voorbij de verwachte datum", "", "inkoop"],
       [vi.zonder_prijs, "artikelen met voorraad maar zonder verkoopprijs", "", "assortiment"],
     ].filter(r => num(r[0]) > 0);
     const heroOm = `<button class="hero" data-go="maand"><span class="hl">Omzet laatste 12 maanden</span><b>${eur(x.o12)}</b><span class="hd2 ${tone(delta)}">${delta === null ? "" : `${dtxt(delta)} t.o.v. de 12 maanden ervoor`}</span>${sparkLijn(reeks)}</button>`;
