@@ -32,3 +32,8 @@ Database: `supabase/migrations/`.
 
 ## Uiterlijk
 Huisstijl van fvdwpartijhandel.nl: Montserrat, blauw #0060F0, navy #0E2B5D, cyaan #4BD7E3, lichtblauw #EDF8FF, logo in de kop (in donker thema op een witte plaat), cyaan menubalk met ronde knoppen en een navy voetbalk. Alle kleuren staan als tokens bovenaan de stijl; lichte en donkere weergave volgen het systeem.
+
+## Kaart, artikelfoto's en voorraad (2026-10-02)
+- Kaart: zit nu als blok in het Dashboard (geen apart tabblad meer).
+- Artikelfoto's: bij Artikel wijzigen kun je foto's kiezen of slepen. Ze worden in de browser verkleind (groot 1100 px, klein 360 px) en opgeslagen in de tabel `artikel_fotos` van Supabase (`supabase/migrations/20261002f_artikel_fotos.sql`). Eén hoofdfoto per artikel, verwijderen gaat via `vervallen`.
+- Voorraad nu (Artikelen > Voorraad): zoekbare lijst met voorraad, onderweg, waarde en locatie, met knoppen Afboeken en Bijboeken (reden verplicht, niet meer afboeken dan er ligt). Alles komt in het voorraadjournaal (`20261002g_voorraad_afboeken.sql`).

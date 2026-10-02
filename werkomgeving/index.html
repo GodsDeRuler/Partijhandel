@@ -167,6 +167,16 @@ button.hrow{cursor:pointer} button.hrow:hover{background:var(--surface-2)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
 .ph{aspect-ratio:4/3;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--fg-soft);font-size:12px;max-width:100%}
 .ph img{width:100%;height:100%;object-fit:contain;display:block}
+.lnk{background:none;border:0;padding:0;font:inherit;font-weight:600;color:var(--accent);cursor:pointer;text-align:left}.lnk:hover{text-decoration:underline}
+.vgr{font-size:20px;font-weight:800}.vgr.nul{color:var(--fg-soft)}.vgr.laag{color:var(--bad)}
+.vact{white-space:nowrap;text-align:right}.vact .btn{margin-left:4px}
+.seg2{display:flex;gap:6px}
+.fotos{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));margin-bottom:10px}
+.fto{margin:0;display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:10px;padding:6px;background:var(--surface-2);min-width:0}.fto.hoofd{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.ftoimg{display:block;padding:0;border:0;background:#fff;border-radius:6px;cursor:zoom-in;aspect-ratio:1;overflow:hidden}.ftoimg img{width:100%;height:100%;object-fit:contain;display:block}
+.fto figcaption{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.fto figcaption .pill{margin:0}
+.fgroot{margin-bottom:10px;display:flex;flex-direction:column;align-items:flex-start;gap:6px}.fgroot img{max-width:100%;height:auto;border-radius:8px;background:#fff}
+.fdrop{display:block;border:2px dashed var(--line-strong);border-radius:12px;padding:16px;text-align:center;cursor:pointer;color:var(--fg-soft);font-size:12.5px}.fdrop:hover,.fdrop.over{border-color:var(--accent);background:var(--accent-soft);color:var(--fg)}
 .ci{padding:8px 10px 10px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .ci b{font-weight:500;overflow-wrap:anywhere;line-height:1.3}
 .acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px}
@@ -178,6 +188,9 @@ td input[type=text],td input[type=number]{background:var(--surface);border:1px s
 .km-land{fill:var(--surface);stroke:var(--line-strong);stroke-width:.35;vector-effect:non-scaling-stroke;stroke-width:.6px;fill-rule:evenodd}
 .km-dot{fill:var(--accent);fill-opacity:.5;stroke:var(--accent);cursor:pointer}
 .km-dot:hover{fill-opacity:.85}
+.kmtools{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:flex-end}.kmtools select{background:var(--surface);border:1px solid var(--line-strong);border-radius:999px;padding:4px 12px;font-size:12.5px}.kmzoom{display:inline-flex;flex-wrap:wrap;gap:4px}
+.kmwrap{border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+.kmmis summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:12.5px}
 .top-in{align-items:center}
 .tools{display:flex;gap:8px;align-items:center;flex:1 1 320px;justify-content:flex-end;min-width:0;padding-bottom:8px}
 .search{position:relative;flex:1 1 220px;max-width:420px;min-width:0}
@@ -418,7 +431,6 @@ const TABS = [
   { id: "dashboard", label: "Dashboard", view: vDashboard },
   { id: "vandaag", label: "Te mailen", view: vVandaag },
   { id: "klanten", label: "Klanten", view: vKlanten },
-  { id: "kaart", label: "Kaart", view: vKaart },
   { id: "assortiment", label: "Assortiment", view: vAssortiment },
   { id: "offertes", label: "Offertes", view: vOffertes },
   { id: "orders", label: "Orders", view: vOrders },
@@ -434,7 +446,7 @@ const TABS = [
   { id: "beheer", label: "Gegevens", view: vBeheer },
 ];
 const GROUPS = [
-  { id: "overzicht", label: "Overzicht", tabs: ["dashboard", "kaart"] },
+  { id: "overzicht", label: "Overzicht", tabs: ["dashboard"] },
   { id: "verkoop", label: "Verkoop", tabs: ["klanten", "offertes", "orders", "prijzen"] },
   { id: "uitvoering", label: "Uitvoering", tabs: ["uitvoering"] },
   { id: "artikelen", label: "Artikelen", tabs: ["assortiment", "voorraad", "inkoop"] },
@@ -876,6 +888,74 @@ function wirePhotos(root) {
   root.querySelectorAll("[data-ph]").forEach(el => io ? io.observe(el) : (photoQueue.push(el), pumpPhotos()));
 }
 
+/* ---------- eigen artikelfoto's, bewaard in de database ---------- */
+const FOTO_OK = /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/;
+function verklein(img, max, q) {
+  const f = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement("canvas");
+  c.width = Math.max(1, Math.round(img.width * f)); c.height = Math.max(1, Math.round(img.height * f));
+  const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL("image/jpeg", q);
+}
+function leesFoto(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader(); r.onerror = () => rej(new Error("Het bestand lezen is mislukt."));
+    r.onload = () => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error("Dit is geen foto die de browser kan openen. Gebruik jpg of png.")); i.src = r.result; };
+    r.readAsDataURL(file);
+  });
+}
+async function voegFotoToe(nr, file) {
+  const img = await leesFoto(file), groot = verklein(img, 1100, .82), klein = verklein(img, 360, .8);
+  if (groot.length > 1200000) throw new Error("De foto is ook na verkleinen te groot. Probeer een kleinere foto.");
+  await sql(`insert into artikel_fotos (artikel_nr, bestandsnaam, groot, klein, bytes, hoofd, volgorde)
+    select ${num(nr)}, ${lit(file.name)}, ${lit(groot)}, ${lit(klein)}, ${Math.round(groot.length * 0.75)}, not exists (select 1 from artikel_fotos where artikel_nr = ${num(nr)} and not vervallen), coalesce((select max(volgorde) + 1 from artikel_fotos where artikel_nr = ${num(nr)}), 0)`);
+}
+async function loadFotos(nr) {
+  const box = $("#af-fotos"); if (!box) return;
+  try {
+    const rows = await sql(`select id, klein, hoofd, bestandsnaam, bytes from artikel_fotos where artikel_nr = ${num(nr)} and not vervallen order by hoofd desc, volgorde, id`);
+    box.innerHTML = rows.length ? rows.map(r => `<figure class="fto${r.hoofd ? " hoofd" : ""}">${FOTO_OK.test(r.klein || "") ? `<button type="button" class="ftoimg" data-groot="${r.id}" aria-label="Foto vergroten"><img src="${r.klein}" alt=""></button>` : ""}
+      <figcaption>${r.hoofd ? `<span class="pill acc">Hoofdfoto</span>` : `<button type="button" class="btn small" data-hoofd="${r.id}">Hoofdfoto maken</button>`}<button type="button" class="btn small" data-weg="${r.id}">Weg</button></figcaption></figure>`).join("") : `<p class="empty">Nog geen eigen foto's bij dit artikel.</p>`;
+    box.querySelectorAll("[data-groot]").forEach(b => b.addEventListener("click", async () => {
+      const v = $("#af-groot"); v.hidden = false; v.innerHTML = `<p class="note">Laden…</p>`;
+      try { const r = (await sql(`select groot from artikel_fotos where id = ${num(b.dataset.groot)}`))[0]; v.innerHTML = r && FOTO_OK.test(r.groot) ? `<img src="${r.groot}" alt="Foto van het artikel"><button type="button" class="btn small" id="af-groot-x">Sluiten</button>` : ""; const x = $("#af-groot-x"); if (x) x.addEventListener("click", () => { v.hidden = true; v.innerHTML = ""; }); } catch (e) { v.innerHTML = `<p class="note">${esc(explain(e))}</p>`; }
+    }));
+    box.querySelectorAll("[data-hoofd]").forEach(b => b.addEventListener("click", async () => { try { await sql(`update artikel_fotos set hoofd = false where artikel_nr = ${num(nr)} and hoofd; update artikel_fotos set hoofd = true where id = ${num(b.dataset.hoofd)}`); } catch (e) { $("#af-fmsg").textContent = explain(e); } loadFotos(nr); if (tab === "assortiment") loadAssortiment(); }));
+    box.querySelectorAll("[data-weg]").forEach(b => b.addEventListener("click", async () => {
+      try { await sql(`update artikel_fotos set vervallen = true, hoofd = false where id = ${num(b.dataset.weg)}; update artikel_fotos set hoofd = true where id = (select id from artikel_fotos where artikel_nr = ${num(nr)} and not vervallen order by volgorde, id limit 1) and not exists (select 1 from artikel_fotos where artikel_nr = ${num(nr)} and hoofd and not vervallen)`); } catch (e) { $("#af-fmsg").textContent = explain(e); }
+      loadFotos(nr); if (tab === "assortiment") loadAssortiment();
+    }));
+  } catch (e) { box.innerHTML = `<p class="note">${esc(explain(e))}</p>`; }
+}
+function fotoPaneel(nr) {
+  if (!nr) return `<div class="panel"><h3>Foto's</h3><p class="note">Sla het artikel eerst op. Daarna kun je hier foto's toevoegen.</p></div>`;
+  return `<div class="panel" id="af-fp"><h3>Foto's van dit artikel</h3>
+    <div class="fotos" id="af-fotos"><p class="empty">Laden…</p></div><div id="af-groot" class="fgroot" hidden></div>
+    <label class="fdrop" id="af-drop"><input type="file" id="af-file" accept="image/*" multiple hidden><span><b>Foto's toevoegen</b><br>Kies bestanden of sleep ze hierheen. Ze worden verkleind en in je eigen database bewaard.</span></label>
+    <div class="note" id="af-fmsg"></div></div>`;
+}
+function wireFotoPaneel(nr) {
+  if (!nr || !$("#af-file")) return;
+  const msg = $("#af-fmsg");
+  const doe = async files => {
+    const lijst = [...files].filter(f => /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|bmp)$/i.test(f.name));
+    if (!lijst.length) { msg.textContent = "Geen foto's gevonden in je keuze."; return; }
+    let ok = 0;
+    for (const [i, f] of lijst.entries()) {
+      msg.textContent = `Foto ${i + 1} van ${lijst.length} opslaan…`;
+      try { await voegFotoToe(nr, f); ok++; } catch (e) { msg.textContent = `${f.name}: ${explain(e)}`; await new Promise(r => setTimeout(r, 1800)); }
+    }
+    msg.textContent = ok ? `${ok} foto${ok === 1 ? "" : "'s"} opgeslagen.` : msg.textContent;
+    loadFotos(nr); if (tab === "assortiment") loadAssortiment();
+  };
+  $("#af-file").addEventListener("change", e => { doe(e.target.files); e.target.value = ""; });
+  const dz = $("#af-drop");
+  ["dragenter", "dragover"].forEach(t => dz.addEventListener(t, e => { e.preventDefault(); dz.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(t => dz.addEventListener(t, e => { e.preventDefault(); dz.classList.remove("over"); }));
+  dz.addEventListener("drop", e => doe(e.dataTransfer.files));
+  dz.addEventListener("click", e => { if (e.target.id !== "af-file") { e.preventDefault(); $("#af-file").click(); } });
+  loadFotos(nr);
+}
+
 /* ---------- Assortiment ---------- */
 const mand = new Map();
 let presetMail = null, groepenCache = null;
@@ -921,12 +1001,17 @@ async function loadAssortiment() {
         return `<article class="card"><div class="ph" data-ph="${esc(a.artikel_nr)}"><span>geen foto</span></div>
           <div class="ci"><b>${esc(a.naam)}</b><span class="mono note">art. ${esc(a.artikel_nr)}${a.groep ? " · " + esc(a.groep) : ""}${a.webshop_url ? " · webshop" : ""}</span>
           <div class="mono">${int(a.voorraad)} stuks · ${eur2(a.verkoopprijs)}${marge !== null ? ` · ${marge}% marge` : ""}</div>
-          <div class="acts"><label class="mandl"><input type="checkbox" data-mand="${i}" ${mand.has(String(a.artikel_nr)) ? "checked" : ""}> Mandje</label><button class="btn small" data-edit="${i}">Wijzig</button><button class="btn small" data-kopers="${i}">Kopers</button></div></div></article>`;
+          <div class="acts"><label class="mandl"><input type="checkbox" data-mand="${i}" ${mand.has(String(a.artikel_nr)) ? "checked" : ""}> Mandje</label><button class="btn small" data-edit="${i}">Wijzig</button><button class="btn small" data-kopers="${i}">Kopers</button><button class="btn small" data-boek="${i}">Voorraad</button></div></div></article>`;
       }).join("")}</div>` : `<p class="empty">Geen artikelen gevonden. Laad ze eventueel via het tabblad Gegevens of voeg een artikel toe.</p>`}
       <div class="pager"><span>${n ? `${as.page * PAGE + 1} tot ${Math.min(n, (as.page + 1) * PAGE)} van ${int(n)}` : ""}</span><button class="btn small" id="as-prev" ${as.page ? "" : "disabled"}>Vorige</button><button class="btn small" id="as-next" ${(as.page + 1) * PAGE < n ? "" : "disabled"}>Volgende</button></div>`;
+    try {
+      const th = rows.length ? await sql(`select artikel_nr, klein from artikel_fotos where hoofd and not vervallen and artikel_nr in (${rows.map(r => num(r.artikel_nr)).join(",")})`) : [];
+      th.forEach(t => { const el = body.querySelector(`[data-ph="${num(t.artikel_nr)}"]`); if (el && FOTO_OK.test(t.klein || "")) { el.innerHTML = `<img src="${t.klein}" alt="">`; el.removeAttribute("data-ph"); } });
+    } catch { /* zonder eigen foto's valt de lijst terug op de projectbestanden */ }
     wirePhotos(body);
     body.querySelectorAll("[data-mand]").forEach(c => c.addEventListener("change", () => { const a = rows[c.dataset.mand]; c.checked ? mand.set(String(a.artikel_nr), a) : mand.delete(String(a.artikel_nr)); drawMandbar(); }));
     body.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", () => artikelForm(rows[b.dataset.edit].artikel_nr)));
+    body.querySelectorAll("[data-boek]").forEach(b => b.addEventListener("click", () => voorraadBoeken(rows[b.dataset.boek].artikel_nr, "af")));
     body.querySelectorAll("[data-kopers]").forEach(b => b.addEventListener("click", () => { const a = rows[b.dataset.kopers]; drawer(a.naam, `art. ${esc(a.artikel_nr)}`, `<div class="panel" id="a-buyers"></div>`); loadKopers(a); }));
     $("#as-prev").addEventListener("click", () => { as.page--; loadAssortiment(); });
     $("#as-next").addEventListener("click", () => { as.page++; loadAssortiment(); });
@@ -960,9 +1045,10 @@ async function artikelForm(nr) {
       <div class="line">${sel("af-lev", "Leverancier", [["", "Geen"], ...levs.map(l => [l.id, l.naam])], a.leverancier_id)}${sel("af-merk", "Merk", [["", "Geen"], ...merken.map(m => [m.id, m.naam])], a.merk_id)}${fld("af-merknw", "Of nieuw merk", "")}</div>
       <div class="line">${fld("af-ver", "Verpakking (pallet/omdoos, bv. 400/10)", a.verpakking)}${fld("af-hs", "HS-code", a.hs_code)}${fld("af-her", "Land van herkomst", a.herkomst)}</div>
       <div class="line">${fld("af-ean", "EAN", a.ean)}${fld("af-web", "Webshop-link", a.webshop_url, "url")}</div>
-      ${fld("af-foto", "Foto-link", a.foto_url, "url")}
+      ${fld("af-foto", "Foto-link (alleen nodig als je geen eigen foto uploadt)", a.foto_url, "url")}
       <div class="line"><label class="mandl"><input type="checkbox" id="af-fav" ${a.favoriet ? "checked" : ""}> Favoriet</label><label class="mandl"><input type="checkbox" id="af-act" ${a.actief === false ? "" : "checked"}> In gebruik</label></div>
-      <div><button class="btn primary" type="submit">${nr ? "Opslaan" : "Artikel toevoegen"}</button></div><div class="note" id="af-msg">${nr ? "" : "Een foto toon je in het assortiment door <span class=mono>sales/aanbodpagina/fotos/&lt;artikelnummer&gt;.jpg</span> in de projectbestanden te zetten."}</div></form>`;
+      <div><button class="btn primary" type="submit">${nr ? "Opslaan" : "Artikel toevoegen"}</button></div><div class="note" id="af-msg"></div></form>${fotoPaneel(nr)}`;
+    wireFotoPaneel(nr);
     $("#af").addEventListener("submit", async e => {
       e.preventDefault(); const m = $("#af-msg"); m.textContent = "Opslaan…";
       try {
@@ -977,6 +1063,7 @@ async function artikelForm(nr) {
           await sql(`insert into artikelen (artikel_nr, naam, voorraad, aangemaakt) values (${v.nr}, ${lit(v.naam)}, 0, now()); update artikelen set ${velden} where artikel_nr=${v.nr}` + (v.vr ? `; insert into voorraad_mutaties (artikel_nr, aantal, soort, opmerking) values (${v.nr}, ${v.vr}, 'correctie', 'Beginvoorraad bij aanmaken')` : ""));
         }
         groepenCache = null; m.textContent = "Opgeslagen."; if (tab === "assortiment") loadAssortiment();
+        if (!nr) artikelForm(v.nr);
       } catch (er) { m.textContent = explain(er); }
     });
   } catch (e) { $("#dr-body").innerHTML = `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`; }
@@ -1567,11 +1654,11 @@ function topoPaths() {
   return (topoHtml = d.join(""));
 }
 const km = { loc: null, rows: null, metric: "omzet", vb: null, g: null };
-async function vKaart(main) {
-  main.insertAdjacentHTML("beforeend", `<h2>Kaart</h2><p class="lead">Waar je klanten zitten en wat ze afnemen. Elke bol is een plaats, de grootte volgt de omzet in euro (excl. btw). Sleep om te verschuiven, scroll of gebruik de knoppen om te zoomen, klik op een bol voor de klanten daar.</p>
-    <div class="bar"><select id="km-m" aria-label="Omzet"><option value="omzet">Omzet totaal (sinds 2018)</option><option value="omzet_12m">Omzet laatste 12 maanden</option></select>
-    <button class="btn" data-z="eu">Europa</button><button class="btn" data-z="nl">Nederland</button><button class="btn" data-z="wereld">Wereld</button><button class="btn" data-z="in" aria-label="Inzoomen">+</button><button class="btn" data-z="uit" aria-label="Uitzoomen">−</button></div>
-    <div id="km-body"><p class="empty">Laden…</p></div>`);
+async function kaartPaneel(host) {
+  host.innerHTML = `<div class="hd"><h3>Waar je klanten zitten</h3><div class="kmtools"><select id="km-m" aria-label="Omzet"><option value="omzet">Omzet totaal (sinds 2018)</option><option value="omzet_12m">Omzet laatste 12 maanden</option></select>
+    <span class="kmzoom"><button class="btn small" data-z="eu">Europa</button><button class="btn small" data-z="nl">Nederland</button><button class="btn small" data-z="wereld">Wereld</button><button class="btn small" data-z="in" aria-label="Inzoomen">+</button><button class="btn small" data-z="uit" aria-label="Uitzoomen">−</button></span></div></div>
+    <div id="km-body"><p class="empty">Laden…</p></div>`;
+  if (!document.getElementById("topo")) await new Promise(r => document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", r, { once: true }) : setTimeout(r, 50));
   $("#km-m").value = km.metric;
   $("#km-m").addEventListener("change", () => { km.metric = $("#km-m").value; drawKaart(); });
   const body = $("#km-body");
@@ -1609,13 +1696,13 @@ function drawKaart() {
   const opV = sum(G.op), landV = sum(G.land), geenV = sum(G.geen), nOp = G.op.reduce((t, g) => t + g.k.length, 0);
   const geenOmzet = G.geen.filter(x => x.v > 0);
   body.innerHTML = `${km.missing ? `<div class="banner"><b>Locatiebestand niet gevonden</b>Het bestand sales/kaart/locaties.csv ontbreekt of is niet te lezen. Er staan nu alleen klanten met een bekend land in de lijsten.</div>` : ""}
-    <p class="note">${int(nOp)} klanten staan op de kaart (${eur(opV)}). ${int(G.land.length)} klanten hebben alleen een land (${eur(landV)}) en ${int(G.geen.length)} klanten hebben geen adres of land (${eur(geenV)}). Die staan niet op de kaart, maar wel in de lijsten hieronder.</p>
-    <div class="panel" style="padding:0;overflow:hidden"><svg id="km-svg" class="kmap" style="aspect-ratio:${MW} / ${MW * MR}" role="img" aria-label="Wereldkaart met klanten per plaats, grootte naar omzet"><g><path class="km-land" d="${topoPaths()}"/></g><g id="km-dots"></g></svg></div>
-    <div class="grid" style="margin-top:14px">
-      <section class="panel"><h3>Omzet per land</h3>${hbars(G.perLand.slice(0, 14), "land", "v", eur)}</section>
-      <section class="panel"><h3>Alleen land bekend (${int(G.land.length)})</h3>${G.land.length ? `<div class="rows">${G.land.slice(0, 12).map(x => klantRowKaart(x.k, x.v)).join("")}</div>${G.land.length > 12 ? `<p class="note">en ${int(G.land.length - 12)} kleinere klanten</p>` : ""}` : `<p class="empty">Geen.</p>`}</section>
-      <section class="panel"><h3>Zonder adres of land (${int(G.geen.length)})</h3>${G.geen.length ? `<div class="rows">${geenOmzet.slice(0, 12).map(x => klantRowKaart(x.k, x.v)).join("")}</div><p class="note">${int(geenOmzet.length)} met omzet, ${int(G.geen.length - geenOmzet.length)} zonder. Vul het adres in op de klantkaart, dan komen ze op de kaart.</p>` : `<p class="empty">Geen.</p>`}</section>
-    </div>`;
+    <div class="kmwrap"><svg id="km-svg" class="kmap" style="aspect-ratio:${MW} / ${MW * MR}" role="img" aria-label="Wereldkaart met klanten per plaats, grootte naar omzet"><g><path class="km-land" d="${topoPaths()}"/></g><g id="km-dots"></g></svg></div>
+    <p class="note">Elke bol is een plaats, de grootte volgt de omzet in euro (excl. btw). Sleep om te verschuiven, scroll of gebruik de knoppen om te zoomen, klik op een bol voor de klanten daar. ${int(nOp)} klanten staan op de kaart (${eur(opV)}).</p>
+    ${G.land.length + G.geen.length ? `<details class="kmmis"><summary>${int(G.land.length)} klanten met alleen een land en ${int(G.geen.length)} zonder adres of land staan niet op de kaart</summary>
+    <div class="grid" style="margin-top:10px">
+      <section><h3>Alleen land bekend (${int(G.land.length)}, ${eur(landV)})</h3>${G.land.length ? `<div class="rows">${G.land.slice(0, 12).map(x => klantRowKaart(x.k, x.v)).join("")}</div>${G.land.length > 12 ? `<p class="note">en ${int(G.land.length - 12)} kleinere klanten</p>` : ""}` : `<p class="empty">Geen.</p>`}</section>
+      <section><h3>Zonder adres of land (${int(G.geen.length)}, ${eur(geenV)})</h3>${G.geen.length ? `<div class="rows">${geenOmzet.slice(0, 12).map(x => klantRowKaart(x.k, x.v)).join("")}</div><p class="note">${int(geenOmzet.length)} met omzet, ${int(G.geen.length - geenOmzet.length)} zonder. Vul het adres in op de klantkaart, dan komen ze op de kaart.</p>` : `<p class="empty">Geen.</p>`}</section>
+    </div></details>` : ""}`;
   wireRows(body);
   const svg = $("#km-svg");
   if (!km.vb) km.vb = kaartFit(-11, 36, 34, 61);
@@ -2052,17 +2139,112 @@ async function loadPrijslijst(body) {
 }
 
 /* ---------- Voorraad: analyse, journaal, inventarisatie en inkoopplanning ---------- */
-const vrd = { s: "analyse", q: "", soort: "" };
-const VRD_ONDERDELEN = [["analyse", "Voorraadanalyse"], ["journaal", "Voorraadjournaal"], ["inventarisatie", "Inventarisatie"], ["planning", "Minimale voorraad en inkoopplanning"]];
-const SOORT_MUTATIE = { inkoop: "Inkoop", verkoop: "Verkoop", correctie: "Correctie", inventarisatie: "Inventarisatie", retour: "Retour" };
+const vrd = { s: "stand", q: "", soort: "", f: "op", g: "", sort: "naam", page: 0 };
+const VRD_ONDERDELEN = [["stand", "Voorraad nu"], ["analyse", "Voorraadanalyse"], ["journaal", "Voorraadjournaal"], ["inventarisatie", "Inventarisatie"], ["planning", "Minimale voorraad en inkoopplanning"]];
+const SOORT_MUTATIE = { inkoop: "Inkoop", verkoop: "Verkoop", correctie: "Correctie", inventarisatie: "Inventarisatie", retour: "Retour", afboeking: "Afgeboekt", bijboeking: "Bijgeboekt" };
+const REDEN_AF = ["Verkocht zonder order", "Beschadigd of kapot", "Kwijt of verdwenen", "Weggegeven of monster", "Terug naar leverancier", "Vernietigd", "Anders"];
+const REDEN_BIJ = ["Retour van klant", "Gevonden bij het tellen", "Ontvangen zonder inkooporder", "Anders"];
 async function vVrd(main) {
-  main.insertAdjacentHTML("beforeend", `<h2>Voorraad</h2><p class="lead">Wat er ligt, wat erbij kwam en eruit ging, tellen en bijbestellen. Elke wijziging van de voorraad komt in het journaal.</p>
+  main.insertAdjacentHTML("beforeend", `<h2>Voorraad</h2><p class="lead">Wat er nu ligt, afboeken en bijboeken met een reden, tellen en bijbestellen. Elke wijziging van de voorraad komt in het journaal.</p>
     <div class="bar"><select id="vr-s" aria-label="Onderdeel">${VRD_ONDERDELEN.map(s => `<option value="${s[0]}">${s[1]}</option>`).join("")}</select></div><div id="vr-body"><p class="empty">Laden…</p></div>`);
   $("#vr-s").value = vrd.s;
   $("#vr-s").addEventListener("change", () => { vrd.s = $("#vr-s").value; loadVrd(); });
   loadVrd();
 }
-function loadVrd() { const b = $("#vr-body"); if (!b) return; ({ analyse: loadVrdAnalyse, journaal: loadVrdJournaal, inventarisatie: loadVrdInv, planning: loadVrdPlanning })[vrd.s](b).catch(e => showError(b, e)); }
+function loadVrd() { const b = $("#vr-body"); if (!b) return; ({ stand: loadVrdStand, analyse: loadVrdAnalyse, journaal: loadVrdJournaal, inventarisatie: loadVrdInv, planning: loadVrdPlanning })[vrd.s](b).catch(e => showError(b, e)); }
+async function loadVrdStand(body) {
+  const PAGE = 40;
+  body.innerHTML = `<form class="bar" id="vs-bar"><input type="search" id="vs-q" placeholder="Zoek op naam, artikelnummer, EAN of locatie" value="${esc(vrd.q)}">
+    <select id="vs-f" aria-label="Tonen"><option value="op">Op voorraad</option><option value="min">Onder minimum</option><option value="nul">Uitverkocht</option><option value="alles">Alle artikelen</option></select>
+    <select id="vs-g" aria-label="Groep"><option value="">Alle groepen</option>${(groepenCache || []).map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join("")}</select>
+    <select id="vs-sort" aria-label="Sorteren"><option value="naam">Naam</option><option value="aantal">Meeste stuks</option><option value="waarde">Hoogste waarde</option><option value="locatie">Locatie</option></select>
+    <button class="btn primary" type="submit">Zoeken</button></form><div id="vs-kpi"></div><div id="vs-list"><p class="empty">Laden…</p></div>`;
+  $("#vs-f").value = vrd.f; $("#vs-g").value = vrd.g; $("#vs-sort").value = vrd.sort;
+  if (!groepenCache) { try { groepenCache = (await sql(`select groep, count(*) n from artikelen where groep is not null group by 1 order by 2 desc`)).map(r => r.groep); $("#vs-g").innerHTML = `<option value="">Alle groepen</option>${groepenCache.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join("")}`; $("#vs-g").value = vrd.g; } catch { /* zonder groepen kan het ook */ } }
+  const apply = () => { vrd.q = gv("vs-q"); vrd.f = $("#vs-f").value; vrd.g = $("#vs-g").value; vrd.sort = $("#vs-sort").value; vrd.page = 0; laad(); };
+  $("#vs-bar").addEventListener("submit", e => { e.preventDefault(); apply(); });
+  ["vs-f", "vs-g", "vs-sort"].forEach(id => $("#" + id).addEventListener("change", apply));
+  async function laad() {
+    const box = $("#vs-list"); if (!box) return;
+    const w = [];
+    if (vrd.q) w.push(`(a.naam ilike ${likeLit(vrd.q)} or a.artikel_nr::text = ${lit(vrd.q)} or a.ean = ${lit(vrd.q)} or a.locatie ilike ${likeLit(vrd.q)})`);
+    if (vrd.g) w.push(`a.groep = ${lit(vrd.g)}`);
+    if (vrd.f === "op") w.push("a.voorraad > 0"); else if (vrd.f === "nul") w.push("a.voorraad <= 0"); else if (vrd.f === "min") w.push("a.minimale_voorraad is not null and a.voorraad <= a.minimale_voorraad");
+    const where = w.length ? "where " + w.join(" and ") : "";
+    const order = { naam: "a.naam", aantal: "a.voorraad desc, a.naam", waarde: "a.voorraad * coalesce(a.inkoopprijs, 0) desc, a.naam", locatie: "a.locatie nulls last, a.naam" }[vrd.sort];
+    try {
+      const [rows, tot] = await Promise.all([
+        sql(`select a.artikel_nr, a.naam, a.groep, a.locatie, a.voorraad, a.minimale_voorraad, a.inkoopprijs, a.verpakking, coalesce(o.q, 0) onderweg
+          from artikelen a left join (select r.artikel_nr, sum(r.aantal - r.ontvangen) q from inkoop_regels r join inkooporders io on io.id = r.inkooporder_id where io.status in ('besteld', 'deels') and not r.vervallen group by 1) o on o.artikel_nr = a.artikel_nr
+          ${where} order by ${order}, a.artikel_nr limit ${PAGE} offset ${vrd.page * PAGE}`),
+        sql(`select count(*) n, coalesce(sum(a.voorraad) filter (where a.voorraad > 0), 0) stuks, coalesce(sum(a.voorraad * a.inkoopprijs) filter (where a.voorraad > 0), 0) waarde from artikelen a ${where}`),
+      ]);
+      const t = tot[0] || {}, n = num(t.n);
+      $("#vs-kpi").innerHTML = `<div class="kpis" style="margin-bottom:12px">${kpi("Artikelen in deze lijst", int(n))}${kpi("Stuks op voorraad", int(t.stuks))}${kpi("Waarde (inkoop)", eur(t.waarde))}</div>`;
+      box.innerHTML = rows.length ? `<div class="panel"><div class="tbl"><table class="vstand"><thead><tr><th>Artikel</th><th class="n">Voorraad</th><th class="n">Onderweg</th><th class="n">Waarde</th><th></th></tr></thead><tbody>${rows.map((r, i) => {
+        const laag = r.minimale_voorraad != null && num(r.voorraad) <= num(r.minimale_voorraad);
+        return `<tr><td><button class="lnk" data-a="${i}">${esc(r.naam)}</button><div class="note mono">art. ${esc(r.artikel_nr)}${r.locatie ? " · locatie " + esc(r.locatie) : ""}${r.groep ? " · " + esc(r.groep) : ""}${r.verpakking ? " · " + esc(r.verpakking) : ""}</div></td>
+          <td class="n"><b class="vgr${num(r.voorraad) <= 0 ? " nul" : laag ? " laag" : ""}">${int(r.voorraad)}</b>${laag ? `<div class="note">minimum ${int(r.minimale_voorraad)}</div>` : ""}</td><td class="n">${num(r.onderweg) ? int(r.onderweg) : ""}</td><td class="n">${r.inkoopprijs != null ? eur(num(r.voorraad) * num(r.inkoopprijs)) : ""}</td>
+          <td class="vact"><button class="btn small" data-af="${i}">Afboeken</button><button class="btn small" data-bij="${i}">Bijboeken</button></td></tr>`;
+      }).join("")}</tbody></table></div>
+        <div class="pager"><span>${vrd.page * PAGE + 1} tot ${Math.min(n, (vrd.page + 1) * PAGE)} van ${int(n)}</span><button class="btn small" id="vs-prev" ${vrd.page ? "" : "disabled"}>Vorige</button><button class="btn small" id="vs-next" ${(vrd.page + 1) * PAGE < n ? "" : "disabled"}>Volgende</button></div></div>` : `<div class="panel"><p class="empty">Geen artikelen gevonden met deze keuze.</p></div>`;
+      box.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => artikelForm(rows[b.dataset.a].artikel_nr)));
+      box.querySelectorAll("[data-af]").forEach(b => b.addEventListener("click", () => voorraadBoeken(rows[b.dataset.af].artikel_nr, "af")));
+      box.querySelectorAll("[data-bij]").forEach(b => b.addEventListener("click", () => voorraadBoeken(rows[b.dataset.bij].artikel_nr, "bij")));
+      const pv = $("#vs-prev"), nx = $("#vs-next"); if (pv) pv.addEventListener("click", () => { vrd.page--; laad(); }); if (nx) nx.addEventListener("click", () => { vrd.page++; laad(); });
+    } catch (e) { showError(box, e); }
+  }
+  vrd.refresh = laad; laad();
+}
+async function voorraadBoeken(nr, richting) {
+  drawer("Voorraad boeken", "", `<p class="empty">Laden…</p>`);
+  try {
+    const a = (await sql(`select artikel_nr, naam, voorraad, locatie, verpakking from artikelen where artikel_nr = ${num(nr)}`))[0];
+    if (!a) throw new Error("Artikel niet gevonden.");
+    const om = (omdoos(a.verpakking) || {}).doos || 1;
+    $("#dr-body").innerHTML = `<div class="panel"><b>${esc(a.naam)}</b><div class="note mono">art. ${esc(a.artikel_nr)}${a.locatie ? " · locatie " + esc(a.locatie) : ""}${a.verpakking ? " · verpakking " + esc(a.verpakking) : ""}</div>
+      <p class="grootst"><b class="mono" id="vb-stand">${int(a.voorraad)}</b> <span>stuks op voorraad</span></p></div>
+      <form class="f panel" id="vb"><div class="seg2" role="tablist"><button type="button" class="btn" data-r="af">Afboeken</button><button type="button" class="btn" data-r="bij">Bijboeken</button></div>
+      <div class="line"><label>Aantal stuks<input id="vb-n" type="number" min="1" step="1" required></label>${sel("vb-red", "Reden", [], "")}</div>
+      <div class="acts" id="vb-snel"></div>
+      ${fld("vb-opm", "Opmerking (niet verplicht)", "")}
+      <div><button class="btn primary" type="submit" id="vb-go">Boeken</button></div><div class="note" id="vb-msg"></div></form>
+      <div class="panel"><h3>Laatste boekingen van dit artikel</h3><div id="vb-log"><p class="empty">Laden…</p></div></div>`;
+    let rc = richting, stand = num(a.voorraad);
+    const teken = () => {
+      document.querySelectorAll("#vb [data-r]").forEach(b => b.classList.toggle("primary", b.dataset.r === rc));
+      $("#vb-red").innerHTML = (rc === "af" ? REDEN_AF : REDEN_BIJ).map(r => `<option>${esc(r)}</option>`).join("");
+      $("#vb-go").textContent = rc === "af" ? "Afboeken" : "Bijboeken";
+      $("#vb-snel").innerHTML = (rc === "af" ? [["1", 1], ...(om > 1 ? [[`1 omdoos (${om})`, om]] : []), ["Alles", stand]] : [["1", 1], ...(om > 1 ? [[`1 omdoos (${om})`, om]] : [])]).filter(x => x[1] > 0).map(x => `<button type="button" class="btn small" data-q="${x[1]}">${esc(x[0])}</button>`).join("");
+      $("#vb-snel").querySelectorAll("[data-q]").forEach(b => b.addEventListener("click", () => { $("#vb-n").value = b.dataset.q; }));
+    };
+    document.querySelectorAll("#vb [data-r]").forEach(b => b.addEventListener("click", () => { rc = b.dataset.r; teken(); }));
+    teken();
+    const log = async () => {
+      try {
+        const m = await sql(`select datum, aantal, soort, reden, opmerking, referentie from voorraad_mutaties where artikel_nr = ${num(a.artikel_nr)} order by datum desc, id desc limit 8`);
+        $("#vb-log").innerHTML = m.length ? `<div class="rows">${m.map(r => `<div class="row"><span class="t">${esc(SOORT_MUTATIE[r.soort] || r.soort)}${r.reden ? " · " + esc(r.reden) : ""}</span><span class="s">${dt(r.datum)}${r.referentie || r.opmerking ? " · " + esc([r.referentie, r.opmerking].filter(Boolean).join(" · ")) : ""}</span><span class="r" style="color:var(--${num(r.aantal) < 0 ? "bad" : "good"})">${num(r.aantal) > 0 ? "+" : ""}${int(r.aantal)}</span></div>`).join("")}</div>` : `<p class="empty">Nog geen boekingen.</p>`;
+      } catch (e) { $("#vb-log").innerHTML = `<p class="note">${esc(explain(e))}</p>`; }
+    };
+    log();
+    $("#vb").addEventListener("submit", async e => {
+      e.preventDefault(); const msg = $("#vb-msg"), n = Math.round(num($("#vb-n").value));
+      if (!(n >= 1)) { msg.textContent = "Vul een aantal van 1 of meer in."; return; }
+      if (rc === "af" && n > stand) { msg.textContent = `Er liggen maar ${int(stand)} stuks. Boek niet meer af dan er is.`; return; }
+      msg.textContent = "Boeken…"; $("#vb-go").disabled = true;
+      try {
+        const red = $("#vb-red").value, opm = gv("vb-opm");
+        const r = await sql(rc === "af"
+          ? `with u as (update artikelen set voorraad = voorraad - ${n}, bijgewerkt = now() where artikel_nr = ${num(a.artikel_nr)} and voorraad >= ${n} returning artikel_nr) insert into voorraad_mutaties (artikel_nr, aantal, soort, reden, opmerking) select artikel_nr, ${-n}, 'afboeking', ${lit(red)}, ${lit(opm)} from u returning id`
+          : `with u as (update artikelen set voorraad = voorraad + ${n}, bijgewerkt = now() where artikel_nr = ${num(a.artikel_nr)} returning artikel_nr) insert into voorraad_mutaties (artikel_nr, aantal, soort, reden, opmerking) select artikel_nr, ${n}, 'bijboeking', ${lit(red)}, ${lit(opm)} from u returning id`);
+        if (!r.length) { msg.textContent = "Niet geboekt: er is intussen minder voorraad dan je wilt afboeken. Open het artikel opnieuw."; return; }
+        stand += rc === "af" ? -n : n; $("#vb-stand").textContent = int(stand);
+        msg.textContent = `${rc === "af" ? "Afgeboekt" : "Bijgeboekt"}: ${int(n)} stuks. Nieuwe stand ${int(stand)}.`; $("#vb-n").value = ""; $("#vb-opm").value = "";
+        teken(); log(); if (tab === "voorraad" && vrd.s === "stand" && vrd.refresh) vrd.refresh(); if (tab === "assortiment") loadAssortiment();
+      } catch (er) { msg.textContent = explain(er); } finally { $("#vb-go").disabled = false; }
+    });
+  } catch (e) { $("#dr-body").innerHTML = `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`; }
+}
 async function loadVrdAnalyse(body) {
   const [k, g, l, top, lt, oud] = await Promise.all([
     sql(`select count(*) filter (where voorraad > 0) n, coalesce(sum(voorraad * inkoopprijs), 0) inkoop, coalesce(sum(voorraad * verkoopprijs), 0) verkoop, count(*) filter (where minimale_voorraad is not null and voorraad <= minimale_voorraad) onder from artikelen`),
@@ -2086,8 +2268,8 @@ async function loadVrdJournaal(body) {
   $("#vj-s").value = vrd.soort;
   $("#vj-bar").addEventListener("submit", e => { e.preventDefault(); vrd.q = gv("vj-q"); vrd.soort = $("#vj-s").value; loadVrd(); });
   const w = [vrd.q ? `(a.naam ilike ${likeLit(vrd.q)} or a.artikel_nr::text = ${lit(vrd.q)})` : "", vrd.soort ? `m.soort = ${lit(vrd.soort)}` : ""].filter(Boolean);
-  const rows = await sql(`select m.id, m.datum, m.aantal, m.soort, m.referentie, m.opmerking, a.artikel_nr, a.naam from voorraad_mutaties m join artikelen a on a.artikel_nr = m.artikel_nr ${w.length ? "where " + w.join(" and ") : ""} order by m.datum desc, m.id desc limit 100`);
-  $("#vj-list").innerHTML = `<div class="panel">${rows.length ? `<div class="tbl"><table><thead><tr><th>Datum</th><th>Artikel</th><th>Soort</th><th class="n">Aantal</th></tr></thead><tbody>${rows.map(r => `<tr><td class="mono">${dt(r.datum)}</td><td><button class="btn small" data-a="${esc(r.artikel_nr)}">${esc(r.naam)}</button>${r.referentie || r.opmerking ? `<div class="note">${esc([r.referentie, r.opmerking].filter(Boolean).join(" · "))}</div>` : ""}</td><td>${esc(SOORT_MUTATIE[r.soort] || r.soort)}</td><td class="n" style="color:var(--${num(r.aantal) < 0 ? "bad" : "good"})">${num(r.aantal) > 0 ? "+" : ""}${int(r.aantal)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="empty">Nog geen mutaties. Vanaf nu wordt elke wijziging (order, ontvangst, correctie, telling) hier vastgelegd. Wijzigingen van vóór dit overzicht zitten er niet in.</p>`}</div>`;
+  const rows = await sql(`select m.id, m.datum, m.aantal, m.soort, m.referentie, m.opmerking, m.reden, a.artikel_nr, a.naam from voorraad_mutaties m join artikelen a on a.artikel_nr = m.artikel_nr ${w.length ? "where " + w.join(" and ") : ""} order by m.datum desc, m.id desc limit 100`);
+  $("#vj-list").innerHTML = `<div class="panel">${rows.length ? `<div class="tbl"><table><thead><tr><th>Datum</th><th>Artikel</th><th>Soort</th><th class="n">Aantal</th></tr></thead><tbody>${rows.map(r => `<tr><td class="mono">${dt(r.datum)}</td><td><button class="btn small" data-a="${esc(r.artikel_nr)}">${esc(r.naam)}</button>${r.referentie || r.opmerking || r.reden ? `<div class="note">${esc([r.reden, r.referentie, r.opmerking].filter(Boolean).join(" · "))}</div>` : ""}</td><td>${esc(SOORT_MUTATIE[r.soort] || r.soort)}</td><td class="n" style="color:var(--${num(r.aantal) < 0 ? "bad" : "good"})">${num(r.aantal) > 0 ? "+" : ""}${int(r.aantal)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="empty">Nog geen mutaties. Vanaf nu wordt elke wijziging (order, ontvangst, correctie, telling) hier vastgelegd. Wijzigingen van vóór dit overzicht zitten er niet in.</p>`}</div>`;
   $("#vj-list").querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => artikelForm(b.dataset.a)));
 }
 async function loadVrdInv(body) {
@@ -2264,7 +2446,7 @@ const DGO = {
   openstaand: () => { rap.r = "openstaand"; goTab("rapporten"); }, facturen: () => { fakf.f = "open"; goTab("facturen"); },
   planning: () => { vrd.s = "planning"; goTab("voorraad"); }, voorraad: () => { vrd.s = "analyse"; goTab("voorraad"); }, inkoop: () => { ikf.status = "open"; goTab("inkoop"); },
   opvolging: () => goTab("opvolging"), klanten: () => goTab("klanten"), campagnes: () => goTab("campagnes"), assortiment: () => goTab("assortiment"),
-  maand: () => { rap.r = "omzet_maand"; goTab("rapporten"); }, klantrap: () => { rap.r = "omzet_klant"; goTab("rapporten"); }, kaart: () => goTab("kaart"),
+  maand: () => { rap.r = "omzet_maand"; goTab("rapporten"); }, klantrap: () => { rap.r = "omzet_klant"; goTab("rapporten"); }, kaart: () => { const e = $("#km-panel"); if (e) e.scrollIntoView({ behavior: "smooth", block: "start" }); },
 };
 const pctTov = (nu, voor) => num(voor) ? Math.round((num(nu) - num(voor)) / num(voor) * 100) : null;
 const tovTekst = (nu, voor, wat) => { const p = pctTov(nu, voor); return p === null ? "" : `${p >= 0 ? "+" : ""}${p}% t.o.v. ${wat}`; };
@@ -2356,6 +2538,7 @@ async function vDashboard(main) {
         <section class="panel"><div class="hd"><h3>Hier moet je iets mee</h3></div>${att.length ? `<div class="att">${att.map(r => `<button data-go="${esc(r[3])}"><b class="mono bad">${int(r[0])}</b><span>${esc(r[1])}${r[2] ? ` <small>${r[2]}</small>` : ""}</span></button>`).join("")}</div>` : `<p class="empty">Niets dat nu aandacht vraagt.</p>`}</section>
         <section class="panel"><div class="hd"><h3>Orders in uitvoering</h3></div><div class="pijp">${pijp.map(r => `<button data-go="${r.nm === "Te factureren" ? "facturen" : "uitvoering"}"><span class="pn">${esc(r.nm)}</span><span class="pb"><i style="width:${Math.max(r.n ? 4 : 0, r.n / pmax * 100).toFixed(1)}%"></i></span><b class="mono">${int(r.n)}</b><small>${eur(r.w)}</small></button>`).join("")}</div></section>
       </div>
+      <section class="panel" id="km-panel" style="margin-top:14px"></section>
       <div class="grid" style="margin-top:14px">
         <section class="panel"><div class="hd"><h3>Omzet per maand, 24 maanden</h3></div>${barChart(reeks)}</section>
         <section class="panel"><div class="hd"><h3>Verkoop in cijfers</h3></div><div class="dstats">
@@ -2379,7 +2562,8 @@ async function vDashboard(main) {
           </div></section>
       </div>
       <div class="grid" style="margin-top:14px"><section class="panel"><div class="hd"><h3>Top 10 klanten, 12 maanden</h3></div>${hbars(top, "naam", "omzet", eur, true)}</section>
-      <section class="panel"><div class="hd"><h3>Omzet per land, 12 maanden</h3><button class="btn small" data-go="kaart">Kaart</button></div>${hbars(land, "land", "omzet")}<p class="note">Omzet per artikelgroep kan nog niet voor oude orders: die hebben alleen een vrije omschrijving. Nieuwe orders uit offertes wel (Rapporten, omzet per artikel).</p></section></div>`;
+      <section class="panel"><div class="hd"><h3>Omzet per land, 12 maanden</h3><button class="btn small" data-go="kaart">Naar de kaart</button></div>${hbars(land, "land", "omzet")}<p class="note">Omzet per artikelgroep kan nog niet voor oude orders: die hebben alleen een vrije omschrijving. Nieuwe orders uit offertes wel (Rapporten, omzet per artikel).</p></section></div>`;
+    kaartPaneel($("#km-panel"));
     body.querySelectorAll("[data-h]").forEach(b => b.addEventListener("click", () => openKlant(top[b.dataset.h].id)));
     body.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => { const f = DGO[b.dataset.go]; if (f) f(); }));
   } catch (e) { showError(body, e); }
