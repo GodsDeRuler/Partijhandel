@@ -135,6 +135,7 @@ button.hrow{cursor:pointer} button.hrow:hover{background:var(--surface-2)}
 .mandl{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--fg)}
 .mandbar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line-strong);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;box-shadow:var(--shadow)}
 td input[type=text],td input[type=number]{background:var(--surface);border:1px solid var(--line-strong);border-radius:4px;padding:5px 7px;min-width:0}
+@media print{.top,main,.scrim,.dr-hd,.mandbar,.dr-body>*:not(#pak){display:none!important}body{background:#fff}.drawer{position:static;width:auto;box-shadow:none;background:#fff;animation:none}.dr-body{overflow:visible;padding:0}#pak{border:0}}
 @media (max-width:520px){.kv{grid-template-columns:1fr}.stats b{font-size:19px}}
 @media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.4}}}
 </style>
@@ -245,6 +246,8 @@ const TABS = [
   { id: "assortiment", label: "Assortiment", view: vAssortiment },
   { id: "offertes", label: "Offertes", view: vOffertes },
   { id: "orders", label: "Orders", view: vOrders },
+  { id: "uitvoering", label: "Uitvoering", view: vUitvoering },
+  { id: "inkoop", label: "Inkoop", view: vInkoop },
   { id: "campagnes", label: "Campagnes", view: vCampagnes },
   { id: "opvolging", label: "Opvolging", view: vOpvolging },
   { id: "beheer", label: "Gegevens", view: vBeheer },
@@ -864,10 +867,11 @@ Antwoord alleen met JSON: {"onderwerp": "...", "tekst": "..."}`;
 }
 
 /* ---------- Orders ---------- */
+const STATUS_ORDER = ["In bewerking", "Gereed", "Geleverd", "Te factureren", "Afgesloten"];
 const ord = { q: "", status: "", page: 0 };
 async function vOrders(main) {
   main.insertAdjacentHTML("beforeend", `<h2>Orders</h2><p class="lead">Alle orders. Een nieuwe order maak je via een offerte, dan worden regels en voorraad meteen bijgewerkt.</p>
-    <form class="bar" id="or-bar"><input type="search" id="or-q" placeholder="Zoek op klant, ordernummer of omschrijving" value="${esc(ord.q)}"><select id="or-st" aria-label="Status"><option value="">Alle statussen</option><option>In bewerking</option><option>Afgesloten</option></select>
+    <form class="bar" id="or-bar"><input type="search" id="or-q" placeholder="Zoek op klant, ordernummer of omschrijving" value="${esc(ord.q)}"><select id="or-st" aria-label="Status"><option value="">Alle statussen</option>${STATUS_ORDER.map(t => `<option>${t}</option>`).join("")}</select>
     <button class="btn primary" type="submit">Zoeken</button><button class="btn" type="button" id="or-new">Nieuwe order</button></form><div id="or-body"><p class="empty">Laden…</p></div>`);
   $("#or-st").value = ord.status;
   $("#or-bar").addEventListener("submit", e => { e.preventDefault(); ord.q = gv("or-q"); ord.status = $("#or-st").value; ord.page = 0; loadOrders(); });
@@ -899,15 +903,253 @@ async function openOrder(nr) {
   try {
     const [o, regels] = await Promise.all([sql(`select * from orders where nummer = ${num(nr)}`), sql(`select artikel_nr, omschrijving, aantal, prijs, inkoop from order_regels where order_nummer = ${num(nr)} order by id`)]);
     const x = o[0]; if (!x) { drawer("Order niet gevonden", "", `<p class="empty">Deze order bestaat niet.</p>`); return; }
-    const statuses = [...new Set(["In bewerking", "Afgesloten", x.status].filter(Boolean))];
+    const statuses = [...new Set([...STATUS_ORDER, x.status].filter(Boolean))];
     const marge = num(x.prijs) && num(x.inkoop) > 0 && num(x.inkoop) < num(x.prijs) * 5 ? Math.round((num(x.prijs) - num(x.inkoop)) / num(x.prijs) * 100) : null;
     drawer(`Order ${x.nummer}`, `${dt(x.datum)} · ${x.klant_id ? `<button class="btn small" id="or-k">${esc(x.klantnaam)}</button>` : esc(x.klantnaam)}`, `
       <section class="panel f"><div class="line">${sel("or-status", "Status", statuses, x.status)}<div><div class="note">Orderwaarde</div><b class="mono">${eur2(x.prijs)}</b> excl. btw${marge !== null ? `<div class="note">marge ${marge}%</div>` : ""}</div></div>
-      <div><button class="btn primary" id="or-save">Status opslaan</button></div><div class="note" id="or-msg"></div></section>
+      <div style="display:flex;flex-wrap:wrap;gap:8px"><button class="btn primary" id="or-save">Status opslaan</button><button class="btn" id="or-pak">Pakbon en orderpick</button></div><div class="note" id="or-msg"></div></section>
       <section class="panel"><h3>Inhoud</h3>${regels.length ? `<div class="tbl"><table><thead><tr><th>Omschrijving</th><th class="n">Aantal</th><th class="n">Prijs</th><th class="n">Totaal</th></tr></thead><tbody>${regels.map(r => `<tr><td>${esc(r.omschrijving)}${r.artikel_nr ? `<div class="note mono">art. ${esc(r.artikel_nr)}</div>` : ""}</td><td class="n">${int(r.aantal)}</td><td class="n">${eur2(r.prijs)}</td><td class="n">${eur2(num(r.aantal) * num(r.prijs))}</td></tr>`).join("")}</tbody></table></div>` : `<p>${esc(x.omschrijving || "Geen omschrijving.")}</p><p class="note">Orders van voor Salesbureau hebben geen losse regels.</p>`}</section>`);
     if ($("#or-k")) $("#or-k").addEventListener("click", () => openKlant(x.klant_id));
+    $("#or-pak").addEventListener("click", () => openPakbon(x.nummer));
     $("#or-save").addEventListener("click", async () => { const m = $("#or-msg"); m.textContent = "Opslaan…"; try { await sql(`update orders set status=${lit(gv("or-status"))} where nummer=${num(nr)}`); m.textContent = "Opgeslagen."; if (tab === "orders") loadOrders(); } catch (er) { m.textContent = explain(er); } });
   } catch (e) { drawer("Order", "", `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`); }
+}
+
+/* ---------- Uitvoering: orderpick en pakbonnen ---------- */
+const uit = { f: "open" };
+async function vUitvoering(main) {
+  main.insertAdjacentHTML("beforeend", `<h2>Uitvoering</h2><p class="lead">Orders die nog klaargezet of verzonden moeten worden. Open een order voor de orderpick en de pakbon.</p>
+    <div class="bar"><select id="u-f" aria-label="Filter"><option value="open">Nog te verzenden</option><option value="verzonden">Verzonden, nog niet afgesloten</option><option value="alle">Alle open orders</option></select></div><div id="u-body"><p class="empty">Laden…</p></div>`);
+  $("#u-f").value = uit.f;
+  $("#u-f").addEventListener("change", () => { uit.f = $("#u-f").value; loadUitvoering(); });
+  loadUitvoering();
+}
+async function loadUitvoering() {
+  const body = $("#u-body"); if (!body) return;
+  try {
+    const all = await sql(`select o.nummer, o.datum, o.klant_id, o.klantnaam, o.status, o.prijs, o.omschrijving,
+      (select count(*) from order_regels r where r.order_nummer = o.nummer) regels,
+      (select count(*) from pakbonnen p where p.order_nummer = o.nummer) pb,
+      (select max(p.verzonden_op) from pakbonnen p where p.order_nummer = o.nummer) verzonden
+      from orders o where o.status <> 'Afgesloten' order by o.datum, o.nummer`);
+    const klaar = o => o.verzonden || !["In bewerking", "Gereed"].includes(o.status);
+    const rows = all.filter(o => uit.f === "alle" || (uit.f === "open" ? !klaar(o) : klaar(o)));
+    body.innerHTML = `<div class="panel">${rows.length ? `<div class="rows">${rows.map(o => `<button class="row" data-pk="${esc(o.nummer)}"><span class="t">${esc(o.klantnaam)}<span class="pill ${klaar(o) ? "good" : "warn"}">${esc(o.status || "")}</span>${o.verzonden ? `<span class="pill good">verzonden ${dt(o.verzonden)}</span>` : o.pb ? `<span class="pill acc">pakbon gemaakt</span>` : ""}</span>
+      <span class="s">${dt(o.datum)} · order ${esc(o.nummer)} · ${o.regels ? int(o.regels) + " regels" : esc(String(o.omschrijving || "").slice(0, 80))}</span><span class="r">${eur(o.prijs)}</span></button>`).join("")}</div>` : `<p class="empty">Geen orders in dit overzicht.</p>`}</div>`;
+    body.querySelectorAll("[data-pk]").forEach(b => b.addEventListener("click", () => openPakbon(b.dataset.pk)));
+  } catch (e) { showError(body, e); }
+}
+async function openPakbon(nr) {
+  drawer(`Pakbon order ${nr}`, "", `<p class="empty">Laden…</p>`);
+  try {
+    const [o, regels, pbs] = await Promise.all([
+      sql(`select o.nummer, o.datum, o.status, o.klant_id, o.klantnaam, o.omschrijving, k.naam_factuur, k.adres, k.postcode, k.plaats, k.land, k.contactpersoon, k.telefoon from orders o left join klanten k on k.id = o.klant_id where o.nummer = ${num(nr)}`),
+      sql(`select artikel_nr, omschrijving, aantal from order_regels where order_nummer = ${num(nr)} order by id`),
+      sql(`select * from pakbonnen where order_nummer = ${num(nr)} order by id desc limit 1`),
+    ]);
+    const x = o[0]; if (!x) { drawer("Order niet gevonden", "", `<p class="empty">Deze order bestaat niet.</p>`); return; }
+    let pb = pbs[0] || null;
+    const adres = [x.naam_factuur || x.klantnaam, x.contactpersoon ? "t.a.v. " + x.contactpersoon : "", x.adres, [x.postcode, x.plaats].filter(Boolean).join(" "), x.land].filter(Boolean);
+    const draw = () => {
+      drawer(`Pakbon order ${x.nummer}`, `${x.klant_id ? `<button class="btn small" id="pk-k">${esc(x.klantnaam)}</button>` : esc(x.klantnaam)} · <button class="btn small" id="pk-o">Order bekijken</button>`, `
+        <section class="panel" id="pak" style="background:#fff;color:#111">
+          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><b>Frank van de Wijgert Partijhandel B.V.</b><div style="text-align:right"><b>Pakbon${pb ? " PB-" + esc(pb.id) : ""}</b><br>Order ${esc(x.nummer)}<br>${dt(pb ? pb.datum : plusDays(0))}</div></div>
+          <p style="margin:14px 0"><span style="color:#555;font-size:12px">Afleveradres</span><br>${adres.map(esc).join("<br>")}${x.telefoon ? `<br>${esc(x.telefoon)}` : ""}</p>
+          ${regels.length ? `<table style="color:#111"><thead><tr><th style="color:#555">Art.nr</th><th style="color:#555">Omschrijving</th><th class="n" style="color:#555">Aantal</th><th style="color:#555">Gepickt</th></tr></thead><tbody>${regels.map(r => `<tr style="border-top:1px solid #ccc"><td class="mono">${esc(r.artikel_nr || "")}</td><td>${esc(r.omschrijving)}</td><td class="n">${int(r.aantal)}</td><td>☐</td></tr>`).join("")}</tbody></table>` : `<p>${esc(x.omschrijving || "")}</p><p class="note" style="color:#555">Deze order heeft geen losse regels; de omschrijving komt uit MyBusiness.</p>`}
+          ${pb && pb.opmerking ? `<p style="margin-top:12px">${esc(pb.opmerking)}</p>` : ""}${pb && pb.vervoerder ? `<p style="margin-top:12px">Vervoerder: ${esc(pb.vervoerder)}${pb.track_trace ? " · " + esc(pb.track_trace) : ""}</p>` : ""}
+        </section>
+        <section class="panel f"><div class="line">${fld("pk-verv", "Vervoerder", pb && pb.vervoerder)}${fld("pk-tt", "Track & trace of referentie", pb && pb.track_trace)}${fld("pk-dat", "Verzonden op", pb && pb.verzonden_op ? String(pb.verzonden_op).slice(0, 10) : plusDays(0), "date")}</div>${txa("pk-opm", "Opmerking op de pakbon", pb && pb.opmerking, 2)}
+          <div class="line" style="display:flex;flex-wrap:wrap;gap:8px"><button class="btn primary" id="pk-save">${pb ? "Pakbon bijwerken" : "Pakbon vastleggen"}</button><button class="btn" id="pk-print">Afdrukken</button><button class="btn" id="pk-sent" ${pb && pb.verzonden_op ? "disabled" : ""}>${pb && pb.verzonden_op ? "Verzonden" : "Markeer als verzonden"}</button></div>
+          <div class="note" id="pk-msg">${pb && pb.verzonden_op ? "Verzonden op " + dt(pb.verzonden_op) + "." : "Verzonden zet de orderstatus op Geleverd."}</div></section>`);
+      if ($("#pk-k")) $("#pk-k").addEventListener("click", () => openKlant(x.klant_id));
+      $("#pk-o").addEventListener("click", () => openOrder(x.nummer));
+      const msg = t => { const m = $("#pk-msg"); if (m) m.textContent = t; };
+      const save = async verzonden => {
+        const v = [lit(gv("pk-verv")), lit(gv("pk-tt")), lit(gv("pk-opm"))];
+        if (!pb) pb = (await sql(`insert into pakbonnen (order_nummer, vervoerder, track_trace, opmerking) values (${num(x.nummer)}, ${v.join(", ")}) returning *`))[0];
+        else await sql(`update pakbonnen set vervoerder=${v[0]}, track_trace=${v[1]}, opmerking=${v[2]} where id=${num(pb.id)}`);
+        if (verzonden) {
+          await sql(`update pakbonnen set verzonden_op=${lit(gv("pk-dat") || plusDays(0))} where id=${num(pb.id)}; update orders set status='Geleverd' where nummer=${num(x.nummer)} and status in ('In bewerking','Gereed')`);
+        }
+        pb = (await sql(`select * from pakbonnen where id=${num(pb.id)}`))[0];
+        if (tab === "uitvoering") loadUitvoering();
+      };
+      $("#pk-save").addEventListener("click", async () => { msg("Opslaan…"); try { await save(false); draw(); $("#pk-msg").textContent = "Pakbon opgeslagen."; } catch (er) { msg(explain(er)); } });
+      $("#pk-sent").addEventListener("click", async () => { msg("Opslaan…"); try { await save(true); draw(); } catch (er) { msg(explain(er)); } });
+      $("#pk-print").addEventListener("click", () => { try { window.print(); } catch { msg("Afdrukken lukt hier niet. Gebruik Ctrl+P."); } });
+    };
+    draw();
+  } catch (e) { drawer("Pakbon", "", `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`); }
+}
+
+/* ---------- Inkoop: leveranciers en inkooporders ---------- */
+const STATUS_INKOOP = [["concept", "Concept"], ["besteld", "Besteld"], ["deels", "Deels ontvangen"], ["ontvangen", "Ontvangen"], ["geannuleerd", "Geannuleerd"]];
+const inkNaam = s => (STATUS_INKOOP.find(x => x[0] === s) || [s, s])[1];
+const inkKleur = s => ({ ontvangen: "good", deels: "warn", besteld: "acc", geannuleerd: "bad" }[s] || "");
+const ikf = { status: "open" };
+async function vInkoop(main) {
+  main.insertAdjacentHTML("beforeend", `<h2>Inkoop</h2><p class="lead">Leveranciers en inkooporders. Bij het boeken van een ontvangst gaat de voorraad van het artikel omhoog.</p>
+    <div class="bar"><select id="i-st" aria-label="Status"><option value="open">Openstaand</option><option value="">Alle statussen</option>${STATUS_INKOOP.map(s => `<option value="${s[0]}">${s[1]}</option>`).join("")}</select><button class="btn primary" id="i-new">Nieuwe inkooporder</button><button class="btn" id="i-lev">Nieuwe leverancier</button></div>
+    <div class="grid"><section class="panel" id="i-body"><p class="empty">Laden…</p></section><section class="panel" id="i-levs"><p class="empty">Laden…</p></section></div>`);
+  $("#i-st").value = ikf.status;
+  $("#i-st").addEventListener("change", () => { ikf.status = $("#i-st").value; loadInkoop(); });
+  $("#i-new").addEventListener("click", () => leverancierPicker("Inkooporder bij welke leverancier?", l => openInkoop(null, { lev: l })));
+  $("#i-lev").addEventListener("click", () => leverancierForm(null, () => { closeLayer(); loadInkoop(); }));
+  loadInkoop();
+}
+async function loadInkoop() {
+  const body = $("#i-body"), levs = $("#i-levs"); if (!body) return;
+  const w = ikf.status === "open" ? `where io.status in ('concept','besteld','deels')` : ikf.status ? `where io.status = ${lit(ikf.status)}` : "";
+  try {
+    const [rows, ls] = await Promise.all([
+      sql(`select io.id, io.datum, io.verwacht, io.status, io.referentie, l.naam, coalesce(sum(r.aantal * r.inkoopprijs) filter (where not r.vervallen), 0) waarde, coalesce(sum(r.aantal) filter (where not r.vervallen), 0) besteld, coalesce(sum(r.ontvangen) filter (where not r.vervallen), 0) ontvangen
+        from inkooporders io join leveranciers l on l.id = io.leverancier_id left join inkoop_regels r on r.inkooporder_id = io.id ${w} group by io.id, l.naam order by io.datum desc, io.id desc limit 100`),
+      sql(`select l.id, l.naam, l.plaats, l.land, l.email, (select count(*) from inkooporders io where io.leverancier_id = l.id) orders from leveranciers l order by l.naam`),
+    ]);
+    body.innerHTML = `<div class="hd"><h3>Inkooporders</h3></div>${rows.length ? `<div class="rows">${rows.map(o => `<button class="row" data-io="${o.id}"><span class="t">${esc(o.naam)}<span class="pill ${inkKleur(o.status)}">${esc(inkNaam(o.status))}</span></span><span class="s">${dt(o.datum)}${o.verwacht ? " · verwacht " + dt(o.verwacht) : ""}${o.referentie ? " · " + esc(o.referentie) : ""} · ${int(o.ontvangen)} van ${int(o.besteld)} st. ontvangen</span><span class="r">${eur(o.waarde)}</span></button>`).join("")}</div>` : `<p class="empty">Geen inkooporders in dit overzicht.</p>`}`;
+    body.querySelectorAll("[data-io]").forEach(b => b.addEventListener("click", () => openInkoop(b.dataset.io)));
+    levs.innerHTML = `<div class="hd"><h3>Leveranciers</h3></div>${ls.length ? `<div class="rows">${ls.map(l => `<button class="row" data-lv="${l.id}"><span class="t">${esc(l.naam)}</span><span class="s">${esc([l.plaats, l.land].filter(Boolean).join(", "))}${l.email ? " · " + esc(l.email) : ""}</span><span class="r">${int(l.orders)} orders</span></button>`).join("")}</div>` : `<p class="empty">Nog geen leveranciers. Voeg ze toe met de knop hierboven. Heb je een export van leveranciers uit MyBusiness, geef die dan door, dan laad ik ze in één keer.</p>`}`;
+    levs.querySelectorAll("[data-lv]").forEach(b => b.addEventListener("click", async () => { const l = (await sql(`select * from leveranciers where id = ${num(b.dataset.lv)}`))[0]; if (l) leverancierForm(l, () => { closeLayer(); loadInkoop(); }); }));
+  } catch (e) { showError(body, e); }
+}
+function leverancierPicker(title, onPick) {
+  drawer(title, "", `<form class="bar" id="lp-f"><input type="search" id="lp-q" placeholder="Zoek leverancier"><button class="btn primary" type="submit">Zoek</button><button class="btn" type="button" id="lp-new">Nieuwe leverancier</button></form><div id="lp-res"></div>`);
+  const run = async () => {
+    const q = gv("lp-q"); const box = $("#lp-res");
+    try {
+      const r = await sql(`select id, naam, email, plaats, land from leveranciers ${q ? `where naam ilike ${likeLit(q)} or plaats ilike ${likeLit(q)}` : ""} order by naam limit 30`);
+      box.innerHTML = r.length ? `<div class="rows">${r.map((l, i) => `<button class="row" data-p="${i}"><span class="t">${esc(l.naam)}</span><span class="s">${esc([l.plaats, l.land].filter(Boolean).join(", "))}</span></button>`).join("")}</div>` : `<p class="empty">Geen leveranciers gevonden. Voeg er een toe.</p>`;
+      box.querySelectorAll("[data-p]").forEach(b => b.addEventListener("click", () => onPick(r[b.dataset.p])));
+    } catch (e) { showError(box, e); }
+  };
+  $("#lp-f").addEventListener("submit", e => { e.preventDefault(); run(); });
+  $("#lp-new").addEventListener("click", () => leverancierForm(null, async () => { const l = (await sql(`select id, naam, email, plaats, land from leveranciers order by id desc limit 1`))[0]; onPick(l); }));
+  run();
+}
+function leverancierForm(l, onDone) {
+  const x = l || {};
+  drawer(l ? "Leverancier wijzigen" : "Nieuwe leverancier", "", `<form class="f panel" id="lf">
+    ${fld("lf-naam", "Naam", x.naam)}<div class="line">${fld("lf-cp", "Contactpersoon", x.contactpersoon)}${fld("lf-mail", "E-mail", x.email, "email")}${fld("lf-tel", "Telefoon", x.telefoon)}</div>
+    ${fld("lf-adres", "Adres", x.adres)}<div class="line">${fld("lf-pc", "Postcode", x.postcode)}${fld("lf-pl", "Plaats", x.plaats)}${fld("lf-land", "Land", x.land)}</div>
+    <div class="line">${fld("lf-btw", "Btw-nummer", x.btw_nr)}${fld("lf-bt", "Betaaltermijn (dagen)", x.betaaltermijn_dagen, "number", 'min="0"')}</div>${txa("lf-opm", "Opmerking", x.opmerking, 2)}
+    <div><button class="btn primary" type="submit">Opslaan</button></div><div class="note" id="lf-msg"></div></form>`);
+  $("#lf").addEventListener("submit", async e => {
+    e.preventDefault(); const m = $("#lf-msg");
+    if (!gv("lf-naam")) { m.textContent = "Vul een naam in."; return; }
+    const v = ["lf-naam", "lf-cp", "lf-mail", "lf-tel", "lf-adres", "lf-pc", "lf-pl", "lf-land", "lf-btw"].map(i => lit(gv(i)));
+    const bt = Number.isInteger(Number(gv("lf-bt"))) && gv("lf-bt") !== "" ? Number(gv("lf-bt")) : "null";
+    m.textContent = "Opslaan…";
+    try {
+      if (l) await sql(`update leveranciers set naam=${v[0]}, contactpersoon=${v[1]}, email=${v[2]}, telefoon=${v[3]}, adres=${v[4]}, postcode=${v[5]}, plaats=${v[6]}, land=${v[7]}, btw_nr=${v[8]}, betaaltermijn_dagen=${bt}, opmerking=${lit(gv("lf-opm"))} where id=${num(l.id)}`);
+      else await sql(`insert into leveranciers (naam, contactpersoon, email, telefoon, adres, postcode, plaats, land, btw_nr, betaaltermijn_dagen, opmerking) values (${v.join(", ")}, ${bt}, ${lit(gv("lf-opm"))})`);
+      await onDone();
+    } catch (er) { m.textContent = explain(er); }
+  });
+}
+let ik = null;
+async function openInkoop(id, preset) {
+  drawer("Inkooporder laden…", "", `<p class="empty">Laden…</p>`);
+  try {
+    if (id) {
+      const o = (await sql(`select io.*, l.naam lev_naam, l.email lev_email, l.land lev_land from inkooporders io join leveranciers l on l.id = io.leverancier_id where io.id = ${num(id)}`))[0];
+      if (!o) { drawer("Inkooporder niet gevonden", "", `<p class="empty">Deze inkooporder bestaat niet.</p>`); return; }
+      const regels = await sql(`select id, artikel_nr, omschrijving, aantal, ontvangen, inkoopprijs, vervallen from inkoop_regels where inkooporder_id = ${num(id)} order by id`);
+      ik = { id: o.id, lev: { id: o.leverancier_id, naam: o.lev_naam, email: o.lev_email, land: o.lev_land }, status: o.status, verwacht: o.verwacht ? String(o.verwacht).slice(0, 10) : "", referentie: o.referentie || "", opmerking: o.opmerking || "", lines: regels.map(r => ({ ...r })) };
+    } else ik = { id: null, lev: preset.lev, status: "concept", verwacht: "", referentie: "", opmerking: "", lines: [] };
+    drawInkoop();
+  } catch (e) { drawer("Inkooporder", "", `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`); }
+}
+function syncIk() {
+  if (!$("#ik-st")) return;
+  ik.status = gv("ik-st"); ik.verwacht = gv("ik-vw"); ik.referentie = gv("ik-ref"); ik.opmerking = gv("ik-opm");
+  ik.lines.forEach((l, i) => { if ($(`#k-${i}-o`)) { l.omschrijving = gv(`k-${i}-o`); l.aantal = gv(`k-${i}-a`); l.inkoopprijs = gv(`k-${i}-p`); } });
+}
+function drawInkoop() {
+  const o = ik, act = o.lines.filter(l => !l.vervallen), tot = waarde(act, "inkoopprijs");
+  const auto = ["deels", "ontvangen"].includes(o.status);
+  const kanOntvangen = o.id && ["besteld", "deels"].includes(o.status);
+  const opts = auto ? STATUS_INKOOP : STATUS_INKOOP.filter(s => !["deels", "ontvangen"].includes(s[0]));
+  drawer(o.id ? `Inkooporder ${o.id}` : "Nieuwe inkooporder", esc(o.lev.naam), `
+    <section class="panel f"><div class="line">${sel("ik-st", "Status", opts, o.status)}${fld("ik-vw", "Verwacht op", o.verwacht, "date")}${fld("ik-ref", "Referentie leverancier", o.referentie)}</div>${txa("ik-opm", "Opmerking (intern)", o.opmerking, 2)}</section>
+    <section class="panel"><h3>Regels</h3>${act.length ? `<div class="tbl"><table><thead><tr><th>Omschrijving</th><th class="n">Besteld</th><th class="n">Inkoop p/st</th>${o.id ? `<th class="n">Ontvangen</th>${kanOntvangen ? `<th class="n">Nu erbij</th>` : ""}` : ""}<th></th></tr></thead><tbody>${o.lines.map((l, i) => l.vervallen ? "" : `<tr>
+      <td><input id="k-${i}-o" type="text" value="${esc(l.omschrijving)}" style="width:100%;min-width:140px">${l.artikel_nr ? `<div class="note mono">art. ${esc(l.artikel_nr)}</div>` : ""}</td>
+      <td class="n"><input id="k-${i}-a" type="number" min="1" step="1" value="${esc(l.aantal)}" style="width:80px"></td>
+      <td class="n"><input id="k-${i}-p" type="number" step="0.01" value="${esc(l.inkoopprijs ?? "")}" style="width:90px"></td>
+      ${o.id ? `<td class="n">${l.id ? int(l.ontvangen) + " / " + int(l.aantal) : ""}</td>${kanOntvangen ? `<td class="n">${l.id ? `<input id="k-${i}-n" type="number" min="0" step="1" placeholder="${Math.max(0, num(l.aantal) - num(l.ontvangen))}" style="width:80px">` : ""}</td>` : ""}` : ""}
+      <td><button class="btn small" data-rm="${i}" aria-label="Regel verwijderen">Weg</button></td></tr>`).join("")}</tbody></table></div>
+      <p class="mono" style="text-align:right;margin:8px 0 0">Totaal inkoop ${eur2(tot)} excl. btw</p>` : `<p class="empty">Nog geen regels.</p>`}
+      <form class="bar" id="ik-find" style="margin-top:10px"><input type="search" id="ik-q" placeholder="Artikel zoeken om toe te voegen"><button class="btn" type="submit">Zoek</button><button class="btn" type="button" id="ik-free">Vrije regel</button></form><div id="ik-res"></div></section>
+    <section class="panel"><div style="display:flex;flex-wrap:wrap;gap:8px"><button class="btn primary" id="ik-save">Opslaan</button>${kanOntvangen ? `<button class="btn" id="ik-recv">Ontvangst boeken</button>` : ""}<button class="btn" id="ik-mail" ${sampleApi && o.lev.email ? "" : "disabled"}>Bestelmail schrijven</button></div>
+      <div class="note" id="ik-msg">${kanOntvangen ? "Vul bij Nu erbij in hoeveel er binnenkwam en boek de ontvangst. Regels die je leeg laat, blijven ongewijzigd." : o.id ? "" : "Sla de order op om ontvangsten te kunnen boeken."}</div><div id="ik-draft"></div></section>`);
+  const msg = t => { const m = $("#ik-msg"); if (m) m.textContent = t; };
+  document.querySelectorAll("[data-rm]").forEach(b => b.addEventListener("click", () => { syncIk(); const i = Number(b.dataset.rm); if (o.lines[i].id) { if (num(o.lines[i].ontvangen) > 0) { msg("Deze regel is al (deels) ontvangen en blijft staan."); return; } o.lines[i].vervallen = true; } else o.lines.splice(i, 1); drawInkoop(); }));
+  document.querySelectorAll('[id^="k-"][id$="-o"],[id^="k-"][id$="-a"],[id^="k-"][id$="-p"]').forEach(inp => inp.addEventListener("change", () => { syncIk(); drawInkoop(); }));
+  $("#ik-free").addEventListener("click", () => { syncIk(); o.lines.push({ artikel_nr: null, omschrijving: "", aantal: 1, ontvangen: 0, inkoopprijs: "" }); drawInkoop(); });
+  $("#ik-find").addEventListener("submit", async e => {
+    e.preventDefault(); const q = gv("ik-q"); if (!q) return;
+    try {
+      const r = await sql(`select artikel_nr, naam, voorraad, inkoopprijs from artikelen where naam ilike ${likeLit(q)} or artikel_nr::text = ${lit(q)} order by voorraad desc limit 8`);
+      $("#ik-res").innerHTML = r.length ? r.map((a, i) => `<div class="chk" style="grid-template-columns:minmax(0,1fr) auto auto"><span>${esc(a.naam)}<div class="note mono">art. ${esc(a.artikel_nr)} · voorraad ${int(a.voorraad)}</div></span><span class="mono">${eur2(a.inkoopprijs)}</span><button type="button" class="btn small" data-add="${i}">Toevoegen</button></div>`).join("") : `<p class="empty">Niets gevonden.</p>`;
+      $("#ik-res").querySelectorAll("[data-add]").forEach(b => b.addEventListener("click", () => { syncIk(); const a = r[b.dataset.add]; o.lines.push({ artikel_nr: a.artikel_nr, omschrijving: a.naam, aantal: 1, ontvangen: 0, inkoopprijs: a.inkoopprijs }); drawInkoop(); }));
+    } catch (er) { showError($("#ik-res"), er); }
+  });
+  const rg = l => `${l.artikel_nr ? num(l.artikel_nr) : "null"}, ${lit(l.omschrijving)}, ${Math.max(1, Math.round(num(l.aantal)))}, ${numLit(l.inkoopprijs)}`;
+  const save = async () => {
+    syncIk();
+    const live = o.lines.filter(l => !l.vervallen && String(l.omschrijving).trim());
+    if (!o.id) {
+      const q = `with o as (insert into inkooporders (leverancier_id, status, verwacht, referentie, opmerking) values (${num(o.lev.id)}, ${lit(o.status)}, ${lit(o.verwacht)}, ${lit(o.referentie)}, ${lit(o.opmerking)}) returning id)` +
+        (live.length ? `, r as (insert into inkoop_regels (inkooporder_id, artikel_nr, omschrijving, aantal, inkoopprijs) select o.id, v.a::int, v.b::text, v.c::int, v.d::numeric from o cross join (values ${live.map(l => "(" + rg(l) + ")").join(", ")}) v(a, b, c, d) returning inkooporder_id)` : "") + ` select id from o`;
+      o.id = num((await sql(q))[0].id);
+    } else {
+      const st = [`update inkooporders set status=${lit(o.status)}, verwacht=${lit(o.verwacht)}, referentie=${lit(o.referentie)}, opmerking=${lit(o.opmerking)} where id=${num(o.id)}`];
+      o.lines.forEach(l => {
+        if (l.id) st.push(`update inkoop_regels set omschrijving=${lit(l.omschrijving)}, aantal=${Math.max(1, Math.round(num(l.aantal)))}, inkoopprijs=${numLit(l.inkoopprijs)}, vervallen=${!!l.vervallen} where id=${num(l.id)}`);
+        else if (!l.vervallen && String(l.omschrijving).trim()) st.push(`insert into inkoop_regels (inkooporder_id, artikel_nr, omschrijving, aantal, inkoopprijs) values (${num(o.id)}, ${rg(l)})`);
+      });
+      await sql(st.join(";\n"));
+    }
+    return o.id;
+  };
+  $("#ik-save").addEventListener("click", async () => { msg("Opslaan…"); try { const id = await save(); await openInkoop(id); if ($("#ik-msg")) $("#ik-msg").textContent = "Opgeslagen."; if (tab === "inkoop") loadInkoop(); } catch (er) { msg(explain(er)); } });
+  if ($("#ik-recv")) $("#ik-recv").addEventListener("click", async () => {
+    syncIk();
+    if (o.lines.some(l => !l.id && !l.vervallen)) { msg("Sla de order eerst op, daarna kun je de ontvangst boeken."); return; }
+    const ins = [];
+    o.lines.forEach((l, i) => { const f = $(`#k-${i}-n`); const n = f ? Math.round(num(f.value)) : 0; if (l.id && !l.vervallen && n > 0) ins.push({ l, n }); });
+    if (!ins.length) { msg("Vul bij minstens één regel in hoeveel er binnenkwam."); return; }
+    msg("Ontvangst boeken…");
+    try {
+      await save();
+      const nieuw = o.lines.map(l => { const r = ins.find(x => x.l === l); return { ...l, ontvangen: num(l.ontvangen) + (r ? r.n : 0) }; });
+      const alles = nieuw.filter(l => !l.vervallen).every(l => num(l.ontvangen) >= num(l.aantal));
+      await sql(`with inp(id, n) as (values ${ins.map(x => `(${num(x.l.id)}, ${x.n})`).join(", ")}),
+        u as (update inkoop_regels r set ontvangen = r.ontvangen + inp.n from inp where r.id = inp.id and r.inkooporder_id = ${num(o.id)} returning r.artikel_nr, inp.n),
+        a as (update artikelen a set voorraad = coalesce(a.voorraad, 0) + s.n, bijgewerkt = now() from (select artikel_nr, sum(n)::int n from u where artikel_nr is not null group by 1) s where a.artikel_nr = s.artikel_nr returning 1)
+        update inkooporders set status = ${lit(alles ? "ontvangen" : "deels")} where id = ${num(o.id)}`);
+      await openInkoop(o.id); if ($("#ik-msg")) $("#ik-msg").textContent = "Ontvangst geboekt en voorraad bijgewerkt."; if (tab === "inkoop") loadInkoop();
+    } catch (er) { msg(explain(er)); }
+  });
+  $("#ik-mail").addEventListener("click", async () => {
+    syncIk(); const live = o.lines.filter(l => !l.vervallen && String(l.omschrijving).trim());
+    if (!live.length) { msg("Voeg eerst regels toe."); return; }
+    $("#ik-draft").innerHTML = `<p class="empty">Concept wordt geschreven…</p>`;
+    const prompt = `Je schrijft namens Michel van Frank van de Wijgert Partijhandel (Tilburg, handel in non-food restpartijen) een korte bestelmail aan leverancier ${o.lev.naam}${o.lev.land ? " (" + o.lev.land + ")" : ""}.
+Taal: Nederlands, tenzij het land van de leverancier duidelijk niet Nederlands of Belgisch is, dan Engels.
+Bestelling (inkoopprijs per stuk, excl. btw):
+${live.map(l => `- ${l.aantal} x ${l.omschrijving}${l.artikel_nr ? " (art.nr " + l.artikel_nr + ")" : ""}${l.inkoopprijs ? " à € " + Number(l.inkoopprijs).toFixed(2) : ""}`).join("\n")}
+${o.verwacht ? "Gewenste leverdatum: " + dt(o.verwacht) + "." : ""}${o.referentie ? " Referentie: " + o.referentie + "." : ""}
+Regels: kort, geen opsmuk, geen emoji's, geen gedachtestreepjes, verzin geen voorwaarden. Vraag om bevestiging en de verwachte levertijd. Ondertekening: "Met vriendelijke groet,\\nMichel\\nFrank van de Wijgert Partijhandel".
+Antwoord alleen met JSON: {"onderwerp": "...", "tekst": "..."}`;
+    try {
+      const r = await sampleApi.json(prompt, { cache: false });
+      draftBox($("#ik-draft"), o.lev.email, String(r.onderwerp || ""), String(r.tekst || ""), async () => {
+        const id = await save();
+        await sql(`update inkooporders set status='besteld' where id=${num(id)} and status='concept'`);
+        await openInkoop(id); if (tab === "inkoop") loadInkoop();
+      });
+    } catch (e) { $("#ik-draft").innerHTML = `<div class="banner bad"><b>Het concept is niet gelukt</b>Probeer het opnieuw.</div>`; }
+  });
 }
 
 /* ---------- Dashboard ---------- */
