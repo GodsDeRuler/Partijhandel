@@ -5,6 +5,7 @@ met het project "Partijhandel" (`suwsagwkzflsahaptasy`) praat. Geen sleutels in 
 Doel: vervanging van mybusiness, inclusief de sales.
 
 Onderdelen
+- Navigatie: vijf groepen (Overzicht, Verkoop, Artikelen, Marketing, Gegevens) met onderdelen eronder; zoekbalk bovenin voor klanten, artikelen en orders; menu "+ Nieuw" voor offerte, klant, artikel, inkooporder en leverancier.
 - Dashboard: omzet, marge, klanten, voorraadwaarde, offertes, mails, omzet per maand, top klanten en landen.
 - Vandaag: opvolgingen, aanvragen en offertes zonder antwoord, slapende klanten, kopers van vorig jaar.
 - Klanten: zoeken, toevoegen (klant of prospect), wijzigen, klantkaart met profiel, orders, offertes, notities en mailconcept.

@@ -140,14 +140,38 @@ td input[type=text],td input[type=number]{background:var(--surface);border:1px s
 .km-land{fill:var(--surface);stroke:var(--line-strong);stroke-width:.35;vector-effect:non-scaling-stroke;stroke-width:.6px;fill-rule:evenodd}
 .km-dot{fill:var(--accent);fill-opacity:.5;stroke:var(--accent);cursor:pointer}
 .km-dot:hover{fill-opacity:.85}
+.top-in{align-items:center}
+.tools{display:flex;gap:8px;align-items:center;flex:1 1 320px;justify-content:flex-end;min-width:0;padding-bottom:8px}
+.search{position:relative;flex:1 1 220px;max-width:420px;min-width:0}
+.search input{width:100%;background:var(--bg);border:1px solid var(--line-strong);border-radius:4px;padding:7px 10px}
+.newm{position:relative}
+.pop{position:absolute;right:0;top:calc(100% + 4px);z-index:30;background:var(--surface);border:1px solid var(--line-strong);border-radius:6px;box-shadow:var(--shadow);min-width:220px;max-height:70vh;overflow-y:auto;padding:4px}
+.search .pop{left:0;right:auto;width:min(480px,92vw)}
+.pop[hidden]{display:none}
+.pop h4{margin:8px 8px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--fg-soft);font-weight:600}
+.pop button{display:block;width:100%;text-align:left;background:none;border:0;border-radius:4px;padding:7px 8px;cursor:pointer}
+.pop button:hover,.pop button:focus-visible{background:var(--surface-2)}
+.pop button small{display:block;color:var(--fg-soft);font-size:12px}
+.tabs{flex:1 1 100%;order:3}
+.subbar{border-top:1px solid var(--line);background:var(--surface-2);margin:0 -16px;padding:6px 16px}
+.subtabs{max-width:1180px;margin:0 auto;display:flex;gap:6px;overflow-x:auto}
+.subtab{background:none;border:1px solid transparent;border-radius:14px;padding:3px 12px;cursor:pointer;color:var(--fg-soft);font-weight:500;white-space:nowrap}
+.subtab:hover{color:var(--fg)}
+.subtab[aria-selected="true"]{background:var(--surface);border-color:var(--line-strong);color:var(--accent)}
+.subtab .n{font-family:var(--font-mono);font-size:11px;background:var(--bad);color:#fff;border-radius:9px;padding:0 6px;margin-left:6px}
+@media (max-width:640px){.tools{flex-basis:100%;justify-content:stretch}.search{max-width:none}}
 @media (max-width:520px){.kv{grid-template-columns:1fr}.stats b{font-size:19px}}
 @media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.4}}}
 </style>
 
 <div class="top"><div class="top-in">
   <div class="brand"><b>Salesbureau</b><span>Frank van de Wijgert Partijhandel</span></div>
+  <div class="tools">
+    <div class="search"><input type="search" id="gs" placeholder="Zoek klant, artikel of order" aria-label="Zoeken" autocomplete="off"><div id="gs-res" class="pop" hidden></div></div>
+    <div class="newm"><button class="btn primary" id="nw-b" aria-haspopup="true" aria-expanded="false">+ Nieuw</button><div id="nw-m" class="pop menu" hidden></div></div>
+  </div>
   <nav class="tabs" role="tablist" aria-label="Onderdelen" id="tabs"></nav>
-</div></div>
+</div><div class="subbar" id="subbar" hidden><nav class="subtabs" id="subtabs" aria-label="Onderdeel"></nav></div></div>
 <main id="main" aria-live="polite"></main>
 <div id="layer"></div>
 
@@ -172,6 +196,52 @@ const fromList = v => Array.isArray(v) ? v.join(", ") : (v ?? "");
 
 let mcp = null, filesApi = null, sampleApi = null, booted = false;
 
+/* ---------- zoeken en Nieuw-menu ---------- */
+const closePops = () => { document.querySelectorAll(".pop").forEach(p => p.hidden = true); const b = $("#nw-b"); if (b) b.setAttribute("aria-expanded", "false"); };
+let gsSeq = 0, gsTimer = null;
+async function globalSearch() {
+  const q = gv("gs"), box = $("#gs-res"), seq = ++gsSeq;
+  if (q.length < 2) { box.hidden = true; return; }
+  if (!mcp) { box.hidden = false; box.innerHTML = `<p class="empty">Geen verbinding met Supabase.</p>`; return; }
+  box.hidden = false; box.innerHTML = `<p class="empty">Zoeken…</p>`;
+  const L = likeLit(q), E = lit(q);
+  try {
+    const [k, a, o] = await Promise.all([
+      sql(`select id, naam, plaats, land from klanten where naam ilike ${L} or plaats ilike ${L} or email ilike ${L} or relatie_nr::text = ${E} order by naam limit 6`),
+      sql(`select artikel_nr, naam, voorraad from artikelen where naam ilike ${L} or artikel_nr::text = ${E} or ean = ${E} order by naam limit 6`),
+      sql(`select nummer, klantnaam, datum, prijs from orders where nummer::text = ${E} or klantnaam ilike ${L} order by datum desc limit 5`),
+    ]);
+    if (seq !== gsSeq) return;
+    const sec = (t, rows, f) => rows.length ? `<h4>${t}</h4>${rows.map(f).join("")}` : "";
+    const html = sec("Klanten", k, r => `<button data-sk="${esc(r.id)}">${esc(r.naam)}<small>${esc([r.plaats, r.land].filter(Boolean).join(", "))}</small></button>`)
+      + sec("Artikelen", a, r => `<button data-sa="${esc(r.artikel_nr)}">${esc(r.naam)}<small>art. ${esc(r.artikel_nr)} · voorraad ${int(r.voorraad)}</small></button>`)
+      + sec("Orders", o, r => `<button data-so="${esc(r.nummer)}">${esc(r.klantnaam)}<small>order ${esc(r.nummer)} · ${dt(r.datum)} · ${eur(r.prijs)}</small></button>`);
+    box.innerHTML = html || `<p class="empty">Niets gevonden voor "${esc(q)}".</p>`;
+    box.querySelectorAll("[data-sk]").forEach(b => b.addEventListener("click", () => { closePops(); openKlant(b.dataset.sk); }));
+    box.querySelectorAll("[data-sa]").forEach(b => b.addEventListener("click", () => { closePops(); artikelForm(b.dataset.sa); }));
+    box.querySelectorAll("[data-so]").forEach(b => b.addEventListener("click", () => { closePops(); openOrder(b.dataset.so); }));
+  } catch (e) { if (seq === gsSeq) box.innerHTML = `<p class="empty">${esc(explain(e))}</p>`; }
+}
+function wireTools() {
+  const gs = $("#gs"), nm = $("#nw-m"), nb = $("#nw-b");
+  if (!gs || gs.dataset.wired) return; gs.dataset.wired = "1";
+  gs.addEventListener("input", () => { clearTimeout(gsTimer); gsTimer = setTimeout(globalSearch, 250); });
+  gs.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); clearTimeout(gsTimer); globalSearch(); } if (e.key === "Escape") closePops(); });
+  gs.addEventListener("focus", () => { if (gs.value.trim().length >= 2) globalSearch(); });
+  const items = [
+    ["Nieuwe offerte of order", () => klantPicker("Offerte voor welke klant?", k => openOfferte(null, { klant: k, lines: [] }))],
+    ["Nieuwe klant of prospect", () => klantForm(null)],
+    ["Nieuw artikel", () => artikelForm(null)],
+    ["Nieuwe inkooporder", () => leverancierPicker("Inkooporder bij welke leverancier?", l => openInkoop(null, { lev: l }))],
+    ["Nieuwe leverancier", () => leverancierForm(null, () => { closeLayer(); if (tab === "inkoop") loadInkoop(); })],
+  ];
+  nm.innerHTML = items.map((x, i) => `<button data-n="${i}">${x[0]}</button>`).join("");
+  nm.querySelectorAll("[data-n]").forEach(b => b.addEventListener("click", () => { closePops(); items[b.dataset.n][1](); }));
+  nb.addEventListener("click", e => { e.stopPropagation(); const open = nm.hidden; closePops(); nm.hidden = !open; nb.setAttribute("aria-expanded", String(open)); });
+  document.addEventListener("click", e => { if (!e.target.closest(".search") && !e.target.closest(".newm")) closePops(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closePops(); });
+}
+
 async function boot() {
   render();
   try { mcp = await claude.use("mcp"); } catch { mcp = null; }
@@ -179,6 +249,8 @@ async function boot() {
   try { sampleApi = await claude.use("sample"); } catch { sampleApi = null; }
   booted = true;
   render();
+  if (mcp) sql(`select count(*) n from opvolging where not afgehandeld and opvolgdatum <= current_date`).then(r => { openCount = num(r[0] && r[0].n); renderTabsOnly(); }).catch(() => { });
+  wireTools();
 }
 
 function explain(e) {
@@ -257,12 +329,26 @@ const TABS = [
   { id: "opvolging", label: "Opvolging", view: vOpvolging },
   { id: "beheer", label: "Gegevens", view: vBeheer },
 ];
+const GROUPS = [
+  { id: "overzicht", label: "Overzicht", tabs: ["dashboard", "vandaag", "kaart"] },
+  { id: "verkoop", label: "Verkoop", tabs: ["klanten", "offertes", "orders", "uitvoering"] },
+  { id: "artikelen", label: "Artikelen", tabs: ["assortiment", "inkoop"] },
+  { id: "marketing", label: "Marketing", tabs: ["campagnes", "opvolging"] },
+  { id: "beheer", label: "Gegevens", tabs: ["beheer"] },
+];
+const groupOf = id => GROUPS.find(g => g.tabs.includes(id)) || GROUPS[0];
 let tab = store.get("tab") || "dashboard";
-if (!TABS.some(t => t.id === tab)) tab = "vandaag";
+if (!TABS.some(t => t.id === tab)) tab = "dashboard";
 let openCount = 0;
+const badge = () => openCount ? `<span class="n">${openCount}</span>` : "";
+function goTab(id) { tab = id; store.set("tab", id); store.set("sub_" + groupOf(id).id, id); closeLayer(); render(); window.scrollTo(0, 0); }
 function render() {
-  $("#tabs").innerHTML = TABS.map(t => `<button class="tab" role="tab" aria-selected="${t.id === tab}" data-t="${t.id}">${esc(t.label)}${t.id === "opvolging" && openCount ? `<span class="n">${openCount}</span>` : ""}</button>`).join("");
-  $("#tabs").querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => { tab = b.dataset.t; store.set("tab", tab); render(); }));
+  const grp = groupOf(tab);
+  $("#tabs").innerHTML = GROUPS.map(g => `<button class="tab" role="tab" aria-selected="${g === grp}" data-g="${g.id}">${esc(g.label)}${g.id === "marketing" ? badge() : ""}</button>`).join("");
+  $("#tabs").querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => { const g = GROUPS.find(x => x.id === b.dataset.g), last = store.get("sub_" + g.id); goTab(g.tabs.includes(last) ? last : g.tabs[0]); }));
+  $("#subbar").hidden = grp.tabs.length < 2;
+  $("#subtabs").innerHTML = grp.tabs.length < 2 ? "" : grp.tabs.map(id => `<button class="subtab" aria-selected="${id === tab}" data-t="${id}">${esc(TABS.find(t => t.id === id).label)}${id === "opvolging" ? badge() : ""}</button>`).join("");
+  $("#subtabs").querySelectorAll(".subtab").forEach(b => b.addEventListener("click", () => goTab(b.dataset.t)));
   const main = $("#main");
   main.innerHTML = "";
   if (!mcp) {
@@ -320,8 +406,9 @@ async function vVandaag(main) {
   } catch (e) { showError(body, e); }
 }
 function renderTabsOnly() {
-  const t = $('[data-t="opvolging"]'); if (!t) return;
-  t.innerHTML = `Opvolging${openCount ? `<span class="n">${openCount}</span>` : ""}`;
+  const g = $('[data-g="marketing"]'), t = $('[data-t="opvolging"]');
+  if (g) g.innerHTML = `Marketing${badge()}`;
+  if (t) t.innerHTML = `Opvolging${badge()}`;
 }
 
 /* ---------- Klanten ---------- */
@@ -395,6 +482,7 @@ function drawKlant() {
   if (k.let_op) warn.push("Let op: " + k.let_op);
   const html = `
     ${warn.map(w => `<div class="banner bad">${esc(w)}</div>`).join("")}
+    <div class="acts"><button class="btn primary" data-act="b-mail" ${k.email && sampleApi ? "" : "disabled"}>Mail opstellen</button><button class="btn" data-act="b-newof">Nieuwe offerte of order</button><button class="btn" data-act="b-edit">Gegevens wijzigen</button></div>
     <section class="panel"><div class="hd"><h3>Gegevens</h3><button class="btn small" id="b-edit">Wijzigen</button></div>${kv([["E-mail", k.email], ["Telefoon", k.telefoon], ["Taal", k.taal], ["Relatiebeheer", k.relatiebeheer],
       ["Orders", k.orders ? `${int(k.orders)} orders, ${eur(k.omzet)} totaal, ${eur(k.omzet_12m)} laatste 12 maanden` : "Nog geen orders"], ["Laatst gekocht", k.laatst_gekocht]])}</section>
     <section class="panel"><h3>Wie is dit (uit internetonderzoek)</h3>${p ? kv([["Samenvatting", p.samenvatting], ["Zekerheid", p.zekerheid], ["Website", p.website], ["Type", p.bedrijfstype], ["Sector", p.sector],
@@ -423,6 +511,7 @@ function drawKlant() {
   $("#b-newof").addEventListener("click", () => openOfferte(null, { klant: k, lines: [] }));
   document.querySelectorAll("[data-of]").forEach(b => b.addEventListener("click", () => openOfferte(b.dataset.of)));
   $("#b-edit").addEventListener("click", () => klantForm(k));
+  document.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => { $("#" + b.dataset.act).click(); if (b.dataset.act === "b-mail") setTimeout(() => { const m = $("#mail-area"); if (m) m.scrollIntoView({ behavior: "smooth", block: "center" }); }, 50); }));
 }
 function alert0(e) { const b = $("#dr-body"); if (b) b.insertAdjacentHTML("afterbegin", `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`); }
 
