@@ -937,6 +937,14 @@ async function loadOffertes() {
 }
 let ofr = null;
 const omdoos = v => { const m = /^\s*(\d+)\s*\/\s*(\d+)\s*$/.exec(String(v || "")); return m ? { pallet: Number(m[1]), doos: Number(m[2]) } : null; };
+const minAantal = x => { const d = x && omdoos(x.verpakking); return d && d.doos > 0 ? d.doos : 1; };
+async function startAantal(l, klantId) {
+  const x = ofr.info && ofr.info.get(num(l.artikel_nr)), m = minAantal(x);
+  if (m > 1 && num(l.aantal) < m) {
+    l.aantal = m;
+    if (l.auto != null && Math.abs(num(l.prijs) - num(l.auto)) < 1e-9) { try { const r = await prijsVoor(klantId, l.artikel_nr, m); if (r.prijs != null) { l.prijs = r.prijs; l.auto = r.prijs; } } catch { } }
+  }
+}
 async function offerteInfo(lines) {
   const nrs = [...new Set(lines.map(l => num(l.artikel_nr)).filter(Boolean))];
   ofr.info = new Map();
@@ -961,6 +969,7 @@ async function openOfferte(id, preset) {
     }
     ofr.regime = bepaalRegime(ofr.klant);
     await offerteInfo(ofr.lines);
+    if (!id) for (const l of ofr.lines) if (l.artikel_nr) await startAantal(l, ofr.klant.id);
     drawOfferte();
   } catch (e) { drawer("Offerte", "", `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`); }
 }
@@ -980,7 +989,8 @@ function offWaarschuwingen(l, o) {
   const x = o.info && o.info.get(num(l.artikel_nr)), w = []; if (!x) return w;
   const a = num(l.aantal), d = omdoos(x.verpakking);
   if (!l.optioneel && a > num(x.voorraad)) w.push(`Meer dan voorraad (${int(x.voorraad)})`);
-  if (d && d.doos > 0 && a % d.doos !== 0) w.push(`Geen veelvoud van omdoos (${d.doos})`);
+  if (!l.optioneel && d && d.doos > 0 && a < d.doos) w.push(`Minder dan de minimale afname (1 omdoos = ${d.doos})`);
+  else if (d && d.doos > 0 && a % d.doos !== 0) w.push(`Geen veelvoud van omdoos (${d.doos})`);
   if (num(x.inkoopprijs) > 0 && nettoPrijs(l) < num(x.inkoopprijs)) w.push("Onder inkoopprijs");
   return w;
 }
@@ -992,7 +1002,7 @@ async function drawOfferte() {
   const btwTekst = o.regime === "verlegd" ? "Btw verlegd (intracommunautaire levering)." : o.regime === "export" ? "Levering buiten de Europese Unie, 0% btw." : "";
   const rij = (l, idx) => { const wr = offWaarschuwingen(l, o); return `<tr${l.optioneel ? ' style="opacity:.8"' : ""}>
       <td><input id="l-${idx}-o" type="text" value="${esc(l.omschrijving)}" style="width:100%;min-width:110px">${l.artikel_nr ? `<div class="note mono">art. ${esc(l.artikel_nr)}</div>` : ""}${wr.map(t => `<div class="note" style="color:var(--warn)">${esc(t)}</div>`).join("")}<button class="btn small" data-rm="${idx}" style="margin-top:4px">Regel weg</button></td>
-      <td class="n"><input id="l-${idx}-a" type="number" min="1" step="1" value="${esc(l.aantal)}" style="width:64px"></td>
+      <td class="n"><input id="l-${idx}-a" type="number" min="${minAantal(o.info && o.info.get(num(l.artikel_nr)))}" step="${minAantal(o.info && o.info.get(num(l.artikel_nr)))}" value="${esc(l.aantal)}" style="width:64px"></td>
       <td class="n"><input id="l-${idx}-p" type="number" step="0.01" value="${esc(l.prijs ?? "")}" style="width:72px"></td>
       <td class="n"><input id="l-${idx}-k" type="number" min="0" max="100" step="any" value="${esc(num(l.korting_pct) || "")}" placeholder="0" style="width:48px"></td>
       <td class="n">${nl ? `<input id="l-${idx}-b" type="number" step="any" value="${esc(l.btw_pct)}" style="width:48px">` : "0"}</td>
@@ -1033,7 +1043,9 @@ async function drawOfferte() {
   document.querySelectorAll("[data-rm]").forEach(b => b.addEventListener("click", () => { syncOfr(); const idx = Number(b.dataset.rm); if (o.lines[idx].id) o.lines[idx].vervallen = true; else o.lines.splice(idx, 1); drawOfferte(); }));
   document.querySelectorAll('[id^="l-"]').forEach(inp => inp.addEventListener("change", async () => {
     syncOfr(); const m = /^l-(\d+)-a$/.exec(inp.id);
-    if (m) { const l = o.lines[Number(m[1])]; if (l && l.artikel_nr && l.auto != null && Math.abs(num(l.prijs) - num(l.auto)) < 1e-9) { try { const r = await prijsVoor(o.klant.id, l.artikel_nr, l.aantal); if (r.prijs != null) { l.prijs = r.prijs; l.auto = r.prijs; } } catch { } } }
+    if (m) { const l = o.lines[Number(m[1])], dz = l && minAantal(o.info && o.info.get(num(l.artikel_nr)));
+      if (l && dz > 1) { const g = Math.max(dz, Math.ceil(num(l.aantal) / dz) * dz); if (g !== num(l.aantal)) { l.aantal = g; msg(`Aantal afgerond naar een veelvoud van de omdoos (${dz}).`); } }
+      if (l && l.artikel_nr && l.auto != null && Math.abs(num(l.prijs) - num(l.auto)) < 1e-9) { try { const r = await prijsVoor(o.klant.id, l.artikel_nr, l.aantal); if (r.prijs != null) { l.prijs = r.prijs; l.auto = r.prijs; } } catch { } } }
     drawOfferte();
   }));
   $("#of-free").addEventListener("click", () => { syncOfr(); o.lines.push({ artikel_nr: null, omschrijving: "", aantal: 1, prijs: "", inkoop: null, korting_pct: 0, btw_pct: 21, optioneel: false }); drawOfferte(); });
@@ -1043,7 +1055,7 @@ async function drawOfferte() {
     try {
       const r = await sql(`select artikel_nr, naam, voorraad, verkoopprijs, inkoopprijs from artikelen where naam ilike ${likeLit(q)} or artikel_nr::text = ${lit(q)} order by voorraad desc limit 8`);
       $("#of-res").innerHTML = r.length ? r.map((a, idx) => `<div class="chk" style="grid-template-columns:minmax(0,1fr) auto auto"><span>${esc(a.naam)}<div class="note mono">art. ${esc(a.artikel_nr)} · voorraad ${int(a.voorraad)}</div></span><span class="mono">${eur2(a.verkoopprijs)}</span><button type="button" class="btn small" data-add="${idx}">Toevoegen</button></div>`).join("") : `<p class="empty">Niets gevonden.</p>`;
-      $("#of-res").querySelectorAll("[data-add]").forEach(b => b.addEventListener("click", async () => { syncOfr(); const a = r[b.dataset.add]; let p = a.verkoopprijs, bron = ""; try { ({ prijs: p, bron } = await prijsVoor(o.klant.id, a.artikel_nr, 1)); } catch { } o.lines.push({ artikel_nr: a.artikel_nr, omschrijving: a.naam + (bron ? ` (${bron})` : ""), aantal: 1, prijs: p, auto: p, inkoop: a.inkoopprijs, korting_pct: 0, btw_pct: null, optioneel: false }); await offerteInfo(o.lines); drawOfferte(); }));
+      $("#of-res").querySelectorAll("[data-add]").forEach(b => b.addEventListener("click", async () => { syncOfr(); const a = r[b.dataset.add]; let p = a.verkoopprijs, bron = ""; try { ({ prijs: p, bron } = await prijsVoor(o.klant.id, a.artikel_nr, 1)); } catch { } const nl2 = { artikel_nr: a.artikel_nr, omschrijving: a.naam + (bron ? ` (${bron})` : ""), aantal: 1, prijs: p, auto: p, inkoop: a.inkoopprijs, korting_pct: 0, btw_pct: null, optioneel: false }; o.lines.push(nl2); await offerteInfo(o.lines); await startAantal(nl2, o.klant.id); drawOfferte(); }));
     } catch (er) { showError($("#of-res"), er); }
   });
   const isLive = l => !l.vervallen && String(l.omschrijving).trim();
@@ -1086,6 +1098,8 @@ async function drawOfferte() {
     syncOfr(); const live = o.lines.filter(l => isLive(l) && !l.optioneel);
     if (!live.length) { msg("Voeg eerst minstens één regel toe (optionele regels tellen niet mee)."); return; }
     if (live.some(l => !num(l.prijs))) { msg("Vul bij elke regel een prijs in."); return; }
+    const fout = live.filter(l => { const dz = minAantal(o.info && o.info.get(num(l.artikel_nr))); return dz > 1 && num(l.aantal) % dz !== 0; });
+    if (fout.length) { msg(`Het aantal moet een veelvoud van de omdoos zijn: ${fout.map(l => l.omschrijving).join(", ")}.`); return; }
     msg("Order aanmaken…");
     try {
       const id = await save(), boek = $("#of-boek") && $("#of-boek").checked, NET = `(r.prijs * (1 - r.korting_pct / 100))`;
