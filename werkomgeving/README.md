@@ -37,3 +37,5 @@ Huisstijl van fvdwpartijhandel.nl: Montserrat, blauw #0060F0, navy #0E2B5D, cyaa
 - Kaart: zit nu als blok in het Dashboard (geen apart tabblad meer).
 - Artikelfoto's: bij Artikel wijzigen kun je foto's kiezen of slepen. Ze worden in de browser verkleind (groot 1100 px, klein 360 px) en opgeslagen in de tabel `artikel_fotos` van Supabase (`supabase/migrations/20261002f_artikel_fotos.sql`). Eén hoofdfoto per artikel, verwijderen gaat via `vervallen`.
 - Voorraad nu (Artikelen > Voorraad): zoekbare lijst met voorraad, onderweg, waarde en locatie, met knoppen Afboeken en Bijboeken (reden verplicht, niet meer afboeken dan er ligt). Alles komt in het voorraadjournaal (`20261002g_voorraad_afboeken.sql`).
+- Automatisch afboeken: een offerte omzetten naar een order boekt de voorraad altijd af (journaal: Verkoop, "Order <nummer>"). Is er te weinig voorraad, dan wordt de order niet gemaakt en staat er per artikel wat er mist. Let op: een nieuwe artikelexport uit MyBusiness (Gegevens) overschrijft de voorraad.
+- Voorraad heeft zichtbare knoppen: Voorraad nu, Analyse, Journaal, Tellen, Bijbestellen.

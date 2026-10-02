@@ -171,6 +171,7 @@ button.hrow{cursor:pointer} button.hrow:hover{background:var(--surface-2)}
 .vgr{font-size:20px;font-weight:800}.vgr.nul{color:var(--fg-soft)}.vgr.laag{color:var(--bad)}
 .vact{white-space:nowrap;text-align:right}.vact .btn{margin-left:4px}
 .seg2{display:flex;gap:6px}
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
 .fotos{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));margin-bottom:10px}
 .fto{margin:0;display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:10px;padding:6px;background:var(--surface-2);min-width:0}.fto.hoofd{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .ftoimg{display:block;padding:0;border:0;background:#fff;border-radius:6px;cursor:zoom-in;aspect-ratio:1;overflow:hidden}.ftoimg img{width:100%;height:100%;object-fit:contain;display:block}
@@ -1212,7 +1213,7 @@ async function drawOfferte() {
     </section>
     <section class="panel"><div class="line" style="display:flex;flex-wrap:wrap;gap:8px"><button class="btn primary" id="of-save">Opslaan</button><button class="btn" id="of-print">Afdrukken of pdf</button>
       <button class="btn" id="of-mail" ${sampleApi && k.email ? "" : "disabled"}>Offertemail schrijven</button><button class="btn" id="of-sent" ${["offerte", "gereserveerd", "aanvraag"].includes(o.status) ? "" : "disabled"}>Markeer als verstuurd</button>${o.id ? `<button class="btn" id="of-copy">Kopie maken</button>` : ""}</div>
-      ${o.order_nummer ? "" : `<div class="line" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px"><label class="mandl"><input type="checkbox" id="of-boek" checked> Voorraad afboeken bij order</label><button class="btn" id="of-order">Omzetten naar order</button></div>`}
+      ${o.order_nummer ? "" : `<div class="line" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px"><button class="btn primary" id="of-order">Omzetten naar order</button><span class="note">De voorraad gaat er dan automatisch af.</span></div>`}
       <div class="note" id="of-msg">${sampleApi ? "" : "Mails schrijven werkt alleen in claude.ai. "}${o.verzonden_op ? "Verstuurd op " + dt(o.verzonden_op) + ". " : ""}Er wordt nooit iets automatisch verstuurd.</div><div id="of-draft"></div></section>`);
   const msg = t => { const m = $("#of-msg"); if (m) m.textContent = t; };
   if ($("#of-ord")) $("#of-ord").addEventListener("click", () => openOrder(o.order_nummer));
@@ -1278,10 +1279,12 @@ async function drawOfferte() {
     if (live.some(l => !num(l.prijs))) { msg("Vul bij elke regel een prijs in."); return; }
     const fout = live.filter(l => { const dz = minAantal(o.info && o.info.get(num(l.artikel_nr))); return dz > 1 && num(l.aantal) % dz !== 0; });
     if (fout.length) { msg(`Het aantal moet een veelvoud van de omdoos zijn: ${fout.map(l => l.omschrijving).join(", ")}.`); return; }
-    msg("Order aanmaken…");
+    msg("Order aanmaken…"); const knop = $("#of-order"); knop.disabled = true;
     try {
-      const id = await save(), boek = $("#of-boek") && $("#of-boek").checked, NET = `(r.prijs * (1 - r.korting_pct / 100))`;
+      const id = await save(), boek = true, NET = `(r.prijs * (1 - r.korting_pct / 100))`;
       const vr = `from (select artikel_nr, sum(aantal)::int aantal from offerte_regels where offerte_id = ${num(id)} and not vervallen and not optioneel and artikel_nr is not null group by 1) s`;
+      const kort = await sql(`select a.artikel_nr, a.naam, a.voorraad, s.aantal ${vr} join artikelen a on a.artikel_nr = s.artikel_nr where a.voorraad < s.aantal order by a.naam`);
+      if (kort.length) { msg(`Niet genoeg voorraad: ${kort.map(r => `${r.naam} (nodig ${int(r.aantal)}, op voorraad ${int(r.voorraad)})`).join("; ")}. Verlaag het aantal, of boek de voorraad eerst bij onder Artikelen, Voorraad. De offerte is wel opgeslagen.`); knop.disabled = false; return; }
       const r = await sql(`with n as (select greatest(coalesce((select max(nummer) from orders where nummer >= extract(year from current_date)::bigint * 100000), 0), extract(year from current_date)::bigint * 100000) + 1 as nr),
         tot as (select coalesce(sum(r.aantal * coalesce(${NET}, 0)), 0) prijs, coalesce(sum(r.aantal * coalesce(r.inkoop, 0)), 0) inkoop, string_agg(r.aantal || 'x ' || r.omschrijving, ' | ' order by r.id) oms from offerte_regels r where r.offerte_id = ${num(id)} and not r.vervallen and not r.optioneel),
         o as (insert into orders (nummer, datum, klant_id, klantnaam, status, omschrijving, inkoop, prijs) select n.nr, current_date, ${num(o.klant.id)}, ${lit(o.klant.naam)}, 'In bewerking', left(tot.oms, 500), tot.inkoop, round(tot.prijs, 2) from n, tot returning nummer),
@@ -1291,7 +1294,7 @@ async function drawOfferte() {
         f as (update offertes set status = 'besteld', order_nummer = (select nummer from o) where id = ${num(id)} returning 1)
         select nummer from o`);
       openOrder(r[0].nummer);
-    } catch (er) { msg(explain(er)); }
+    } catch (er) { msg(explain(er)); knop.disabled = false; }
   });
   $("#of-mail").addEventListener("click", async () => {
     syncOfr(); const T2 = offTotaal(o), live = T2.act;
@@ -2140,15 +2143,14 @@ async function loadPrijslijst(body) {
 
 /* ---------- Voorraad: analyse, journaal, inventarisatie en inkoopplanning ---------- */
 const vrd = { s: "stand", q: "", soort: "", f: "op", g: "", sort: "naam", page: 0 };
-const VRD_ONDERDELEN = [["stand", "Voorraad nu"], ["analyse", "Voorraadanalyse"], ["journaal", "Voorraadjournaal"], ["inventarisatie", "Inventarisatie"], ["planning", "Minimale voorraad en inkoopplanning"]];
+const VRD_ONDERDELEN = [["stand", "Voorraad nu"], ["analyse", "Analyse"], ["journaal", "Journaal"], ["inventarisatie", "Tellen"], ["planning", "Bijbestellen"]];
 const SOORT_MUTATIE = { inkoop: "Inkoop", verkoop: "Verkoop", correctie: "Correctie", inventarisatie: "Inventarisatie", retour: "Retour", afboeking: "Afgeboekt", bijboeking: "Bijgeboekt" };
 const REDEN_AF = ["Verkocht zonder order", "Beschadigd of kapot", "Kwijt of verdwenen", "Weggegeven of monster", "Terug naar leverancier", "Vernietigd", "Anders"];
 const REDEN_BIJ = ["Retour van klant", "Gevonden bij het tellen", "Ontvangen zonder inkooporder", "Anders"];
 async function vVrd(main) {
   main.insertAdjacentHTML("beforeend", `<h2>Voorraad</h2><p class="lead">Wat er nu ligt, afboeken en bijboeken met een reden, tellen en bijbestellen. Elke wijziging van de voorraad komt in het journaal.</p>
-    <div class="bar"><select id="vr-s" aria-label="Onderdeel">${VRD_ONDERDELEN.map(s => `<option value="${s[0]}">${s[1]}</option>`).join("")}</select></div><div id="vr-body"><p class="empty">Laden…</p></div>`);
-  $("#vr-s").value = vrd.s;
-  $("#vr-s").addEventListener("change", () => { vrd.s = $("#vr-s").value; loadVrd(); });
+    <div class="pills" id="vr-s" role="tablist" aria-label="Onderdeel">${VRD_ONDERDELEN.map(s => `<button class="subtab" role="tab" data-s="${s[0]}" aria-selected="${s[0] === vrd.s}">${s[1]}</button>`).join("")}</div><div id="vr-body"><p class="empty">Laden…</p></div>`);
+  $("#vr-s").querySelectorAll("[data-s]").forEach(b => b.addEventListener("click", () => { vrd.s = b.dataset.s; $("#vr-s").querySelectorAll("[data-s]").forEach(x => x.setAttribute("aria-selected", String(x === b))); loadVrd(); }));
   loadVrd();
 }
 function loadVrd() { const b = $("#vr-body"); if (!b) return; ({ stand: loadVrdStand, analyse: loadVrdAnalyse, journaal: loadVrdJournaal, inventarisatie: loadVrdInv, planning: loadVrdPlanning })[vrd.s](b).catch(e => showError(b, e)); }
