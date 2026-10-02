@@ -123,6 +123,26 @@ td.n,th.n{text-align:right;font-family:var(--font-mono);font-variant-numeric:tab
 .kpi b.good{color:var(--good)} .kpi b.bad{color:var(--bad)}
 .kpi small{font-size:12px;color:var(--fg-soft)}
 button.kpi{font:inherit;color:inherit;text-align:left;cursor:pointer;width:100%}button.kpi:hover{border-color:var(--accent)}
+.heros{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr))}
+button.hero{font:inherit;color:inherit;text-align:left;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+button.hero:hover{border-color:var(--accent)}
+.hero .hl{font-size:12px;color:var(--fg-soft);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.hero>b{font-family:var(--font-mono);font-weight:500;font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.hero .hd2{font-size:13px;color:var(--fg-soft)}.hd2.good{color:var(--good)}.hd2.bad{color:var(--bad)}
+.hero small{font-size:12px;color:var(--fg-soft)}
+.spark{width:100%;height:44px;display:block}
+.dprog{display:block;height:8px;border-radius:4px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden}.dprog i{display:block;height:100%;background:var(--accent)}
+.seg{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--surface-2)}.seg i{display:block;height:100%;min-width:0}
+.segleg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--fg-soft);margin-top:6px}.segleg span{display:inline-flex;align-items:center;gap:5px}.segleg i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.s0{background:var(--line-strong)}.s1{background:var(--accent)}.s2{background:color-mix(in srgb,var(--accent) 55%,var(--surface))}.s3{background:var(--warn)}.s4{background:var(--bad)}
+.dstats{display:grid}.dstat{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 12px;align-items:baseline;padding:8px 2px;border:0;border-top:1px solid var(--line);background:none;font:inherit;color:inherit;text-align:left;width:100%}
+button.dstat{cursor:pointer}button.dstat:hover{background:var(--surface-2)}
+.dstat:first-child{border-top:0}.dstat .sl{color:var(--fg-soft)}.dstat b{font-family:var(--font-mono);font-weight:500}.dstat b.good{color:var(--good)}.dstat b.bad{color:var(--bad)}.dstat small{grid-column:1/-1;font-size:12px;color:var(--fg-soft)}
+.att{display:flex;flex-direction:column}.att button{display:grid;grid-template-columns:48px minmax(0,1fr);gap:8px;align-items:baseline;text-align:left;font:inherit;color:inherit;background:none;border:0;border-top:1px solid var(--line);padding:8px 2px;cursor:pointer}.att button:first-child{border-top:0}.att button:hover{background:var(--surface-2)}.att b{font-size:18px;text-align:right}.att b.bad{color:var(--bad)}.att small{color:var(--fg-soft)}
+.pijp{display:flex;flex-direction:column;gap:2px}.pijp button{display:grid;grid-template-columns:110px minmax(0,1fr) 34px 78px;gap:8px;align-items:center;font:inherit;color:inherit;background:none;border:0;padding:7px 2px;text-align:left;cursor:pointer}.pijp button:hover{background:var(--surface-2)}
+.pb{display:block;height:10px;background:var(--surface-2);border-radius:5px;overflow:hidden}.pb i{display:block;height:100%;background:var(--accent)}.pijp small{text-align:right;color:var(--fg-soft)}.pijp b{text-align:right}
+.grootst{margin:0 0 10px;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}.grootst b{font-size:26px;font-weight:500}.grootst.bad b{color:var(--bad)}.grootst span{color:var(--fg-soft)}
+
 .chart{width:100%;height:auto;display:block}
 .c-grid{stroke:var(--line);stroke-width:1}
 .c-t{fill:var(--fg-soft);font:10px var(--font-mono)}
@@ -1974,15 +1994,20 @@ async function vVrd(main) {
 }
 function loadVrd() { const b = $("#vr-body"); if (!b) return; ({ analyse: loadVrdAnalyse, journaal: loadVrdJournaal, inventarisatie: loadVrdInv, planning: loadVrdPlanning })[vrd.s](b).catch(e => showError(b, e)); }
 async function loadVrdAnalyse(body) {
-  const [k, g, l, top] = await Promise.all([
+  const [k, g, l, top, lt, oud] = await Promise.all([
     sql(`select count(*) filter (where voorraad > 0) n, coalesce(sum(voorraad * inkoopprijs), 0) inkoop, coalesce(sum(voorraad * verkoopprijs), 0) verkoop, count(*) filter (where minimale_voorraad is not null and voorraad <= minimale_voorraad) onder from artikelen`),
     sql(`select coalesce(groep, 'Overige') groep, coalesce(sum(voorraad * inkoopprijs), 0) w from artikelen where voorraad > 0 group by 1 order by 2 desc limit 12`),
     sql(`select coalesce(l.naam, 'Geen leverancier bekend') lev, coalesce(sum(a.voorraad * a.inkoopprijs), 0) w from artikelen a left join leveranciers l on l.id = a.leverancier_id where a.voorraad > 0 group by 1 order by 2 desc limit 12`),
     sql(`select artikel_nr, naam, voorraad, inkoopprijs, voorraad * inkoopprijs w from artikelen where voorraad > 0 and inkoopprijs is not null order by w desc limit 15`),
+    sql(`select ${LEEFTIJD_SQL} k, count(*) n, coalesce(sum(voorraad * inkoopprijs), 0) w from artikelen where voorraad > 0 group by 1 order by 1`),
+    sql(`select artikel_nr, naam, aangemaakt, voorraad, inkoopprijs, voorraad * inkoopprijs w from artikelen where voorraad > 0 and aangemaakt < now() - interval '2 years' and inkoopprijs is not null order by w desc limit 25`),
   ]);
+  const lb = [1, 2, 3, 4].map(i => { const r = lt.find(y => String(y.k) === String(i)) || {}; return { i, n: num(r.n), w: num(r.w) }; }), lbTot = lb.reduce((t, r) => t + r.w, 0), over2 = lb[2].w + lb[3].w, over2n = lb[2].n + lb[3].n;
   const x = k[0] || {}, marge = num(x.verkoop) ? Math.round((num(x.verkoop) - num(x.inkoop)) / num(x.verkoop) * 100) : 0;
   body.innerHTML = `<div class="kpis">${kpi("Artikelen op voorraad", int(x.n))}${kpi("Voorraadwaarde inkoop", eur(x.inkoop))}${kpi("Voorraadwaarde verkoop", eur(x.verkoop), `marge ${marge}%`)}${kpi("Onder minimum", int(x.onder), "Stel een minimum in per artikel", num(x.onder) ? "bad" : "")}</div>
     <div class="grid" style="margin-top:14px"><section class="panel"><h3>Waarde per groep (inkoop)</h3>${hbars(g, "groep", "w", eur)}</section><section class="panel"><h3>Waarde per leverancier (inkoop)</h3>${hbars(l, "lev", "w", eur)}</section></div>
+    <section class="panel" style="margin-top:14px"><h3>Langliggende voorraad</h3><p class="grootst ${over2 > 0 ? "bad" : ""}"><b class="mono">${eur(over2)}</b> <span>inkoopwaarde (${lbTot ? Math.round(over2 / lbTot * 100) : 0}% van de voorraad, ${int(over2n)} artikelen) ligt langer dan 2 jaar in het magazijn</span></p>${segBalk(lb.map(r => ({ t: LEEFTIJD[r.i], v: r.w, c: ["s1", "s2", "s3", "s4"][r.i - 1], txt: `${eur(r.w)} (${int(r.n)})` })))}
+      ${oud.length ? `<div class="rows" style="margin-top:10px">${oud.map(a => `<button class="row" data-a="${esc(a.artikel_nr)}"><span class="t">${esc(a.naam)}</span><span class="s mono">art. ${esc(a.artikel_nr)} · aangemaakt ${dt(a.aangemaakt)} · ${int(a.voorraad)} stuks à ${eur2(a.inkoopprijs)}</span><span class="r">${eur(a.w)}</span></button>`).join("")}</div><p class="note">De 25 duurste partijen ouder dan 2 jaar. Leeftijd is de aanmaakdatum van het artikel in MyBusiness, niet de datum van de laatste inkoop.</p>` : ""}</section>
     <section class="panel" style="margin-top:14px"><h3>Grootste partijen op waarde</h3>${top.length ? `<div class="rows">${top.map(a => `<button class="row" data-a="${esc(a.artikel_nr)}"><span class="t">${esc(a.naam)}</span><span class="s mono">art. ${esc(a.artikel_nr)} · ${int(a.voorraad)} stuks à ${eur2(a.inkoopprijs)}</span><span class="r">${eur(a.w)}</span></button>`).join("")}</div>` : `<p class="empty">Geen voorraad.</p>`}</section>`;
   body.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => artikelForm(b.dataset.a)));
 }
@@ -2174,8 +2199,19 @@ const DGO = {
 const pctTov = (nu, voor) => num(voor) ? Math.round((num(nu) - num(voor)) / num(voor) * 100) : null;
 const tovTekst = (nu, voor, wat) => { const p = pctTov(nu, voor); return p === null ? "" : `${p >= 0 ? "+" : ""}${p}% t.o.v. ${wat}`; };
 const tovToon = (nu, voor) => { const p = pctTov(nu, voor); return p === null ? "" : p >= 0 ? "good" : "bad"; };
+const LEEFTIJD_SQL = `case when aangemaakt > now() - interval '1 year' then '1' when aangemaakt > now() - interval '2 years' then '2' when aangemaakt > now() - interval '3 years' then '3' else '4' end`;
+const LEEFTIJD = { 1: "Jonger dan 1 jaar", 2: "1 tot 2 jaar", 3: "2 tot 3 jaar", 4: "Ouder dan 3 jaar" };
+const sparkLijn = (reeks, w = 220, h = 44) => {
+  const v = reeks.map(r => r.omzet), max = Math.max(...v, 1), st = w / Math.max(1, v.length - 1);
+  const pts = v.map((y, i) => `${(i * st).toFixed(1)},${(h - 4 - (h - 8) * y / max).toFixed(1)}`);
+  return `<svg viewBox="0 0 ${w} ${h}" class="spark" role="img" aria-label="Omzet per maand, laatste ${v.length} maanden"><polyline points="${pts.join(" ")}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${pts[pts.length - 1].split(",")[0]}" cy="${pts[pts.length - 1].split(",")[1]}" r="3.5" fill="var(--accent)"/></svg>`;
+};
+const segBalk = segs => { const tot = segs.reduce((t, s) => t + Math.max(0, s.v), 0) || 1;
+  return `<span class="seg" role="img" aria-label="${esc(segs.map(s => s.t + " " + s.txt).join(", "))}">${segs.map(s => `<i class="${s.c}" style="width:${Math.max(0, s.v) / tot * 100}%" title="${esc(s.t)}: ${esc(s.txt)}"></i>`).join("")}</span>
+  <span class="segleg">${segs.map(s => `<span><i class="${s.c}"></i>${esc(s.t)} <b class="mono">${esc(s.txt)}</b></span>`).join("")}</span>`; };
+const statRij = (label, val, sub, tone, go) => `<${go ? `button data-go="${esc(go)}"` : "div"} class="dstat"><span class="sl">${esc(label)}</span><b class="${tone || ""}">${val}</b>${sub ? `<small>${sub}</small>` : ""}</${go ? "button" : "div"}>`;
 async function vDashboard(main) {
-  main.insertAdjacentHTML("beforeend", `<h2>Dashboard</h2><p class="lead">Verkoop, klanten, offertes, uitvoering, financiën, voorraad en marketing in één overzicht. Bedragen zijn excl. btw, tenzij anders vermeld. Klik op een tegel om naar het onderdeel te gaan. Orders uit MyBusiness staan er pas in na het laden van een nieuwe export (Onderhoud, Gegevens), orders die je hier maakt direct.</p><div id="d-body"><p class="empty">Laden…</p></div>`);
+  main.insertAdjacentHTML("beforeend", `<h2>Dashboard</h2><p class="lead">Hoe staat het ervoor, en waar moet je nu iets mee? Bedragen zijn excl. btw, tenzij anders vermeld. Klik op een onderdeel om erheen te gaan. Orders uit MyBusiness staan er pas in na het laden van een nieuwe export (Onderhoud, Gegevens).</p><div id="d-body"><p class="empty">Laden…</p></div>`);
   const body = $("#d-body"), OK = "prijs between 0 and 10000000";
   const safe = p => p.then(r => r[0] || {}).catch(() => ({ _fout: true }));
   try {
@@ -2195,7 +2231,7 @@ async function vDashboard(main) {
       sql(`select o.status, count(distinct o.id) n, coalesce(sum(r.aantal * r.prijs * (1 - r.korting_pct / 100)) filter (where not r.vervallen and not r.optioneel), 0) waarde from offertes o left join offerte_regels r on r.offerte_id = o.id group by 1`),
       sql(`select count(*) filter (where verzonden_op > now() - interval '30 days') verzonden, count(*) filter (where verzonden_op > now() - interval '30 days' and geopend) geopend, count(*) filter (where verzonden_op > now() - interval '30 days' and gereageerd) gereageerd from verzendingen`),
     ]);
-    const [s, kd, pl, uo, fin, vi] = await Promise.all([
+    const [s, kd, pl, uo, fin, vi, lt] = await Promise.all([
       safe(sql(`select coalesce(sum(prijs) filter (where datum >= date_trunc('month', current_date)), 0) mnd,
         coalesce(sum(prijs) filter (where datum >= date_trunc('month', current_date) - interval '1 month' and datum <= current_date - interval '1 month'), 0) mnd_vorig,
         coalesce(sum(prijs) filter (where datum > current_date - 30), 0) d30, coalesce(sum(prijs) filter (where datum > current_date - 60 and datum <= current_date - 30), 0) d30v,
@@ -2205,7 +2241,7 @@ async function vDashboard(main) {
         coalesce((select sum(o12) from (select o12 from per order by o12 desc limit 10) t), 0) top10 from per`)),
       safe(sql(`select (select count(*) from offertes where status = 'aanvraag') aanvragen, (select count(*) from offertes where status = 'offerte' and verzonden_op <= current_date - 5) volgen,
         (select count(*) from opvolging where not afgehandeld and opvolgdatum < current_date) te_laat, (select count(*) from opvolging where not afgehandeld and opvolgdatum = current_date) vandaag`)),
-      sql(`select status, count(*) n, coalesce(sum(prijs), 0) w, min(datum) oudste from orders where status in ('In bewerking', 'Gereed', 'Geleverd', 'Te factureren') group by 1`).catch(() => []),
+      sql(`select status, count(*) n, coalesce(sum(prijs), 0) w, min(datum) oudste, count(*) filter (where datum < current_date - 30) oud from orders where status in ('In bewerking', 'Gereed', 'Geleverd', 'Te factureren') group by 1`).catch(() => []),
       safe(sql(`with t as (select f.totaal_incl - coalesce((select sum(b.bedrag) from factuur_betalingen b where b.factuur_id = f.id), 0) rest, current_date - coalesce(f.vervaldatum, f.datum) dagen from facturen f where f.status = 'definitief')
         select (select coalesce(sum(rest), 0) from t where abs(rest) > 0.004) open_w, (select count(*) from t where abs(rest) > 0.004) open_n,
         (select coalesce(sum(rest), 0) from t where abs(rest) > 0.004 and dagen > 0) laat_w, (select count(*) from t where abs(rest) > 0.004 and dagen > 0) laat_n,
@@ -2217,64 +2253,63 @@ async function vDashboard(main) {
         (select count(*) from inkooporders where status in ('besteld', 'deels')) ink_open,
         (select coalesce(sum((r.aantal - r.ontvangen) * coalesce(r.inkoopprijs, 0)), 0) from inkoop_regels r join inkooporders io on io.id = r.inkooporder_id where io.status in ('besteld', 'deels') and not r.vervallen) ink_w,
         (select count(*) from inkooporders where status in ('besteld', 'deels') and verwacht < current_date) ink_laat`)),
+      sql(`select ${LEEFTIJD_SQL} k, count(*) n, coalesce(sum(voorraad * inkoopprijs), 0) w from artikelen where voorraad > 0 group by 1 order by 1`).catch(() => null),
     ]);
     const x = a[0] || {}, k = kl[0] || {}, v = vo[0] || {}, c = cp[0] || {};
-    const delta = pctTov(x.o12, x.o12v);
+    const delta = pctTov(x.o12, x.o12v), ytdP = pctTov(x.ytd, x.ytd_vorig);
     const openOf = offs.filter(r => ["aanvraag", "gereserveerd", "offerte"].includes(r.status)), besteld = offs.find(r => r.status === "besteld"), alle = offs.reduce((t, r) => t + num(r.n), 0);
-    const reeks = maandReeks(m), st = n => uo.find(r => r.status === n) || {}, ouder = d => d ? Math.max(0, Math.round((Date.now() - new Date(String(d).slice(0, 10) + "T12:00:00")) / 86400000)) : 0;
-    const n = (o, k2, f = int) => o && !o._fout && o[k2] != null ? f(o[k2]) : "n.v.t.";
-    const marge = num(v.verkoop) ? Math.round((num(v.verkoop) - num(v.inkoop)) / num(v.verkoop) * 100) : 0;
-    const sec = (t, kp) => `<section style="margin-top:18px"><h3>${esc(t)}</h3><div class="kpis">${kp.join("")}</div></section>`;
+    const openN = openOf.reduce((t, r) => t + num(r.n), 0), openW = openOf.reduce((t, r) => t + num(r.waarde), 0), conv = alle ? Math.round(num(besteld && besteld.n) / alle * 100) : null;
+    const reeks = maandReeks(m), st = nm => uo.find(r => r.status === nm) || {};
+    const marge = num(x.basis) ? Math.round(num(x.marge) / num(x.basis) * 100) : null;
+    const tone = d => d === null ? "" : d >= 0 ? "good" : "bad", dtxt = d => d === null ? "" : `${d >= 0 ? "+" : ""}${d}%`;
+    // langliggende voorraad
+    const lb = lt ? [1, 2, 3, 4].map(i => { const r = lt.find(y => String(y.k) === String(i)) || {}; return { i, n: num(r.n), w: num(r.w) }; }) : null;
+    const lbTot = lb ? lb.reduce((t, r) => t + r.w, 0) : 0, over2 = lb ? lb[2].w + lb[3].w : 0, over2n = lb ? lb[2].n + lb[3].n : 0;
+    // aandacht
+    const oud = num(st("In bewerking").oud) + num(st("Gereed").oud);
+    const att = [
+      [pl.aanvragen, "aanvragen wachten op antwoord", "", "aanvragen"], [pl.volgen, "offertes verstuurd zonder reactie (5+ dagen)", "", "volgen"], [pl.te_laat, "opvolgingen te laat", num(pl.vandaag) ? `${int(pl.vandaag)} staan voor vandaag` : "", "opvolging"],
+      [fin.laat_n, "facturen voorbij de vervaldatum", eur(fin.laat_w), "openstaand"], [fin.onfact_n, "orders nog niet gefactureerd (controleer eerst MyBusiness)", eur(fin.onfact_w), "facturen"],
+      [oud, "orders die al 30+ dagen openstaan", "", "uitvoering"], [vi.onder_min, "artikelen onder de minimale voorraad", "", "planning"], [vi.ink_laat, "inkooporders voorbij de verwachte datum", "", "inkoop"],
+      [vi.zonder_prijs, "artikelen met voorraad maar zonder verkoopprijs", "", "assortiment"],
+    ].filter(r => num(r[0]) > 0);
+    const heroOm = `<button class="hero" data-go="maand"><span class="hl">Omzet laatste 12 maanden</span><b>${eur(x.o12)}</b><span class="hd2 ${tone(delta)}">${delta === null ? "" : `${dtxt(delta)} t.o.v. de 12 maanden ervoor`}</span>${sparkLijn(reeks)}</button>`;
+    const prog = num(x.ytd_vorig) ? Math.min(100, num(x.ytd) / num(x.ytd_vorig) * 100) : 0;
+    const heroYtd = `<button class="hero" data-go="maand"><span class="hl">Omzet dit jaar</span><b>${eur(x.ytd)}</b><span class="hd2 ${tone(ytdP)}">${ytdP === null ? "" : `${dtxt(ytdP)} t.o.v. vorig jaar tot nu`}</span><span class="dprog" role="img" aria-label="Voortgang ten opzichte van vorig jaar"><i style="width:${prog.toFixed(1)}%"></i></span><small>vorig jaar tot nu ${eur(x.ytd_vorig)} · marge 12 mnd ${marge === null ? "n.v.t." : marge + "%"}</small></button>`;
+    const heroVr = `<button class="hero" data-go="voorraad"><span class="hl">Voorraad, inkoopwaarde</span><b>${eur(v.inkoop)}</b>${lb ? segBalk([{ t: "Jonger dan 2 jaar", v: lb[0].w + lb[1].w, c: "s1", txt: eur(lb[0].w + lb[1].w) }, { t: "2 tot 3 jaar", v: lb[2].w, c: "s3", txt: eur(lb[2].w) }, { t: "Ouder dan 3 jaar", v: lb[3].w, c: "s4", txt: eur(lb[3].w) }]) : ""}<span class="hd2 ${over2 > 0 ? "bad" : ""}">${lb ? `${eur(over2)} langer dan 2 jaar in het magazijn (${lbTot ? Math.round(over2 / lbTot * 100) : 0}%, ${int(over2n)} artikelen)` : ""}</span></button>`;
+    const heroOf = `<button class="hero" data-go="offertes"><span class="hl">Open offertes</span><b>${eur(openW)}</b><span class="hd2">${int(openN)} offertes en aanvragen${conv === null ? "" : ` · ${conv}% werd order`}</span><span class="dprog" role="img" aria-label="Aandeel offertes dat order werd"><i style="width:${conv || 0}%"></i></span><small>${num(pl.volgen) ? `${int(pl.volgen)} om op te volgen` : "geen offertes om op te volgen"}</small></button>`;
+    const pijp = ["In bewerking", "Gereed", "Geleverd", "Te factureren"].map(nm => ({ nm, n: num(st(nm).n), w: num(st(nm).w) })), pmax = Math.max(...pijp.map(r => r.n), 1);
+    const tot = (s, o) => s._fout ? "n.v.t." : o;
     body.innerHTML = `
-      ${sec("Verkoop", [
-        kpi("Omzet deze maand", eur(s.mnd), s._fout ? "" : tovTekst(s.mnd, s.mnd_vorig, `dezelfde periode vorige maand (${eur(s.mnd_vorig)})`), tovToon(s.mnd, s.mnd_vorig), "maand"),
-        kpi("Omzet laatste 30 dagen", eur(s.d30), s._fout ? "" : tovTekst(s.d30, s.d30v, "de 30 dagen ervoor"), tovToon(s.d30, s.d30v), "maand"),
-        kpi("Omzet dit jaar", eur(x.ytd), num(x.ytd_vorig) ? `vorig jaar tot nu ${eur(x.ytd_vorig)}` : "", num(x.ytd_vorig) ? tovToon(x.ytd, x.ytd_vorig) : "", "maand"),
-        kpi("Omzet laatste 12 mnd", eur(x.o12), delta === null ? "" : `${delta >= 0 ? "+" : ""}${delta}% t.o.v. de 12 mnd ervoor`, delta === null ? "" : delta >= 0 ? "good" : "bad", "maand"),
-        kpi("Marge laatste 12 mnd", num(x.basis) ? Math.round(num(x.marge) / num(x.basis) * 100) + "%" : "n.v.t.", `${eur(x.marge)} over orders met bekende inkoop`, "", "maand"),
-        kpi("Orders laatste 12 mnd", int(x.n12), num(x.n12) ? `gemiddeld ${eur(num(x.o12) / num(x.n12))} per order` : "", "", "orders"),
-        kpi("Orders laatste 7 dagen", n(s, "n7"), "nieuw binnengekomen", "", "orders"),
-        kpi("Grootste order 12 mnd", n(s, "grootste", eur), "", "", "orders"),
-      ])}
-      ${sec("Klanten", [
-        kpi("Actieve klanten", int(k.actief), `${int(k.slapend)} slapend · ${int(k.nooit)} nooit besteld`, "", "klanten"),
-        kpi("Kopers laatste 12 mnd", n(kd, "kopers"), kd._fout ? "" : `van ${int(k.totaal)} relaties`, "", "klantrap"),
-        kpi("Herhaalklanten", kd._fout || !num(kd.kopers) ? "n.v.t." : Math.round(num(kd.herhaal) / num(kd.kopers) * 100) + "%", kd._fout ? "" : `${int(kd.herhaal)} kopers bestelden 2 keer of vaker`, "", "klantrap"),
-        kpi("Verloren klanten", n(kd, "verloren"), kd._fout ? "" : `kochten het jaar ervoor voor ${eur(kd.verloren_w)}, nu niet meer`, "", "klantrap"),
-        kpi("Omzet van de top 10", kd._fout || !num(kd.tot12) ? "n.v.t." : Math.round(num(kd.top10) / num(kd.tot12) * 100) + "%", "van de omzet 12 mnd: hoe afhankelijk je bent van weinig klanten", "", "klantrap"),
-        kpi("Nieuwe klanten 12 mnd", int(k.nieuw), `${int(k.prospects)} prospects in de lijst`, "", "klanten"),
-      ])}
-      ${sec("Offertes en opvolging", [
-        kpi("Open offertes", int(openOf.reduce((t, r) => t + num(r.n), 0)), `${eur(openOf.reduce((t, r) => t + num(r.waarde), 0))} aan offertes en aanvragen${alle ? ` · ${Math.round(num(besteld && besteld.n) / alle * 100)}% werd order` : ""}`, "", "offertes"),
-        kpi("Aanvragen onbeantwoord", n(pl, "aanvragen"), "status Aanvraag binnen", num(pl.aanvragen) ? "bad" : "", "aanvragen"),
-        kpi("Offertes opvolgen", n(pl, "volgen"), "verstuurd, 5+ dagen geen reactie", num(pl.volgen) ? "bad" : "", "volgen"),
-        kpi("Opvolging te laat", n(pl, "te_laat"), pl._fout ? "" : `${int(pl.vandaag)} staan voor vandaag`, num(pl.te_laat) ? "bad" : "", "opvolging"),
-      ])}
-      ${sec("Orders en uitvoering", [
-        kpi("In bewerking", int(st("In bewerking").n), `${eur(st("In bewerking").w)}${st("In bewerking").oudste ? ` · oudste ${ouder(st("In bewerking").oudste)} dagen oud` : ""}`, "", "uitvoering"),
-        kpi("Gereed om te verzenden", int(st("Gereed").n), eur(st("Gereed").w), "", "uitvoering"),
-        kpi("Geleverd, nog niet afgesloten", int(st("Geleverd").n), eur(st("Geleverd").w), "", "orders"),
-        kpi("Te factureren", int(st("Te factureren").n), eur(st("Te factureren").w), "", "facturen"),
-      ])}
-      ${sec("Financieel", [
-        kpi("Openstaand op facturen", n(fin, "open_w", eur), fin._fout ? "" : `${int(fin.open_n)} facturen incl. btw, uit het Salesbureau`, "", "openstaand"),
-        kpi("Waarvan te laat", n(fin, "laat_w", eur), fin._fout ? "" : `${int(fin.laat_n)} facturen voorbij de vervaldatum`, num(fin.laat_w) > 0 ? "bad" : "", "openstaand"),
-        kpi("Gefactureerd dit jaar", n(fin, "gefact", eur), "alleen facturen uit het Salesbureau", "", "facturen"),
-        kpi("Nog niet gefactureerd", n(fin, "onfact_w", eur), fin._fout ? "" : `${int(fin.onfact_n)} orders Geleverd of Te factureren zonder factuur hier. Controleer eerst of ze al in MyBusiness zijn gefactureerd.`, "", "facturen"),
-      ])}
-      ${sec("Voorraad en inkoop", [
-        kpi("Voorraadwaarde", eur(v.inkoop), `inkoop · verkoop ${eur(v.verkoop)} (marge ${marge}%) · ${int(v.n)} artikelen`, "", "voorraad"),
-        kpi("Onder minimale voorraad", n(vi, "onder_min"), "bijbestellen", num(vi.onder_min) ? "bad" : "", "planning"),
-        kpi("Inkooporders onderweg", n(vi, "ink_open"), vi._fout ? "" : `${eur(vi.ink_w)} nog te ontvangen${num(vi.ink_laat) ? ` · ${int(vi.ink_laat)} voorbij de verwachte datum` : ""}`, num(vi.ink_laat) ? "bad" : "", "inkoop"),
-        kpi("Artikelen zonder verkoopprijs", n(vi, "zonder_prijs"), "wel voorraad, geen prijs: niet te offreren", num(vi.zonder_prijs) ? "bad" : "", "assortiment"),
-        kpi("Artikelen zonder inkoopprijs", n(vi, "zonder_inkoop"), "wel voorraad, marge onbekend", "", "assortiment"),
-      ])}
-      ${sec("Marketing", [
-        kpi("Mails laatste 30 dagen", int(c.verzonden), num(c.verzonden) ? `${Math.round(num(c.geopend) / num(c.verzonden) * 100)}% geopend · ${Math.round(num(c.gereageerd) / num(c.verzonden) * 100)}% reageerde` : "nog niets vastgelegd in Campagnes", "", "campagnes"),
-      ])}
-      <section class="panel" style="margin:16px 0"><div class="hd"><h3>Omzet per maand, 24 maanden</h3></div>${barChart(reeks)}</section>
-      <div class="grid"><section class="panel"><div class="hd"><h3>Top 10 klanten, 12 maanden</h3></div>${hbars(top, "naam", "omzet", eur, true)}</section>
-      <section class="panel"><div class="hd"><h3>Omzet per land, 12 maanden</h3></div>${hbars(land, "land", "omzet")}<p class="note">Omzet per artikelgroep kan nog niet: orders hebben alleen een vrije omschrijving. Orders die je vanaf nu via een offerte maakt, bevatten wel losse artikelregels (zie Rapporten, omzet per artikel).</p></section></div>`;
+      <div class="heros">${heroOm}${heroYtd}${heroVr}${heroOf}</div>
+      <div class="grid" style="margin-top:14px">
+        <section class="panel"><div class="hd"><h3>Hier moet je iets mee</h3></div>${att.length ? `<div class="att">${att.map(r => `<button data-go="${esc(r[3])}"><b class="mono bad">${int(r[0])}</b><span>${esc(r[1])}${r[2] ? ` <small>${r[2]}</small>` : ""}</span></button>`).join("")}</div>` : `<p class="empty">Niets dat nu aandacht vraagt.</p>`}</section>
+        <section class="panel"><div class="hd"><h3>Orders in uitvoering</h3></div><div class="pijp">${pijp.map(r => `<button data-go="${r.nm === "Te factureren" ? "facturen" : "uitvoering"}"><span class="pn">${esc(r.nm)}</span><span class="pb"><i style="width:${Math.max(r.n ? 4 : 0, r.n / pmax * 100).toFixed(1)}%"></i></span><b class="mono">${int(r.n)}</b><small>${eur(r.w)}</small></button>`).join("")}</div></section>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <section class="panel"><div class="hd"><h3>Omzet per maand, 24 maanden</h3></div>${barChart(reeks)}</section>
+        <section class="panel"><div class="hd"><h3>Verkoop in cijfers</h3></div><div class="dstats">
+          ${statRij("Deze maand", eur(s.mnd), s._fout ? "" : tovTekst(s.mnd, s.mnd_vorig, "dezelfde periode vorige maand"), tovToon(s.mnd, s.mnd_vorig), "maand")}
+          ${statRij("Laatste 30 dagen", eur(s.d30), s._fout ? "" : tovTekst(s.d30, s.d30v, "de 30 dagen ervoor"), tovToon(s.d30, s.d30v), "maand")}
+          ${statRij("Orders laatste 12 mnd", int(x.n12), num(x.n12) ? `gemiddeld ${eur(num(x.o12) / num(x.n12))}` : "", "", "orders")}
+          ${statRij("Orders laatste 7 dagen", tot(s, int(s.n7)), "", "", "orders")}
+          ${statRij("Grootste order 12 mnd", tot(s, eur(s.grootste)), "", "", "orders")}
+          ${statRij("Gefactureerd dit jaar", tot(fin, eur(fin.gefact)), "uit het Salesbureau", "", "facturen")}
+        </div></section>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <section class="panel"><div class="hd"><h3>Voorraad naar leeftijd</h3><button class="btn small" data-go="voorraad">Bekijk de artikelen</button></div>${lb ? `<p class="grootst ${over2 > 0 ? "bad" : ""}"><b class="mono">${eur(over2)}</b> <span>inkoopwaarde ligt langer dan 2 jaar in het magazijn</span></p>${segBalk(lb.map(r => ({ t: LEEFTIJD[r.i], v: r.w, c: ["s1", "s2", "s3", "s4"][r.i - 1], txt: `${eur(r.w)} (${int(r.n)})` })))}` : `<p class="empty">Niet beschikbaar.</p>`}<p class="note">Leeftijd is de aanmaakdatum van het artikel in MyBusiness, niet de datum van de laatste inkoop. Een artikel dat later is bijgekocht, telt dus als oud.</p></section>
+        <section class="panel"><div class="hd"><h3>Klanten</h3></div>${segBalk([{ t: "Actief", v: num(k.actief), c: "s1", txt: int(k.actief) }, { t: "Slapend", v: num(k.slapend), c: "s3", txt: int(k.slapend) }, { t: "Nooit besteld", v: num(k.nooit), c: "s0", txt: int(k.nooit) }])}
+          <div class="dstats" style="margin-top:10px">
+          ${statRij("Herhaalklanten", kd._fout || !num(kd.kopers) ? "n.v.t." : Math.round(num(kd.herhaal) / num(kd.kopers) * 100) + "%", kd._fout ? "" : `${int(kd.herhaal)} van ${int(kd.kopers)} kopers bestelde 2 keer of vaker`, "", "klantrap")}
+          ${statRij("Verloren klanten", tot(kd, int(kd.verloren)), kd._fout ? "" : `kochten het jaar ervoor voor ${eur(kd.verloren_w)}`, "", "klantrap")}
+          ${statRij("Afhankelijkheid top 10", kd._fout || !num(kd.tot12) ? "n.v.t." : Math.round(num(kd.top10) / num(kd.tot12) * 100) + "%", "van de omzet 12 mnd", "", "klantrap")}
+          ${statRij("Nieuwe klanten 12 mnd", int(k.nieuw), `${int(k.prospects)} prospects`, "", "klanten")}
+          ${statRij("Mails laatste 30 dagen", int(c.verzonden), num(c.verzonden) ? `${Math.round(num(c.geopend) / num(c.verzonden) * 100)}% geopend · ${Math.round(num(c.gereageerd) / num(c.verzonden) * 100)}% reageerde` : "nog niets vastgelegd", "", "campagnes")}
+          </div></section>
+      </div>
+      <div class="grid" style="margin-top:14px"><section class="panel"><div class="hd"><h3>Top 10 klanten, 12 maanden</h3></div>${hbars(top, "naam", "omzet", eur, true)}</section>
+      <section class="panel"><div class="hd"><h3>Omzet per land, 12 maanden</h3><button class="btn small" data-go="kaart">Kaart</button></div>${hbars(land, "land", "omzet")}<p class="note">Omzet per artikelgroep kan nog niet voor oude orders: die hebben alleen een vrije omschrijving. Nieuwe orders uit offertes wel (Rapporten, omzet per artikel).</p></section></div>`;
     body.querySelectorAll("[data-h]").forEach(b => b.addEventListener("click", () => openKlant(top[b.dataset.h].id)));
     body.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => { const f = DGO[b.dataset.go]; if (f) f(); }));
   } catch (e) { showError(body, e); }
