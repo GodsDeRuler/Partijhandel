@@ -29,3 +29,6 @@ Regels
 - Foto's komen uit `sales/aanbodpagina/fotos/<artikelnr>.jpg` in de projectbestanden.
 
 Database: `supabase/migrations/`.
+
+## Uiterlijk
+Huisstijl van fvdwpartijhandel.nl: Montserrat, blauw #0060F0, navy #0E2B5D, cyaan #4BD7E3, lichtblauw #EDF8FF, logo in de kop (in donker thema op een witte plaat), cyaan menubalk met ronde knoppen en een navy voetbalk. Alle kleuren staan als tokens bovenaan de stijl; lichte en donkere weergave volgen het systeem.
