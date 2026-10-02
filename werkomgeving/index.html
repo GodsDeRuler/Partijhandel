@@ -135,7 +135,7 @@ button.hrow{cursor:pointer} button.hrow:hover{background:var(--surface-2)}
 .mandl{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--fg)}
 .mandbar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line-strong);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;box-shadow:var(--shadow)}
 td input[type=text],td input[type=number]{background:var(--surface);border:1px solid var(--line-strong);border-radius:4px;padding:5px 7px;min-width:0}
-@media print{.top,main,.scrim,.dr-hd,.mandbar,.dr-body>*:not(#pak){display:none!important}body{background:#fff}.drawer{position:static;width:auto;box-shadow:none;background:#fff;animation:none}.dr-body{overflow:visible;padding:0}#pak{border:0}}
+@media print{.top,main,.scrim,.dr-hd,.mandbar,.dr-body>*:not(#pak):not(#fact){display:none!important}body{background:#fff}.drawer{position:static;width:auto;box-shadow:none;background:#fff;animation:none}.dr-body{overflow:visible;padding:0}#pak,#fact{border:0}}
 .kmap{display:block;width:100%;height:auto;background:var(--surface-2);cursor:grab;touch-action:none;user-select:none}
 .km-land{fill:var(--surface);stroke:var(--line-strong);stroke-width:.35;vector-effect:non-scaling-stroke;stroke-width:.6px;fill-rule:evenodd}
 .km-dot{fill:var(--accent);fill-opacity:.5;stroke:var(--accent);cursor:pointer}
@@ -327,14 +327,18 @@ const TABS = [
   { id: "inkoop", label: "Inkoop", view: vInkoop },
   { id: "campagnes", label: "Campagnes", view: vCampagnes },
   { id: "opvolging", label: "Opvolging", view: vOpvolging },
+  { id: "facturen", label: "Facturen", view: vFacturen },
+  { id: "stam", label: "Stamgegevens", view: vStam },
   { id: "beheer", label: "Gegevens", view: vBeheer },
 ];
 const GROUPS = [
   { id: "overzicht", label: "Overzicht", tabs: ["dashboard", "vandaag", "kaart"] },
-  { id: "verkoop", label: "Verkoop", tabs: ["klanten", "offertes", "orders", "uitvoering"] },
+  { id: "verkoop", label: "Verkoop", tabs: ["klanten", "offertes", "orders"] },
+  { id: "uitvoering", label: "Uitvoering", tabs: ["uitvoering"] },
   { id: "artikelen", label: "Artikelen", tabs: ["assortiment", "inkoop"] },
+  { id: "financieel", label: "Financieel", tabs: ["facturen"] },
   { id: "marketing", label: "Marketing", tabs: ["campagnes", "opvolging"] },
-  { id: "beheer", label: "Gegevens", tabs: ["beheer"] },
+  { id: "onderhoud", label: "Onderhoud", tabs: ["stam", "beheer"] },
 ];
 const groupOf = id => GROUPS.find(g => g.tabs.includes(id)) || GROUPS[0];
 let tab = store.get("tab") || "dashboard";
@@ -1001,10 +1005,11 @@ async function openOrder(nr) {
     const marge = num(x.prijs) && num(x.inkoop) > 0 && num(x.inkoop) < num(x.prijs) * 5 ? Math.round((num(x.prijs) - num(x.inkoop)) / num(x.prijs) * 100) : null;
     drawer(`Order ${x.nummer}`, `${dt(x.datum)} · ${x.klant_id ? `<button class="btn small" id="or-k">${esc(x.klantnaam)}</button>` : esc(x.klantnaam)}`, `
       <section class="panel f"><div class="line">${sel("or-status", "Status", statuses, x.status)}<div><div class="note">Orderwaarde</div><b class="mono">${eur2(x.prijs)}</b> excl. btw${marge !== null ? `<div class="note">marge ${marge}%</div>` : ""}</div></div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px"><button class="btn primary" id="or-save">Status opslaan</button><button class="btn" id="or-pak">Pakbon en orderpick</button></div><div class="note" id="or-msg"></div></section>
+      <div style="display:flex;flex-wrap:wrap;gap:8px"><button class="btn primary" id="or-save">Status opslaan</button><button class="btn" id="or-pak">Pakbon en orderpick</button><button class="btn" id="or-fac">Factuur maken</button></div><div class="note" id="or-msg"></div></section>
       <section class="panel"><h3>Inhoud</h3>${regels.length ? `<div class="tbl"><table><thead><tr><th>Omschrijving</th><th class="n">Aantal</th><th class="n">Prijs</th><th class="n">Totaal</th></tr></thead><tbody>${regels.map(r => `<tr><td>${esc(r.omschrijving)}${r.artikel_nr ? `<div class="note mono">art. ${esc(r.artikel_nr)}</div>` : ""}</td><td class="n">${int(r.aantal)}</td><td class="n">${eur2(r.prijs)}</td><td class="n">${eur2(num(r.aantal) * num(r.prijs))}</td></tr>`).join("")}</tbody></table></div>` : `<p>${esc(x.omschrijving || "Geen omschrijving.")}</p><p class="note">Orders van voor Salesbureau hebben geen losse regels.</p>`}</section>`);
     if ($("#or-k")) $("#or-k").addEventListener("click", () => openKlant(x.klant_id));
     $("#or-pak").addEventListener("click", () => openPakbon(x.nummer));
+    $("#or-fac").addEventListener("click", () => factuurUitOrder(x.nummer));
     $("#or-save").addEventListener("click", async () => { const m = $("#or-msg"); m.textContent = "Opslaan…"; try { await sql(`update orders set status=${lit(gv("or-status"))} where nummer=${num(nr)}`); m.textContent = "Opgeslagen."; if (tab === "orders") loadOrders(); } catch (er) { m.textContent = explain(er); } });
   } catch (e) { drawer("Order", "", `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`); }
 }
@@ -1374,6 +1379,283 @@ function kaartOpenGroep(g) {
   const ks = g.k.slice().sort((a, b) => num(b[km.metric]) - num(a[km.metric]));
   drawer(g.plaats || "Locatie", `${int(ks.length)} klanten · ${eur(g.v)}${g.pl.length > 1 ? ` · ${int(g.pl.length)} plaatsen, zoom in om ze te scheiden` : g.n === "regio" ? " · locatie bij benadering (regio)" : g.n === "plaats" ? " · locatie op plaatsniveau" : ""}`, `<div class="panel"><div class="rows">${ks.map(k => klantRowKaart(k, k[km.metric])).join("")}</div></div>`);
   wireRows($("#dr-body"));
+}
+
+/* ---------- Instellingen en stamgegevens (Onderhoud) ---------- */
+const EU = new Set(["NL", "BE", "DE", "FR", "PL", "EE", "AT", "DK", "FI", "RO", "LT", "BG", "LV", "IT", "HR", "CZ", "ES", "HU", "IE", "SE", "MT", "CY", "GR", "SI", "SK", "LU", "PT"]);
+const INSTELLING_VELDEN = [["bedrijfsnaam", "Bedrijfsnaam"], ["adres", "Adres"], ["postcode", "Postcode"], ["plaats", "Plaats"], ["land", "Land"], ["btw_nr", "Btw-nummer"], ["kvk_nr", "KvK-nummer"], ["iban", "IBAN"], ["bic", "BIC"], ["email", "E-mail voor facturen"], ["telefoon", "Telefoon"], ["website", "Website"]];
+const INSTELLING_VERPLICHT = ["bedrijfsnaam", "adres", "postcode", "plaats", "btw_nr", "kvk_nr", "iban"];
+let cfgCache = null;
+async function getCfg(force) {
+  if (cfgCache && !force) return cfgCache;
+  const [ins, btw, cond] = await Promise.all([sql(`select sleutel, waarde from instellingen`), sql(`select id, code, naam, percentage from btw_groepen where actief order by id`), sql(`select id, naam, dagen from betalingscondities where actief order by dagen`)]);
+  return (cfgCache = { ins: Object.fromEntries(ins.map(r => [r.sleutel, r.waarde || ""])), btw, cond });
+}
+const STAMS = [
+  ["instellingen", "Bedrijfsgegevens en nummering"], ["btw", "Btw-groepen"], ["condities", "Betalingscondities"], ["wijzen", "Betalingswijzen"],
+  ["landen", "Landen"], ["merken", "Merken"], ["vervoerders", "Vervoerders"], ["medewerkers", "Medewerkers"],
+];
+const CRUDS = {
+  btw: { tabel: "btw_groepen", velden: [["code", "Code", "text", true], ["naam", "Naam", "text", true], ["percentage", "Percentage", "number", true], ["actief", "In gebruik", "bool"]], uitleg: "Het tarief dat op facturen wordt gebruikt. Bij btw verlegd en export wordt automatisch 0% gerekend." },
+  condities: { tabel: "betalingscondities", order: "dagen", velden: [["naam", "Naam", "text", true], ["dagen", "Dagen", "number", true], ["actief", "In gebruik", "bool"]], uitleg: "Bepaalt de vervaldatum op de factuur." },
+  wijzen: { tabel: "betalingswijzen", velden: [["naam", "Naam", "text", true], ["actief", "In gebruik", "bool"]], uitleg: "Hoe een klant betaalt, bijvoorbeeld bij het vastleggen van een betaling." },
+  landen: { tabel: "landen", pk: "code", order: "naam", velden: [["code", "Code", "text", true, "nieuw"], ["naam", "Naam", "text", true], ["eu", "EU", "bool"]], uitleg: "EU-landen met een btw-nummer krijgen btw verlegd op de factuur." },
+  merken: { tabel: "merken", velden: [["naam", "Naam", "text", true]], uitleg: "Merken bij artikelen." },
+  vervoerders: { tabel: "vervoerders", velden: [["naam", "Naam", "text", true], ["tracking_url", "Track & trace-link", "text"], ["actief", "In gebruik", "bool"]], uitleg: "Gebruik {nummer} in de link voor het trackingnummer." },
+  medewerkers: { tabel: "medewerkers", velden: [["naam", "Naam", "text", true], ["email", "E-mail", "text"], ["rol", "Rol", "text"], ["provisie_pct", "Provisie %", "number"], ["actief", "Actief", "bool"]], uitleg: "Collega's en relatiebeheerders. Het provisiepercentage wordt gebruikt in het provisierapport." },
+};
+const stam = { s: "instellingen" };
+async function vStam(main) {
+  main.insertAdjacentHTML("beforeend", `<h2>Stamgegevens</h2><p class="lead">Instellingen die overal in het Salesbureau worden gebruikt: bedrijfsgegevens voor op facturen, btw, betalingscondities en lijsten.</p>
+    <div class="bar"><select id="st-s" aria-label="Onderdeel">${STAMS.map(s => `<option value="${s[0]}">${s[1]}</option>`).join("")}</select></div><div id="st-body"><p class="empty">Laden…</p></div>`);
+  $("#st-s").value = stam.s;
+  $("#st-s").addEventListener("change", () => { stam.s = $("#st-s").value; loadStam(); });
+  loadStam();
+}
+async function loadStam() {
+  const body = $("#st-body"); if (!body) return;
+  try { if (stam.s === "instellingen") await loadInstellingen(body); else await loadCrud(body, CRUDS[stam.s]); } catch (e) { showError(body, e); }
+}
+async function loadInstellingen(body) {
+  const c = await getCfg(true), i = c.ins, ontbreekt = INSTELLING_VERPLICHT.filter(k => !i[k]);
+  body.innerHTML = `${ontbreekt.length ? `<div class="banner"><b>Facturen kunnen nog niet definitief worden</b>Op een factuur moeten naam, adres, btw-nummer, KvK-nummer en IBAN van je bedrijf staan. Nog niet ingevuld: ${ontbreekt.map(k => esc(INSTELLING_VELDEN.find(v => v[0] === k)[1])).join(", ")}.</div>` : ""}
+    <form class="f panel" id="in-f"><h3>Bedrijfsgegevens (komen op de factuur)</h3>
+      <div class="line">${fld("in-bedrijfsnaam", "Bedrijfsnaam", i.bedrijfsnaam)}${fld("in-adres", "Adres", i.adres)}</div>
+      <div class="line">${fld("in-postcode", "Postcode", i.postcode)}${fld("in-plaats", "Plaats", i.plaats)}${fld("in-land", "Land", i.land || "Nederland")}</div>
+      <div class="line">${fld("in-btw_nr", "Btw-nummer", i.btw_nr)}${fld("in-kvk_nr", "KvK-nummer", i.kvk_nr)}</div>
+      <div class="line">${fld("in-iban", "IBAN", i.iban)}${fld("in-bic", "BIC", i.bic)}</div>
+      <div class="line">${fld("in-email", "E-mail voor facturen", i.email, "email")}${fld("in-telefoon", "Telefoon", i.telefoon)}${fld("in-website", "Website", i.website)}</div>
+      <h3 style="margin-top:8px">Factuurnummering</h3>
+      ${fld("in-factuur_start", "Eerstvolgend factuurnummer", i.factuur_start, "number", 'min="1" step="1"')}
+      <p class="note">Facturen krijgen doorlopende nummers zonder gaten. Zonder instelling begint elk jaar bij jaartal + 00001 (bijvoorbeeld 202600001). Vul hier het eerstvolgende nummer uit MyBusiness in om dezelfde reeks voort te zetten. Een nummer dat al gebruikt is, wordt nooit nog eens uitgegeven.</p>
+      ${txa("in-factuur_tekst", "Tekst onderaan de factuur (optioneel)", i.factuur_tekst, 2)}
+      <div><button class="btn primary" type="submit">Opslaan</button></div><div class="note" id="in-msg"></div></form>`;
+  $("#in-f").addEventListener("submit", async e => {
+    e.preventDefault(); const m = $("#in-msg"); m.textContent = "Opslaan…";
+    const keys = [...INSTELLING_VELDEN.map(v => v[0]), "factuur_start", "factuur_tekst"];
+    try {
+      await sql(`insert into instellingen (sleutel, waarde) values ${keys.map(k => `(${lit(k)}, ${lit(gv("in-" + k))})`).join(", ")} on conflict (sleutel) do update set waarde = excluded.waarde, bijgewerkt = now()`);
+      cfgCache = null; m.textContent = "Opgeslagen."; loadInstellingen(body);
+    } catch (er) { m.textContent = explain(er); }
+  });
+}
+async function loadCrud(body, c) {
+  const pk = c.pk || "id", rows = await sql(`select * from ${c.tabel} order by ${c.order || pk}`);
+  const cell = (f, r, i) => {
+    const [k, , t, , alleenNieuw] = f, v = r ? r[k] : (t === "bool" ? true : ""), id = `cr-${i}-${k}`;
+    if (t === "bool") return `<input type="checkbox" id="${id}" ${v ? "checked" : ""}>`;
+    return `<input id="${id}" type="${t === "number" ? "number" : "text"}" ${t === "number" ? 'step="any"' : ""} value="${esc(v ?? "")}" ${r && alleenNieuw ? "readonly" : ""} style="width:100%;min-width:${t === "number" ? 70 : 120}px">`;
+  };
+  body.innerHTML = `<div class="panel"><p class="note">${esc(c.uitleg || "")}</p><div class="tbl"><table><thead><tr>${c.velden.map(f => `<th>${esc(f[1])}</th>`).join("")}<th></th></tr></thead><tbody>
+    ${rows.map((r, i) => `<tr>${c.velden.map(f => `<td>${cell(f, r, i)}</td>`).join("")}<td><button class="btn small" data-sv="${i}">Opslaan</button></td></tr>`).join("")}
+    <tr>${c.velden.map(f => `<td>${cell(f, null, "n")}</td>`).join("")}<td><button class="btn small primary" data-sv="n">Toevoegen</button></td></tr></tbody></table></div><div class="note" id="cr-msg"></div></div>`;
+  body.querySelectorAll("[data-sv]").forEach(b => b.addEventListener("click", async () => {
+    const i = b.dataset.sv, m = $("#cr-msg"), vals = [];
+    for (const f of c.velden) {
+      const el = $(`#cr-${i}-${f[0]}`); let v;
+      if (f[2] === "bool") v = el.checked ? "true" : "false";
+      else if (f[2] === "number") { v = numLit(el.value); if (f[3] && v === "null") { m.textContent = `Vul ${f[1].toLowerCase()} in.`; return; } }
+      else { v = lit(el.value.trim()); if (f[3] && v === "null") { m.textContent = `Vul ${f[1].toLowerCase()} in.`; return; } }
+      vals.push([f[0], v]);
+    }
+    m.textContent = "Opslaan…";
+    try {
+      if (i === "n") await sql(`insert into ${c.tabel} (${vals.map(x => x[0]).join(", ")}) values (${vals.map(x => x[1]).join(", ")})`);
+      else await sql(`update ${c.tabel} set ${vals.filter(x => x[0] !== pk).map(x => `${x[0]} = ${x[1]}`).join(", ")} where ${pk} = ${lit(rows[i][pk])}`);
+      cfgCache = null; await loadCrud(body, c); $("#cr-msg").textContent = "Opgeslagen.";
+    } catch (er) { m.textContent = explain(er); }
+  }));
+}
+
+/* ---------- Facturen (Financieel) ---------- */
+const STATUS_FACTUUR = { concept: "Concept", definitief: "Definitief", betaald: "Betaald" };
+const fakf = { f: "open", q: "" };
+const btwBedrag = (regels, regime) => {
+  const per = new Map();
+  regels.forEach(l => { const p = regime === "NL" ? num(l.btw_pct) : 0; per.set(p, (per.get(p) || 0) + num(l.aantal) * num(l.prijs)); });
+  const delen = [...per].map(([p, basis]) => ({ pct: p, basis: Math.round(basis * 100) / 100, btw: Math.round(basis * p) / 100 })).sort((a, b) => b.pct - a.pct);
+  const excl = Math.round(regels.reduce((t, l) => t + num(l.aantal) * num(l.prijs), 0) * 100) / 100, btw = delen.reduce((t, d) => t + d.btw, 0);
+  return { delen, excl, btw: Math.round(btw * 100) / 100, incl: Math.round((excl + btw) * 100) / 100 };
+};
+function bepaalRegime(k) {
+  const cc = landCode(k.land) || (k.factuur_land ? landCode(k.factuur_land) : null);
+  if (!cc || cc === "NL") return "NL";
+  if (EU.has(cc)) return k.btw_nr ? "verlegd" : "NL";
+  return "export";
+}
+const regimeTekst = { NL: "Binnenland, btw wordt berekend", verlegd: "Btw verlegd (intracommunautaire levering)", export: "Export buiten de EU, 0% btw" };
+async function vFacturen(main) {
+  main.insertAdjacentHTML("beforeend", `<h2>Facturen</h2><p class="lead">Verkoopfacturen met btw en doorlopende nummers, betalingen en creditnota's. Een factuur maak je uit een order.</p>
+    <form class="bar" id="fk-bar"><input type="search" id="fk-q" placeholder="Zoek op klant of factuurnummer" value="${esc(fakf.q)}"><select id="fk-f" aria-label="Status"><option value="open">Openstaand</option><option value="concept">Concepten</option><option value="betaald">Betaald</option><option value="">Alles</option></select><button class="btn primary" type="submit">Zoeken</button></form>
+    <div class="grid"><section class="panel" id="fk-body"><p class="empty">Laden…</p></section><section class="panel" id="fk-te"><p class="empty">Laden…</p></section></div>`);
+  $("#fk-f").value = fakf.f;
+  $("#fk-bar").addEventListener("submit", e => { e.preventDefault(); fakf.q = gv("fk-q"); fakf.f = $("#fk-f").value; loadFacturen(); });
+  $("#fk-f").addEventListener("change", () => { fakf.f = $("#fk-f").value; loadFacturen(); });
+  loadFacturen();
+}
+async function loadFacturen() {
+  const body = $("#fk-body"), te = $("#fk-te"); if (!body) return;
+  const w = [];
+  if (fakf.f === "open") w.push(`f.status = 'definitief'`); else if (fakf.f) w.push(`f.status = ${lit(fakf.f)}`);
+  if (fakf.q) { const l = likeLit(fakf.q); w.push(`(k.naam ilike ${l} or f.nummer::text = ${lit(fakf.q)} or f.referentie ilike ${l})`); }
+  try {
+    const [rows, ord] = await Promise.all([
+      sql(`select f.id, f.nummer, f.type, f.datum, f.vervaldatum, f.status, f.totaal_incl, k.naam, coalesce((select sum(b.bedrag) from factuur_betalingen b where b.factuur_id = f.id), 0) betaald
+        from facturen f join klanten k on k.id = f.klant_id ${w.length ? "where " + w.join(" and ") : ""} order by f.datum desc, f.id desc limit 100`),
+      sql(`select o.nummer, o.datum, o.klantnaam, o.prijs, o.status from orders o where o.status in ('Te factureren', 'Geleverd') and o.klant_id is not null and not exists (select 1 from facturen f where f.order_nummer = o.nummer) order by o.datum desc limit 40`),
+    ]);
+    const open = rows.filter(r => r.status === "definitief").reduce((t, r) => t + num(r.totaal_incl) - num(r.betaald), 0), vandaag = plusDays(0);
+    body.innerHTML = `<div class="hd"><h3>Facturen</h3><span class="note">${fakf.f === "open" ? `Openstaand: <b class="mono">${eur2(open)}</b>` : ""}</span></div>${rows.length ? `<div class="rows">${rows.map(f => {
+      const rest = num(f.totaal_incl) - num(f.betaald), laat = f.status === "definitief" && f.vervaldatum && String(f.vervaldatum).slice(0, 10) < vandaag;
+      return `<button class="row" data-fa="${f.id}"><span class="t">${esc(f.naam)}<span class="pill ${f.status === "betaald" ? "good" : f.status === "concept" ? "" : laat ? "bad" : "acc"}">${f.status === "definitief" && laat ? "te laat" : esc(STATUS_FACTUUR[f.status])}</span>${f.type === "credit" ? `<span class="pill warn">creditnota</span>` : ""}</span>
+        <span class="s">${f.nummer ? esc(f.nummer) : "geen nummer"} · ${dt(f.datum)}${f.status === "definitief" && f.vervaldatum ? " · vervalt " + dt(f.vervaldatum) : ""}${f.status === "definitief" && num(f.betaald) ? " · nog " + eur2(rest) : ""}</span><span class="r">${eur2(f.totaal_incl)}</span></button>`;
+    }).join("")}</div>` : `<p class="empty">Geen facturen in dit overzicht.</p>`}`;
+    body.querySelectorAll("[data-fa]").forEach(b => b.addEventListener("click", () => openFactuur(b.dataset.fa)));
+    te.innerHTML = `<div class="hd"><h3>Nog te factureren</h3></div>${ord.length ? `<div class="rows">${ord.map(o => `<button class="row" data-fo="${esc(o.nummer)}"><span class="t">${esc(o.klantnaam)}<span class="pill warn">${esc(o.status)}</span></span><span class="s">order ${esc(o.nummer)} · ${dt(o.datum)}</span><span class="r">${eur(o.prijs)}</span></button>`).join("")}</div><p class="note">Orders met status Te factureren of Geleverd zonder factuur in het Salesbureau. Facturen die je al in MyBusiness hebt gemaakt, zie ik niet: maak hier alleen een factuur als die nog niet bestaat, anders staat hij dubbel in de boekhouding.</p>` : `<p class="empty">Alles is gefactureerd.</p>`}`;
+    te.querySelectorAll("[data-fo]").forEach(b => b.addEventListener("click", () => factuurUitOrder(b.dataset.fo)));
+  } catch (e) { showError(body, e); }
+}
+async function factuurUitOrder(nr) {
+  drawer("Factuur voorbereiden…", "", `<p class="empty">Laden…</p>`);
+  try {
+    const bestaand = await sql(`select id from facturen where order_nummer = ${num(nr)} order by id desc limit 1`);
+    if (bestaand[0]) { openFactuur(bestaand[0].id); return; }
+    const [o, regels] = await Promise.all([
+      sql(`select o.nummer, o.klant_id, o.klantnaam, o.omschrijving, o.prijs, o.btw from orders o where o.nummer = ${num(nr)}`),
+      sql(`select r.artikel_nr, r.omschrijving, r.aantal, r.prijs, a.btw_groep_id, bg.percentage from order_regels r left join artikelen a on a.artikel_nr = r.artikel_nr left join btw_groepen bg on bg.id = a.btw_groep_id where r.order_nummer = ${num(nr)} order by r.id`),
+    ]);
+    const x = o[0]; if (!x || !x.klant_id) { drawer("Factuur", "", `<div class="banner bad"><b>Geen klant bij deze order</b>Koppel de order eerst aan een klant.</div>`); return; }
+    const k = (await sql(`select * from klanten where id = ${num(x.klant_id)}`))[0], regime = bepaalRegime(k);
+    let lines;
+    if (regels.length) lines = regels.map(r => ({ artikel_nr: r.artikel_nr, omschrijving: r.omschrijving, aantal: r.aantal, prijs: r.prijs, btw_pct: r.percentage != null ? num(r.percentage) : 21 }));
+    else {
+      const p = num(x.prijs), pct = p > 0 && num(x.btw) > 0 ? ([21, 9, 0].sort((a, b) => Math.abs(a - num(x.btw) / p * 100) - Math.abs(b - num(x.btw) / p * 100))[0]) : 21;
+      lines = [{ artikel_nr: null, omschrijving: String(x.omschrijving || "Order " + x.nummer).slice(0, 500), aantal: 1, prijs: p, btw_pct: pct }];
+    }
+    openFactuurConcept({ id: null, nummer: null, type: "factuur", credit_van: null, klant: k, order_nummer: x.nummer, datum: plusDays(0), status: "concept", regime, referentie: "Order " + x.nummer, opmerking: "", lines, betalingen: [] });
+  } catch (e) { drawer("Factuur", "", `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`); }
+}
+let fa = null;
+async function openFactuur(id) {
+  drawer("Factuur laden…", "", `<p class="empty">Laden…</p>`);
+  try {
+    const f = (await sql(`select * from facturen where id = ${num(id)}`))[0];
+    if (!f) { drawer("Factuur niet gevonden", "", `<p class="empty">Deze factuur bestaat niet meer.</p>`); return; }
+    const [k, regels, bet] = await Promise.all([sql(`select * from klanten where id = ${num(f.klant_id)}`), sql(`select id, artikel_nr, omschrijving, aantal, prijs, btw_pct, vervallen from factuur_regels where factuur_id = ${num(id)} order by id`), sql(`select id, datum, bedrag, wijze, opmerking from factuur_betalingen where factuur_id = ${num(id)} order by datum, id`)]);
+    fa = { id: f.id, nummer: f.nummer, type: f.type, credit_van: f.credit_van, klant: k[0], order_nummer: f.order_nummer, datum: String(f.datum).slice(0, 10), vervaldatum: f.vervaldatum ? String(f.vervaldatum).slice(0, 10) : "", status: f.status, regime: f.btw_regime, referentie: f.referentie || "", opmerking: f.opmerking || "", lines: regels.map(r => ({ ...r })), betalingen: bet };
+    drawFactuur();
+  } catch (e) { drawer("Factuur", "", `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`); }
+}
+function openFactuurConcept(x) { fa = x; drawFactuur(); }
+function syncFa() {
+  if (!$("#fa-form")) return;
+  fa.datum = gv("fa-dat"); fa.regime = gv("fa-reg"); fa.referentie = gv("fa-ref"); fa.opmerking = gv("fa-opm");
+  fa.lines.forEach((l, i) => { if ($(`#fl-${i}-o`)) { l.omschrijving = gv(`fl-${i}-o`); l.aantal = gv(`fl-${i}-a`); l.prijs = gv(`fl-${i}-p`); l.btw_pct = gv(`fl-${i}-b`); } });
+}
+async function drawFactuur() {
+  const c = await getCfg(), f = fa, k = f.klant, concept = f.status === "concept";
+  const live = f.lines.filter(l => !l.vervallen), tot = btwBedrag(live, f.regime);
+  const betaald = f.betalingen.reduce((t, b) => t + num(b.bedrag), 0), rest = Math.round((tot.incl - betaald) * 100) / 100;
+  const ontbreekt = INSTELLING_VERPLICHT.filter(x => !c.ins[x]), cond = num(k.betaaltermijn_dagen) || 30;
+  const vervalt = f.vervaldatum || (() => { const d = new Date(f.datum + "T12:00:00"); d.setDate(d.getDate() + cond); return d.toISOString().slice(0, 10); })();
+  const naam = f.type === "credit" ? "Creditnota" : "Factuur", i = c.ins;
+  const adres = [k.naam_factuur || k.naam, k.factuur_adres || k.adres, [k.factuur_postcode || k.postcode, k.factuur_plaats || k.plaats].filter(Boolean).join(" "), k.factuur_land || k.land].filter(Boolean);
+  const btwTekst = f.regime === "verlegd" ? `Btw verlegd. Intracommunautaire levering${k.btw_nr ? `, btw-nummer afnemer: ${k.btw_nr}` : ""}.` : f.regime === "export" ? "Levering buiten de Europese Unie, 0% btw." : "";
+  drawer(f.nummer ? `${naam} ${f.nummer}` : `${naam} (concept)`, `<button class="btn small" id="fa-k">${esc(k.naam)}</button>${f.order_nummer ? ` · <button class="btn small" id="fa-o">Order ${esc(f.order_nummer)}</button>` : ""}<span class="pill ${f.status === "betaald" ? "good" : concept ? "" : "acc"}">${esc(STATUS_FACTUUR[f.status])}</span>`, `
+    ${concept && ontbreekt.length ? `<div class="banner"><b>Bedrijfsgegevens ontbreken</b>Je kunt de factuur pas definitief maken als dit is ingevuld onder Onderhoud, Stamgegevens: ${ontbreekt.map(x => esc(INSTELLING_VELDEN.find(v => v[0] === x)[1])).join(", ")}.</div>` : ""}
+    ${concept && f.regime === "verlegd" && !k.btw_nr ? `<div class="banner bad"><b>Btw-nummer van de klant ontbreekt</b>Zonder btw-nummer mag je geen btw verleggen.</div>` : ""}
+    ${concept ? `<section class="panel f" id="fa-form"><div class="line">${fld("fa-dat", "Factuurdatum", f.datum, "date")}${sel("fa-reg", "Btw", [["NL", "Binnenland (btw berekenen)"], ["verlegd", "Verlegd (EU met btw-nr)"], ["export", "Export buiten EU (0%)"]], f.regime)}${fld("fa-ref", "Referentie", f.referentie)}</div>${txa("fa-opm", "Opmerking op de factuur", f.opmerking, 2)}</section>
+    <section class="panel"><h3>Regels</h3>${live.length ? `<div class="tbl"><table><thead><tr><th>Omschrijving</th><th class="n">Aantal</th><th class="n">Prijs</th><th class="n">Btw %</th><th class="n">Totaal</th><th></th></tr></thead><tbody>${f.lines.map((l, i2) => l.vervallen ? "" : `<tr>
+      <td><input id="fl-${i2}-o" type="text" value="${esc(l.omschrijving)}" style="width:100%;min-width:140px">${l.artikel_nr ? `<div class="note mono">art. ${esc(l.artikel_nr)}</div>` : ""}</td>
+      <td class="n"><input id="fl-${i2}-a" type="number" step="any" value="${esc(l.aantal)}" style="width:80px"></td>
+      <td class="n"><input id="fl-${i2}-p" type="number" step="0.01" value="${esc(l.prijs ?? "")}" style="width:90px"></td>
+      <td class="n">${f.regime === "NL" ? `<input id="fl-${i2}-b" type="number" step="any" value="${esc(l.btw_pct)}" style="width:60px">` : `0<input id="fl-${i2}-b" type="hidden" value="${esc(l.btw_pct)}">`}</td>
+      <td class="n">${eur2(num(l.aantal) * num(l.prijs))}</td><td><button class="btn small" data-frm="${i2}" aria-label="Regel verwijderen">Weg</button></td></tr>`).join("")}</tbody></table></div>` : `<p class="empty">Nog geen regels.</p>`}
+      <form class="bar" id="fa-find" style="margin-top:10px"><input type="search" id="fa-q" placeholder="Artikel zoeken om toe te voegen"><button class="btn" type="submit">Zoek</button><button class="btn" type="button" id="fa-free">Vrije regel</button></form><div id="fa-res"></div></section>` : ""}
+    <section class="panel" id="fact" style="background:#fff;color:#111">
+      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><b>${esc(i.bedrijfsnaam || "")}</b><br>${[i.adres, [i.postcode, i.plaats].filter(Boolean).join(" "), i.land].filter(Boolean).map(esc).join("<br>")}${i.telefoon ? "<br>" + esc(i.telefoon) : ""}${i.email ? "<br>" + esc(i.email) : ""}<br><span style="font-size:12px;color:#555">${[i.btw_nr ? "Btw " + i.btw_nr : "", i.kvk_nr ? "KvK " + i.kvk_nr : ""].filter(Boolean).map(esc).join(" · ")}</span></div>
+        <div style="text-align:right"><b style="font-size:18px">${naam}</b><br>${f.nummer ? "Nummer " + esc(f.nummer) : "<i>concept</i>"}<br>Datum ${dt(f.datum)}<br>Vervaldatum ${dt(vervalt)}${f.referentie ? `<br>${esc(f.referentie)}` : ""}</div></div>
+      <p style="margin:14px 0">${adres.map(esc).join("<br>")}${k.btw_nr ? `<br><span style="font-size:12px;color:#555">Btw-nr ${esc(k.btw_nr)}</span>` : ""}</p>
+      <table style="color:#111"><thead><tr><th style="color:#555">Omschrijving</th><th class="n" style="color:#555">Aantal</th><th class="n" style="color:#555">Prijs</th><th class="n" style="color:#555">Btw</th><th class="n" style="color:#555">Totaal</th></tr></thead><tbody>${live.map(l => `<tr style="border-top:1px solid #ccc"><td>${esc(l.omschrijving)}</td><td class="n">${esc(num(l.aantal))}</td><td class="n">${eur2(l.prijs)}</td><td class="n">${f.regime === "NL" ? esc(num(l.btw_pct)) + "%" : "0%"}</td><td class="n">${eur2(num(l.aantal) * num(l.prijs))}</td></tr>`).join("")}</tbody></table>
+      <table style="margin-top:10px;margin-left:auto;width:auto;color:#111"><tbody><tr><td>Totaal excl. btw</td><td class="n">${eur2(tot.excl)}</td></tr>${tot.delen.map(d => `<tr><td>Btw ${esc(d.pct)}% over ${eur2(d.basis)}</td><td class="n">${eur2(d.btw)}</td></tr>`).join("")}<tr style="border-top:2px solid #111"><td><b>Totaal incl. btw</b></td><td class="n"><b>${eur2(tot.incl)}</b></td></tr></tbody></table>
+      ${btwTekst ? `<p style="margin-top:10px"><b>${esc(btwTekst)}</b></p>` : ""}${f.opmerking ? `<p style="margin-top:10px">${esc(f.opmerking)}</p>` : ""}
+      <p style="margin-top:14px;font-size:13px">${f.type === "credit" ? "" : `Wij verzoeken u het bedrag vóór ${dt(vervalt)} te betalen${i.iban ? ` op ${esc(i.iban)}${i.bic ? " (BIC " + esc(i.bic) + ")" : ""} t.n.v. ${esc(i.bedrijfsnaam || "")}` : ""}, onder vermelding van het factuurnummer.`}${i.factuur_tekst ? "<br>" + esc(i.factuur_tekst) : ""}</p>
+    </section>
+    ${f.id && !concept ? `<section class="panel"><h3>Betalingen</h3>${f.betalingen.length ? `<div class="tbl"><table><thead><tr><th>Datum</th><th>Wijze</th><th class="n">Bedrag</th></tr></thead><tbody>${f.betalingen.map(b => `<tr><td>${dt(b.datum)}</td><td>${esc(b.wijze || "")}${b.opmerking ? `<div class="note">${esc(b.opmerking)}</div>` : ""}</td><td class="n">${eur2(b.bedrag)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="empty">Nog geen betalingen.</p>`}
+      <p class="mono" style="text-align:right;margin:8px 0 0">${rest === 0 ? "Volledig betaald" : `Nog te betalen ${eur2(rest)}`}</p>
+      ${rest !== 0 ? `<form class="f" id="fa-pay" style="margin-top:10px"><div class="line">${fld("pb-dat", "Datum", plusDays(0), "date")}${fld("pb-bed", "Bedrag", rest, "number", 'step="0.01"')}${sel("pb-wijze", "Wijze", ["Bankoverschrijving", "Contant", "Pin", "Incasso"], "Bankoverschrijving")}</div><div><button class="btn" type="submit">Betaling vastleggen</button></div></form>` : ""}</section>` : ""}
+    <section class="panel"><div style="display:flex;flex-wrap:wrap;gap:8px">
+      ${concept ? `<button class="btn" id="fa-save">Concept opslaan</button><button class="btn primary" id="fa-def" ${ontbreekt.length || (f.regime === "verlegd" && !k.btw_nr) ? "disabled" : ""}>Definitief maken</button>` : ""}
+      <button class="btn" id="fa-print">Afdrukken of pdf</button>${!concept && f.type === "factuur" ? `<button class="btn" id="fa-credit">Creditnota maken</button>` : ""}${!concept && k.email ? `<button class="btn" id="fa-mail">Mailtekst maken</button>` : ""}</div>
+      <div class="note" id="fa-msg">${concept ? "Een definitieve factuur krijgt een doorlopend nummer en kan niet meer worden gewijzigd. Corrigeren doe je met een creditnota." : "Afdrukken kan met Ctrl+P en kiezen voor opslaan als pdf."}</div><div id="fa-draft"></div></section>`);
+  const msg = t => { const m = $("#fa-msg"); if (m) m.textContent = t; };
+  $("#fa-k").addEventListener("click", () => openKlant(k.id));
+  if ($("#fa-o")) $("#fa-o").addEventListener("click", () => openOrder(f.order_nummer));
+  $("#fa-print").addEventListener("click", () => { try { window.print(); } catch { msg("Afdrukken lukt hier niet. Gebruik Ctrl+P."); } });
+  if (concept) {
+    $("#fa-form").addEventListener("change", () => { syncFa(); drawFactuur(); });
+    document.querySelectorAll('[id^="fl-"]').forEach(inp => inp.addEventListener("change", () => { syncFa(); drawFactuur(); }));
+    document.querySelectorAll("[data-frm]").forEach(b => b.addEventListener("click", () => { syncFa(); const i2 = Number(b.dataset.frm); if (f.lines[i2].id) f.lines[i2].vervallen = true; else f.lines.splice(i2, 1); drawFactuur(); }));
+    $("#fa-free").addEventListener("click", () => { syncFa(); f.lines.push({ artikel_nr: null, omschrijving: "", aantal: 1, prijs: "", btw_pct: 21 }); drawFactuur(); });
+    $("#fa-find").addEventListener("submit", async e => {
+      e.preventDefault(); const q = gv("fa-q"); if (!q) return;
+      try {
+        const r = await sql(`select a.artikel_nr, a.naam, a.voorraad, a.verkoopprijs, bg.percentage from artikelen a left join btw_groepen bg on bg.id = a.btw_groep_id where a.naam ilike ${likeLit(q)} or a.artikel_nr::text = ${lit(q)} order by a.voorraad desc limit 8`);
+        $("#fa-res").innerHTML = r.length ? r.map((a, i2) => `<div class="chk" style="grid-template-columns:minmax(0,1fr) auto auto"><span>${esc(a.naam)}<div class="note mono">art. ${esc(a.artikel_nr)}</div></span><span class="mono">${eur2(a.verkoopprijs)}</span><button type="button" class="btn small" data-add="${i2}">Toevoegen</button></div>`).join("") : `<p class="empty">Niets gevonden.</p>`;
+        $("#fa-res").querySelectorAll("[data-add]").forEach(b => b.addEventListener("click", () => { syncFa(); const a = r[b.dataset.add]; f.lines.push({ artikel_nr: a.artikel_nr, omschrijving: a.naam, aantal: 1, prijs: a.verkoopprijs, btw_pct: a.percentage != null ? num(a.percentage) : 21 }); drawFactuur(); }));
+      } catch (er) { showError($("#fa-res"), er); }
+    });
+    const save = async () => {
+      syncFa();
+      const live2 = f.lines.filter(l => !l.vervallen && String(l.omschrijving).trim()), t = btwBedrag(live2, f.regime), rg = l => `${l.artikel_nr ? num(l.artikel_nr) : "null"}, ${lit(l.omschrijving)}, ${num(l.aantal)}, ${numLit(l.prijs) === "null" ? 0 : numLit(l.prijs)}, ${num(l.btw_pct)}`;
+      const kopvelden = `datum=${lit(f.datum)}, btw_regime=${lit(f.regime)}, referentie=${lit(f.referentie)}, opmerking=${lit(f.opmerking)}, totaal_excl=${t.excl}, totaal_btw=${t.btw}, totaal_incl=${t.incl}`;
+      if (!f.id) {
+        const q = `with n as (insert into facturen (type, credit_van, klant_id, order_nummer, datum, btw_regime, referentie, opmerking, totaal_excl, totaal_btw, totaal_incl) values (${lit(f.type)}, ${f.credit_van ? num(f.credit_van) : "null"}, ${num(k.id)}, ${f.order_nummer ? num(f.order_nummer) : "null"}, ${lit(f.datum)}, ${lit(f.regime)}, ${lit(f.referentie)}, ${lit(f.opmerking)}, ${t.excl}, ${t.btw}, ${t.incl}) returning id)` +
+          (live2.length ? `, r as (insert into factuur_regels (factuur_id, artikel_nr, omschrijving, aantal, prijs, btw_pct) select n.id, v.a::int, v.b::text, v.c::numeric, v.d::numeric, v.e::numeric from n cross join (values ${live2.map(l => "(" + rg(l) + ")").join(", ")}) v(a, b, c, d, e) returning factuur_id)` : "") + ` select id from n`;
+        f.id = num((await sql(q))[0].id);
+      } else {
+        const st = [`update facturen set ${kopvelden} where id = ${num(f.id)} and status = 'concept'`];
+        f.lines.forEach(l => {
+          if (l.id) st.push(`update factuur_regels set omschrijving=${lit(l.omschrijving)}, aantal=${num(l.aantal)}, prijs=${numLit(l.prijs) === "null" ? 0 : numLit(l.prijs)}, btw_pct=${num(l.btw_pct)}, vervallen=${!!l.vervallen} where id=${num(l.id)} and factuur_id=${num(f.id)}`);
+          else if (!l.vervallen && String(l.omschrijving).trim()) st.push(`insert into factuur_regels (factuur_id, artikel_nr, omschrijving, aantal, prijs, btw_pct) values (${num(f.id)}, ${rg(l)})`);
+        });
+        await sql(st.join(";\n"));
+      }
+      return f.id;
+    };
+    $("#fa-save").addEventListener("click", async () => { msg("Opslaan…"); try { const id = await save(); await openFactuur(id); if ($("#fa-msg")) $("#fa-msg").textContent = "Concept opgeslagen."; if (tab === "facturen") loadFacturen(); } catch (er) { msg(explain(er)); } });
+    $("#fa-def").addEventListener("click", async () => {
+      syncFa(); const live2 = f.lines.filter(l => !l.vervallen && String(l.omschrijving).trim());
+      if (!live2.length) { msg("Voeg eerst regels toe."); return; }
+      if (live2.some(l => !num(l.prijs) && num(l.aantal) > 0 && f.type !== "credit")) { msg("Vul bij elke regel een prijs in."); return; }
+      msg("Factuur definitief maken…");
+      try {
+        const id = await save(), cond2 = num(k.betaaltermijn_dagen) || 30;
+        const r = await sql(`update facturen set nummer = (select greatest(coalesce((select max(nummer) from facturen), 0), coalesce((select waarde::bigint - 1 from instellingen where sleutel = 'factuur_start' and waarde ~ '^[0-9]+$'), 0), extract(year from current_date)::bigint * 100000) + 1),
+          status = 'definitief', vervaldatum = datum + ${cond2} where id = ${num(id)} and status = 'concept' and nummer is null returning nummer`);
+        if (!r[0]) { msg("Deze factuur is al definitief."); return; }
+        if (f.order_nummer) await sql(`update orders set status = 'Afgesloten' where nummer = ${num(f.order_nummer)} and status in ('Te factureren', 'Geleverd', 'Gereed', 'In bewerking')`);
+        await openFactuur(id); if (tab === "facturen") loadFacturen();
+      } catch (er) { msg(explain(er)); }
+    });
+  } else {
+    if ($("#fa-pay")) $("#fa-pay").addEventListener("submit", async e => {
+      e.preventDefault(); const bed = Math.round(num(gv("pb-bed")) * 100) / 100; if (!bed) { msg("Vul een bedrag in."); return; }
+      msg("Opslaan…");
+      try {
+        const nieuw = Math.round((betaald + bed) * 100) / 100, klaar = Math.abs(nieuw - tot.incl) < 0.005 || (tot.incl > 0 ? nieuw > tot.incl : nieuw < tot.incl);
+        await sql(`insert into factuur_betalingen (factuur_id, datum, bedrag, wijze) values (${num(f.id)}, ${lit(gv("pb-dat"))}, ${bed}, ${lit(gv("pb-wijze"))}); update facturen set status = ${lit(klaar ? "betaald" : "definitief")} where id = ${num(f.id)}`);
+        await openFactuur(f.id); if (tab === "facturen") loadFacturen();
+      } catch (er) { msg(explain(er)); }
+    });
+    if ($("#fa-credit")) $("#fa-credit").addEventListener("click", () => {
+      openFactuurConcept({ id: null, nummer: null, type: "credit", credit_van: f.id, klant: k, order_nummer: null, datum: plusDays(0), status: "concept", regime: f.regime, referentie: `Creditnota bij factuur ${f.nummer}`, opmerking: "", lines: live.map(l => ({ artikel_nr: l.artikel_nr, omschrijving: l.omschrijving, aantal: -num(l.aantal), prijs: l.prijs, btw_pct: l.btw_pct })), betalingen: [] });
+    });
+    if ($("#fa-mail")) $("#fa-mail").addEventListener("click", () => {
+      const tekst = `Beste ${k.aanhef || k.contactpersoon || ""},\n\nHierbij ${f.type === "credit" ? "de creditnota" : "de factuur"} ${f.nummer} van ${dt(f.datum)} voor ${eur2(tot.incl)} ${f.regime === "NL" ? "incl." : "excl."} btw.${f.type === "credit" ? "" : `\nGraag betalen vóór ${dt(vervalt)}${i.iban ? ` op ${i.iban}` : ""}, onder vermelding van het factuurnummer.`}\n\nDe ${f.type === "credit" ? "creditnota" : "factuur"} voeg je zelf als pdf toe: kies bij afdrukken voor opslaan als pdf.\n\nMet vriendelijke groet,\nMichel\n${i.bedrijfsnaam || "Frank van de Wijgert Partijhandel"}`.replace("Beste ,", "Beste,");
+      draftBox($("#fa-draft"), k.factuur_email || k.email, `${f.type === "credit" ? "Creditnota" : "Factuur"} ${f.nummer}`, tekst, null);
+    });
+  }
 }
 
 /* ---------- Dashboard ---------- */
