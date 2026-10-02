@@ -122,6 +122,7 @@ td.n,th.n{text-align:right;font-family:var(--font-mono);font-variant-numeric:tab
 .kpi b{font-family:var(--font-mono);font-weight:500;font-size:22px;font-variant-numeric:tabular-nums;line-height:1.25;overflow-wrap:anywhere}
 .kpi b.good{color:var(--good)} .kpi b.bad{color:var(--bad)}
 .kpi small{font-size:12px;color:var(--fg-soft)}
+button.kpi{font:inherit;color:inherit;text-align:left;cursor:pointer;width:100%}button.kpi:hover{border-color:var(--accent)}
 .chart{width:100%;height:auto;display:block}
 .c-grid{stroke:var(--line);stroke-width:1}
 .c-t{fill:var(--fg-soft);font:10px var(--font-mono)}
@@ -2157,14 +2158,26 @@ function barChart(reeks) {
   const labels = reeks.map((r, i) => r.mnd % 3 === 0 ? `<text class="c-t" x="${(pl + i * bw + bw / 2).toFixed(1)}" y="${H - 12}" text-anchor="middle">${MND[r.mnd]}${r.mnd === 0 ? " '" + String(r.jaar).slice(2) : ""}</text>` : "").join("");
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Omzet per maand, laatste 24 maanden" class="chart">${grid}${bars}${labels}</svg>`;
 }
-const kpi = (label, val, sub, tone) => `<div class="kpi"><span>${esc(label)}</span><b class="${tone || ""}">${val}</b><small>${sub || ""}</small></div>`;
+const kpi = (label, val, sub, tone, go) => { const h = `<span>${esc(label)}</span><b class="${tone || ""}">${val}</b><small>${sub || ""}</small>`; return go ? `<button class="kpi" data-go="${esc(go)}">${h}</button>` : `<div class="kpi">${h}</div>`; };
 function hbars(rows, labelKey, valKey, fmt = eur, click) {
   const max = Math.max(...rows.map(r => num(r[valKey])), 1);
   return rows.length ? `<div class="hb">${rows.map((r, i) => `<${click ? `button data-h="${i}"` : "div"} class="hrow"><span class="hl">${esc(r[labelKey])}</span><span class="hv"><i style="width:${Math.max(2, num(r[valKey]) / max * 100).toFixed(1)}%"></i></span><span class="hn mono">${fmt(r[valKey])}</span></${click ? "button" : "div"}>`).join("")}</div>` : `<p class="empty">Nog geen gegevens.</p>`;
 }
+const DGO = {
+  offertes: () => { of_.status = "open"; goTab("offertes"); }, volgen: () => { of_.status = "volgen"; goTab("offertes"); }, aanvragen: () => { of_.status = "aanvraag"; goTab("offertes"); },
+  orders: () => { ord.view = "bord"; goTab("orders"); }, uitvoering: () => { uit.f = "open"; goTab("uitvoering"); },
+  openstaand: () => { rap.r = "openstaand"; goTab("rapporten"); }, facturen: () => { fakf.f = "open"; goTab("facturen"); },
+  planning: () => { vrd.s = "planning"; goTab("voorraad"); }, voorraad: () => { vrd.s = "analyse"; goTab("voorraad"); }, inkoop: () => { ikf.status = "open"; goTab("inkoop"); },
+  opvolging: () => goTab("opvolging"), klanten: () => goTab("klanten"), campagnes: () => goTab("campagnes"), assortiment: () => goTab("assortiment"),
+  maand: () => { rap.r = "omzet_maand"; goTab("rapporten"); }, klantrap: () => { rap.r = "omzet_klant"; goTab("rapporten"); }, kaart: () => goTab("kaart"),
+};
+const pctTov = (nu, voor) => num(voor) ? Math.round((num(nu) - num(voor)) / num(voor) * 100) : null;
+const tovTekst = (nu, voor, wat) => { const p = pctTov(nu, voor); return p === null ? "" : `${p >= 0 ? "+" : ""}${p}% t.o.v. ${wat}`; };
+const tovToon = (nu, voor) => { const p = pctTov(nu, voor); return p === null ? "" : p >= 0 ? "good" : "bad"; };
 async function vDashboard(main) {
-  main.insertAdjacentHTML("beforeend", `<h2>Dashboard</h2><p class="lead">Omzet, marge, klanten, voorraad en sales in één overzicht. Bedragen zijn excl. btw.</p><div id="d-body"><p class="empty">Laden…</p></div>`);
+  main.insertAdjacentHTML("beforeend", `<h2>Dashboard</h2><p class="lead">Verkoop, klanten, offertes, uitvoering, financiën, voorraad en marketing in één overzicht. Bedragen zijn excl. btw, tenzij anders vermeld. Klik op een tegel om naar het onderdeel te gaan. Orders uit MyBusiness staan er pas in na het laden van een nieuwe export (Onderhoud, Gegevens), orders die je hier maakt direct.</p><div id="d-body"><p class="empty">Laden…</p></div>`);
   const body = $("#d-body"), OK = "prijs between 0 and 10000000";
+  const safe = p => p.then(r => r[0] || {}).catch(() => ({ _fout: true }));
   try {
     const [a, m, top, land, kl, vo, offs, cp] = await Promise.all([
       sql(`select coalesce(sum(prijs) filter (where datum >= date_trunc('year', current_date)), 0) ytd,
@@ -2182,26 +2195,88 @@ async function vDashboard(main) {
       sql(`select o.status, count(distinct o.id) n, coalesce(sum(r.aantal * r.prijs * (1 - r.korting_pct / 100)) filter (where not r.vervallen and not r.optioneel), 0) waarde from offertes o left join offerte_regels r on r.offerte_id = o.id group by 1`),
       sql(`select count(*) filter (where verzonden_op > now() - interval '30 days') verzonden, count(*) filter (where verzonden_op > now() - interval '30 days' and geopend) geopend, count(*) filter (where verzonden_op > now() - interval '30 days' and gereageerd) gereageerd from verzendingen`),
     ]);
+    const [s, kd, pl, uo, fin, vi] = await Promise.all([
+      safe(sql(`select coalesce(sum(prijs) filter (where datum >= date_trunc('month', current_date)), 0) mnd,
+        coalesce(sum(prijs) filter (where datum >= date_trunc('month', current_date) - interval '1 month' and datum <= current_date - interval '1 month'), 0) mnd_vorig,
+        coalesce(sum(prijs) filter (where datum > current_date - 30), 0) d30, coalesce(sum(prijs) filter (where datum > current_date - 60 and datum <= current_date - 30), 0) d30v,
+        coalesce(max(prijs) filter (where datum > current_date - 365), 0) grootste, count(*) filter (where datum > current_date - 7) n7 from orders where ${OK}`)),
+      safe(sql(`with per as (select klant_id, count(*) filter (where datum > current_date - 365) n12, coalesce(sum(prijs) filter (where datum > current_date - 365), 0) o12, coalesce(sum(prijs) filter (where datum > current_date - 730 and datum <= current_date - 365), 0) ov from orders where ${OK} and klant_id is not null group by 1)
+        select count(*) filter (where n12 >= 1) kopers, count(*) filter (where n12 >= 2) herhaal, count(*) filter (where n12 = 0 and ov > 0) verloren, coalesce(sum(ov) filter (where n12 = 0 and ov > 0), 0) verloren_w, coalesce(sum(o12), 0) tot12,
+        coalesce((select sum(o12) from (select o12 from per order by o12 desc limit 10) t), 0) top10 from per`)),
+      safe(sql(`select (select count(*) from offertes where status = 'aanvraag') aanvragen, (select count(*) from offertes where status = 'offerte' and verzonden_op <= current_date - 5) volgen,
+        (select count(*) from opvolging where not afgehandeld and opvolgdatum < current_date) te_laat, (select count(*) from opvolging where not afgehandeld and opvolgdatum = current_date) vandaag`)),
+      sql(`select status, count(*) n, coalesce(sum(prijs), 0) w, min(datum) oudste from orders where status in ('In bewerking', 'Gereed', 'Geleverd', 'Te factureren') group by 1`).catch(() => []),
+      safe(sql(`with t as (select f.totaal_incl - coalesce((select sum(b.bedrag) from factuur_betalingen b where b.factuur_id = f.id), 0) rest, current_date - coalesce(f.vervaldatum, f.datum) dagen from facturen f where f.status = 'definitief')
+        select (select coalesce(sum(rest), 0) from t where abs(rest) > 0.004) open_w, (select count(*) from t where abs(rest) > 0.004) open_n,
+        (select coalesce(sum(rest), 0) from t where abs(rest) > 0.004 and dagen > 0) laat_w, (select count(*) from t where abs(rest) > 0.004 and dagen > 0) laat_n,
+        (select coalesce(sum(totaal_excl), 0) from facturen where status in ('definitief', 'betaald') and datum >= date_trunc('year', current_date)) gefact,
+        (select count(*) from orders o where o.status in ('Te factureren', 'Geleverd') and o.klant_id is not null and not exists (select 1 from facturen f where f.order_nummer = o.nummer)) onfact_n,
+        (select coalesce(sum(o.prijs), 0) from orders o where o.status in ('Te factureren', 'Geleverd') and o.klant_id is not null and not exists (select 1 from facturen f where f.order_nummer = o.nummer)) onfact_w`)),
+      safe(sql(`select (select count(*) from artikelen where minimale_voorraad is not null and voorraad <= minimale_voorraad) onder_min,
+        (select count(*) from artikelen where voorraad > 0 and (verkoopprijs is null or verkoopprijs <= 0)) zonder_prijs, (select count(*) from artikelen where voorraad > 0 and (inkoopprijs is null or inkoopprijs <= 0)) zonder_inkoop,
+        (select count(*) from inkooporders where status in ('besteld', 'deels')) ink_open,
+        (select coalesce(sum((r.aantal - r.ontvangen) * coalesce(r.inkoopprijs, 0)), 0) from inkoop_regels r join inkooporders io on io.id = r.inkooporder_id where io.status in ('besteld', 'deels') and not r.vervallen) ink_w,
+        (select count(*) from inkooporders where status in ('besteld', 'deels') and verwacht < current_date) ink_laat`)),
+    ]);
     const x = a[0] || {}, k = kl[0] || {}, v = vo[0] || {}, c = cp[0] || {};
-    const delta = num(x.o12v) ? Math.round((num(x.o12) - num(x.o12v)) / num(x.o12v) * 100) : null;
+    const delta = pctTov(x.o12, x.o12v);
     const openOf = offs.filter(r => ["aanvraag", "gereserveerd", "offerte"].includes(r.status)), besteld = offs.find(r => r.status === "besteld"), alle = offs.reduce((t, r) => t + num(r.n), 0);
-    const reeks = maandReeks(m);
+    const reeks = maandReeks(m), st = n => uo.find(r => r.status === n) || {}, ouder = d => d ? Math.max(0, Math.round((Date.now() - new Date(String(d).slice(0, 10) + "T12:00:00")) / 86400000)) : 0;
+    const n = (o, k2, f = int) => o && !o._fout && o[k2] != null ? f(o[k2]) : "n.v.t.";
+    const marge = num(v.verkoop) ? Math.round((num(v.verkoop) - num(v.inkoop)) / num(v.verkoop) * 100) : 0;
+    const sec = (t, kp) => `<section style="margin-top:18px"><h3>${esc(t)}</h3><div class="kpis">${kp.join("")}</div></section>`;
     body.innerHTML = `
-      <div class="kpis">
-        ${kpi("Omzet dit jaar", eur(x.ytd), num(x.ytd_vorig) ? `vorig jaar tot nu ${eur(x.ytd_vorig)}` : "")}
-        ${kpi("Omzet laatste 12 mnd", eur(x.o12), delta === null ? "" : `${delta >= 0 ? "+" : ""}${delta}% t.o.v. de 12 mnd ervoor`, delta === null ? "" : delta >= 0 ? "good" : "bad")}
-        ${kpi("Marge laatste 12 mnd", num(x.basis) ? Math.round(num(x.marge) / num(x.basis) * 100) + "%" : "n.v.t.", `${eur(x.marge)} over orders met bekende inkoop`)}
-        ${kpi("Orders laatste 12 mnd", int(x.n12), num(x.n12) ? `gemiddeld ${eur(num(x.o12) / num(x.n12))} per order` : "")}
-        ${kpi("Actieve klanten", int(k.actief), `${int(k.slapend)} slapend · ${int(k.nooit)} nooit besteld`)}
-        ${kpi("Nieuwe klanten 12 mnd", int(k.nieuw), `${int(k.prospects)} prospects in de lijst`)}
-        ${kpi("Voorraadwaarde", eur(v.inkoop), `inkoop · verkoop ${eur(v.verkoop)} · ${int(v.n)} artikelen`)}
-        ${kpi("Open offertes", int(openOf.reduce((t, r) => t + num(r.n), 0)), `${eur(openOf.reduce((t, r) => t + num(r.waarde), 0))} aan offertes en aanvragen${alle ? ` · ${Math.round(num(besteld && besteld.n) / alle * 100)}% werd order` : ""}`)}
-        ${kpi("Mails laatste 30 dagen", int(c.verzonden), num(c.verzonden) ? `${Math.round(num(c.geopend) / num(c.verzonden) * 100)}% geopend · ${Math.round(num(c.gereageerd) / num(c.verzonden) * 100)}% reageerde` : "nog niets vastgelegd in Campagnes")}
-      </div>
+      ${sec("Verkoop", [
+        kpi("Omzet deze maand", eur(s.mnd), s._fout ? "" : tovTekst(s.mnd, s.mnd_vorig, `dezelfde periode vorige maand (${eur(s.mnd_vorig)})`), tovToon(s.mnd, s.mnd_vorig), "maand"),
+        kpi("Omzet laatste 30 dagen", eur(s.d30), s._fout ? "" : tovTekst(s.d30, s.d30v, "de 30 dagen ervoor"), tovToon(s.d30, s.d30v), "maand"),
+        kpi("Omzet dit jaar", eur(x.ytd), num(x.ytd_vorig) ? `vorig jaar tot nu ${eur(x.ytd_vorig)}` : "", num(x.ytd_vorig) ? tovToon(x.ytd, x.ytd_vorig) : "", "maand"),
+        kpi("Omzet laatste 12 mnd", eur(x.o12), delta === null ? "" : `${delta >= 0 ? "+" : ""}${delta}% t.o.v. de 12 mnd ervoor`, delta === null ? "" : delta >= 0 ? "good" : "bad", "maand"),
+        kpi("Marge laatste 12 mnd", num(x.basis) ? Math.round(num(x.marge) / num(x.basis) * 100) + "%" : "n.v.t.", `${eur(x.marge)} over orders met bekende inkoop`, "", "maand"),
+        kpi("Orders laatste 12 mnd", int(x.n12), num(x.n12) ? `gemiddeld ${eur(num(x.o12) / num(x.n12))} per order` : "", "", "orders"),
+        kpi("Orders laatste 7 dagen", n(s, "n7"), "nieuw binnengekomen", "", "orders"),
+        kpi("Grootste order 12 mnd", n(s, "grootste", eur), "", "", "orders"),
+      ])}
+      ${sec("Klanten", [
+        kpi("Actieve klanten", int(k.actief), `${int(k.slapend)} slapend · ${int(k.nooit)} nooit besteld`, "", "klanten"),
+        kpi("Kopers laatste 12 mnd", n(kd, "kopers"), kd._fout ? "" : `van ${int(k.totaal)} relaties`, "", "klantrap"),
+        kpi("Herhaalklanten", kd._fout || !num(kd.kopers) ? "n.v.t." : Math.round(num(kd.herhaal) / num(kd.kopers) * 100) + "%", kd._fout ? "" : `${int(kd.herhaal)} kopers bestelden 2 keer of vaker`, "", "klantrap"),
+        kpi("Verloren klanten", n(kd, "verloren"), kd._fout ? "" : `kochten het jaar ervoor voor ${eur(kd.verloren_w)}, nu niet meer`, "", "klantrap"),
+        kpi("Omzet van de top 10", kd._fout || !num(kd.tot12) ? "n.v.t." : Math.round(num(kd.top10) / num(kd.tot12) * 100) + "%", "van de omzet 12 mnd: hoe afhankelijk je bent van weinig klanten", "", "klantrap"),
+        kpi("Nieuwe klanten 12 mnd", int(k.nieuw), `${int(k.prospects)} prospects in de lijst`, "", "klanten"),
+      ])}
+      ${sec("Offertes en opvolging", [
+        kpi("Open offertes", int(openOf.reduce((t, r) => t + num(r.n), 0)), `${eur(openOf.reduce((t, r) => t + num(r.waarde), 0))} aan offertes en aanvragen${alle ? ` · ${Math.round(num(besteld && besteld.n) / alle * 100)}% werd order` : ""}`, "", "offertes"),
+        kpi("Aanvragen onbeantwoord", n(pl, "aanvragen"), "status Aanvraag binnen", num(pl.aanvragen) ? "bad" : "", "aanvragen"),
+        kpi("Offertes opvolgen", n(pl, "volgen"), "verstuurd, 5+ dagen geen reactie", num(pl.volgen) ? "bad" : "", "volgen"),
+        kpi("Opvolging te laat", n(pl, "te_laat"), pl._fout ? "" : `${int(pl.vandaag)} staan voor vandaag`, num(pl.te_laat) ? "bad" : "", "opvolging"),
+      ])}
+      ${sec("Orders en uitvoering", [
+        kpi("In bewerking", int(st("In bewerking").n), `${eur(st("In bewerking").w)}${st("In bewerking").oudste ? ` · oudste ${ouder(st("In bewerking").oudste)} dagen oud` : ""}`, "", "uitvoering"),
+        kpi("Gereed om te verzenden", int(st("Gereed").n), eur(st("Gereed").w), "", "uitvoering"),
+        kpi("Geleverd, nog niet afgesloten", int(st("Geleverd").n), eur(st("Geleverd").w), "", "orders"),
+        kpi("Te factureren", int(st("Te factureren").n), eur(st("Te factureren").w), "", "facturen"),
+      ])}
+      ${sec("Financieel", [
+        kpi("Openstaand op facturen", n(fin, "open_w", eur), fin._fout ? "" : `${int(fin.open_n)} facturen incl. btw, uit het Salesbureau`, "", "openstaand"),
+        kpi("Waarvan te laat", n(fin, "laat_w", eur), fin._fout ? "" : `${int(fin.laat_n)} facturen voorbij de vervaldatum`, num(fin.laat_w) > 0 ? "bad" : "", "openstaand"),
+        kpi("Gefactureerd dit jaar", n(fin, "gefact", eur), "alleen facturen uit het Salesbureau", "", "facturen"),
+        kpi("Nog niet gefactureerd", n(fin, "onfact_w", eur), fin._fout ? "" : `${int(fin.onfact_n)} orders Geleverd of Te factureren zonder factuur hier. Controleer eerst of ze al in MyBusiness zijn gefactureerd.`, "", "facturen"),
+      ])}
+      ${sec("Voorraad en inkoop", [
+        kpi("Voorraadwaarde", eur(v.inkoop), `inkoop · verkoop ${eur(v.verkoop)} (marge ${marge}%) · ${int(v.n)} artikelen`, "", "voorraad"),
+        kpi("Onder minimale voorraad", n(vi, "onder_min"), "bijbestellen", num(vi.onder_min) ? "bad" : "", "planning"),
+        kpi("Inkooporders onderweg", n(vi, "ink_open"), vi._fout ? "" : `${eur(vi.ink_w)} nog te ontvangen${num(vi.ink_laat) ? ` · ${int(vi.ink_laat)} voorbij de verwachte datum` : ""}`, num(vi.ink_laat) ? "bad" : "", "inkoop"),
+        kpi("Artikelen zonder verkoopprijs", n(vi, "zonder_prijs"), "wel voorraad, geen prijs: niet te offreren", num(vi.zonder_prijs) ? "bad" : "", "assortiment"),
+        kpi("Artikelen zonder inkoopprijs", n(vi, "zonder_inkoop"), "wel voorraad, marge onbekend", "", "assortiment"),
+      ])}
+      ${sec("Marketing", [
+        kpi("Mails laatste 30 dagen", int(c.verzonden), num(c.verzonden) ? `${Math.round(num(c.geopend) / num(c.verzonden) * 100)}% geopend · ${Math.round(num(c.gereageerd) / num(c.verzonden) * 100)}% reageerde` : "nog niets vastgelegd in Campagnes", "", "campagnes"),
+      ])}
       <section class="panel" style="margin:16px 0"><div class="hd"><h3>Omzet per maand, 24 maanden</h3></div>${barChart(reeks)}</section>
       <div class="grid"><section class="panel"><div class="hd"><h3>Top 10 klanten, 12 maanden</h3></div>${hbars(top, "naam", "omzet", eur, true)}</section>
-      <section class="panel"><div class="hd"><h3>Omzet per land, 12 maanden</h3></div>${hbars(land, "land", "omzet")}<p class="note">Omzet per artikelgroep kan nog niet: orders hebben alleen een vrije omschrijving. Orders die je vanaf nu via een offerte maakt, bevatten wel losse artikelregels.</p></section></div>`;
+      <section class="panel"><div class="hd"><h3>Omzet per land, 12 maanden</h3></div>${hbars(land, "land", "omzet")}<p class="note">Omzet per artikelgroep kan nog niet: orders hebben alleen een vrije omschrijving. Orders die je vanaf nu via een offerte maakt, bevatten wel losse artikelregels (zie Rapporten, omzet per artikel).</p></section></div>`;
     body.querySelectorAll("[data-h]").forEach(b => b.addEventListener("click", () => openKlant(top[b.dataset.h].id)));
+    body.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => { const f = DGO[b.dataset.go]; if (f) f(); }));
   } catch (e) { showError(body, e); }
 }
 
