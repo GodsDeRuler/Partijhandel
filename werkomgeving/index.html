@@ -77,6 +77,14 @@ h3{font-family:var(--font-head);font-weight:600;font-size:12px;text-transform:up
 .btn:disabled{opacity:.5;cursor:default}
 .btn.small{padding:3px 8px;font-size:12px}
 .tbl{overflow-x:auto}
+tfoot th{border-top:2px solid var(--line-strong);text-transform:none;font-size:13px;color:var(--fg);letter-spacing:0}
+.bord{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(230px,1fr);gap:10px;overflow-x:auto;padding-bottom:8px;align-items:start}
+.bcol{background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:8px;min-width:0}
+.bcol h3{display:flex;justify-content:space-between;gap:6px;margin:0 0 8px}
+.bcard{background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:8px;margin-bottom:8px}
+.bcard .t{font-weight:600;display:block;text-align:left;background:none;border:0;padding:0;cursor:pointer;color:var(--fg);width:100%}
+.bcard .s{font-size:12px;color:var(--fg-soft)}
+.bcard .a{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:6px}
 table{border-collapse:collapse;width:100%}
 th,td{text-align:left;padding:6px 8px;border-top:1px solid var(--line);vertical-align:top}
 th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--fg-soft);font-weight:600;border-top:0}
@@ -330,6 +338,7 @@ const TABS = [
   { id: "prijzen", label: "Prijzen", view: vPrijzen },
   { id: "voorraad", label: "Voorraad", view: vVrd },
   { id: "facturen", label: "Facturen", view: vFacturen },
+  { id: "rapporten", label: "Rapporten", view: vRapporten },
   { id: "stam", label: "Stamgegevens", view: vStam },
   { id: "beheer", label: "Gegevens", view: vBeheer },
 ];
@@ -338,7 +347,7 @@ const GROUPS = [
   { id: "verkoop", label: "Verkoop", tabs: ["klanten", "offertes", "orders", "prijzen"] },
   { id: "uitvoering", label: "Uitvoering", tabs: ["uitvoering"] },
   { id: "artikelen", label: "Artikelen", tabs: ["assortiment", "voorraad", "inkoop"] },
-  { id: "financieel", label: "Financieel", tabs: ["facturen"] },
+  { id: "financieel", label: "Financieel", tabs: ["facturen", "rapporten"] },
   { id: "marketing", label: "Marketing", tabs: ["campagnes", "opvolging"] },
   { id: "onderhoud", label: "Onderhoud", tabs: ["stam", "beheer"] },
 ];
@@ -464,15 +473,19 @@ function drawer(title, sub, html) {
 async function openKlant(id) {
   drawer("Klant laden…", "", `<p class="empty">Laden…</p>`);
   try {
-    const [k, pr, od, fu, ofs] = await Promise.all([
+    const [k, pr, od, fu, ofs, kx, pe, fk, pa] = await Promise.all([
       sql(`${BASE} where v.id = ${num(id)}`),
       sql(`select p.* from klant_profielen p join klanten k on lower(k.email)=lower(p.email) where k.id=${num(id)} limit 1`),
       sql(`select nummer, datum, status, omschrijving, prijs from orders where klant_id=${num(id)} order by datum desc, nummer desc limit 40`),
       sql(`select id, soort, tekst, opvolgdatum, afgehandeld, aangemaakt from opvolging where klant_id=${num(id)} order by afgehandeld, opvolgdatum nulls last, id desc`),
       sql(`select o.id, o.datum, o.status, coalesce(sum(r.aantal * r.prijs) filter (where not r.vervallen), 0) waarde from offertes o left join offerte_regels r on r.offerte_id = o.id where o.klant_id = ${num(id)} group by o.id order by o.datum desc, o.id desc limit 20`),
+      sql(`select adres, postcode, btw_nr, kvk_nr, aanhef, contactpersoon, betaaltermijn_dagen, factuur_email, naam_factuur, factuur_adres, factuur_postcode, factuur_plaats, factuur_land from klanten where id = ${num(id)}`),
+      sql(`select id, naam, functie, email, telefoon, opmerking from personen where klant_id = ${num(id)} and not vervallen order by id`),
+      sql(`select f.id, f.nummer, f.type, f.datum, f.vervaldatum, f.status, f.totaal_incl, coalesce((select sum(b.bedrag) from factuur_betalingen b where b.factuur_id = f.id), 0) betaald from facturen f where f.klant_id = ${num(id)} order by f.datum desc, f.id desc limit 20`),
+      sql(`select p.id, p.artikel_nr, a.naam, p.prijs, p.vanaf, p.tot from prijsafspraken p left join artikelen a on a.artikel_nr = p.artikel_nr where p.klant_id = ${num(id)} and (p.tot is null or p.tot >= current_date) order by a.naam limit 50`),
     ]);
     if (!k[0]) { drawer("Klant niet gevonden", "", `<p class="empty">Deze klant bestaat niet meer.</p>`); return; }
-    cur = { k: k[0], p: pr[0] || null, orders: od, fu, ofs };
+    cur = { k: { ...(kx[0] || {}), ...k[0] }, p: pr[0] || null, orders: od, fu, ofs, pe, fk, pa, peEdit: null };
     drawKlant();
   } catch (e) { drawer("Klant", "", `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`); }
 }
@@ -481,7 +494,7 @@ function kv(pairs) {
   return rows.length ? `<dl class="kv">${rows.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(fromList(b))}</dd>`).join("")}</dl>` : `<p class="empty">Nog geen gegevens.</p>`;
 }
 function drawKlant() {
-  const { k, p, orders, fu, ofs } = cur;
+  const { k, p, orders, fu, ofs, pe, fk, pa } = cur;
   const sub = [k.plaats, k.land].filter(Boolean).map(esc).join(", ") + badges(k);
   const warn = [];
   if (k.gesloten) warn.push("Uit het onderzoek blijkt dat dit bedrijf mogelijk is gestopt of failliet. Niet mailen.");
@@ -489,7 +502,9 @@ function drawKlant() {
   const html = `
     ${warn.map(w => `<div class="banner bad">${esc(w)}</div>`).join("")}
     <div class="acts"><button class="btn primary" data-act="b-mail" ${k.email && sampleApi ? "" : "disabled"}>Mail opstellen</button><button class="btn" data-act="b-newof">Nieuwe offerte of order</button><button class="btn" data-act="b-edit">Gegevens wijzigen</button></div>
-    <section class="panel"><div class="hd"><h3>Gegevens</h3><button class="btn small" id="b-edit">Wijzigen</button></div>${kv([["E-mail", k.email], ["Telefoon", k.telefoon], ["Taal", k.taal], ["Relatiebeheer", k.relatiebeheer],
+    <section class="panel"><div class="hd"><h3>Gegevens</h3><button class="btn small" id="b-edit">Wijzigen</button></div>${kv([["E-mail", k.email], ["Telefoon", k.telefoon], ["Contactpersoon", [k.aanhef, k.contactpersoon].filter(Boolean).join(" ")], ["Adres", [k.adres, [k.postcode, k.plaats].filter(Boolean).join(" ")].filter(Boolean).join(", ")], ["Btw-nummer", k.btw_nr], ["KvK-nummer", k.kvk_nr],
+      ["Factuurgegevens", [k.naam_factuur, k.factuur_adres, [k.factuur_postcode, k.factuur_plaats].filter(Boolean).join(" "), k.factuur_land].filter(Boolean).join(", ")], ["Factuur e-mail", k.factuur_email], ["Betaaltermijn", k.betaaltermijn_dagen != null ? k.betaaltermijn_dagen + " dagen" : ""],
+      ["Taal", k.taal], ["Relatiebeheer", k.relatiebeheer],
       ["Orders", k.orders ? `${int(k.orders)} orders, ${eur(k.omzet)} totaal, ${eur(k.omzet_12m)} laatste 12 maanden` : "Nog geen orders"], ["Laatst gekocht", k.laatst_gekocht]])}</section>
     <section class="panel"><h3>Wie is dit (uit internetonderzoek)</h3>${p ? kv([["Samenvatting", p.samenvatting], ["Zekerheid", p.zekerheid], ["Website", p.website], ["Type", p.bedrijfstype], ["Sector", p.sector],
       ["Verkoopt", p.wat_ze_verkopen], ["Doelgroep", p.doelgroep], ["Kanalen", p.verkoopkanalen], ["Online aan consumenten", p.online_consumentenverkoop],
@@ -503,6 +518,9 @@ function drawKlant() {
     <section class="panel"><h3>Opvolging</h3>${fu.length ? `<div class="rows">${fu.map(f => `<div class="chk" style="grid-template-columns:minmax(0,1fr) auto"><div><span class="pill ${f.afgehandeld ? "" : "acc"}">${esc(f.soort)}</span> ${esc(f.tekst || "")}<div class="note">${f.opvolgdatum ? "opvolgen op " + dt(f.opvolgdatum) : "gelogd " + dt(f.aangemaakt)}${f.afgehandeld ? " · afgehandeld" : ""}</div></div>${f.afgehandeld ? "" : `<button class="btn small" data-done="${f.id}">Afgehandeld</button>`}</div>`).join("")}</div>` : `<p class="empty">Nog geen opvolging.</p>`}
       <form class="f" id="f-fu" style="margin-top:10px"><div class="line"><label>Soort<select id="fu-soort"><option value="mail">mail</option><option value="offerte">offerte</option><option value="reactie">reactie</option><option value="notitie">notitie</option></select></label>
       <label>Opvolgen op<input id="fu-dat" type="date" value="${plusDays(7)}"></label></div><label>Wat<input id="fu-txt" type="text" placeholder="Bijvoorbeeld: offerte Rietjes Bio gestuurd"></label><div><button class="btn" type="submit">Opvolging toevoegen</button></div></form></section>
+    <section class="panel"><div class="hd"><h3>Contactpersonen</h3><button class="btn small" id="pe-new">Toevoegen</button></div>${pe.length ? `<div class="rows">${pe.map(x => `<div class="chk" style="grid-template-columns:minmax(0,1fr) auto"><div><b>${esc(x.naam)}</b>${x.functie ? ` · ${esc(x.functie)}` : ""}<div class="note">${esc([x.email, x.telefoon, x.opmerking].filter(Boolean).join(" · "))}</div></div><span><button class="btn small" data-pe="${x.id}">Wijzigen</button> <button class="btn small" data-pd="${x.id}">Verwijderen</button></span></div>`).join("")}</div>` : `<p class="empty">Nog geen contactpersonen vastgelegd.</p>`}<div id="pe-form"></div></section>
+    <section class="panel"><div class="hd"><h3>Prijsafspraken</h3><button class="btn small" id="pa-new">Prijsafspraak toevoegen</button></div>${pa.length ? `<div class="tbl"><table><thead><tr><th>Artikel</th><th class="n">Prijs</th><th>Geldig</th></tr></thead><tbody>${pa.map(x => `<tr><td>${esc(x.naam || "Artikel " + x.artikel_nr)}<div class="note mono">art. ${esc(x.artikel_nr)}</div></td><td class="n">${eur2(x.prijs)}</td><td>${dt(x.vanaf)}${x.tot ? " tot " + dt(x.tot) : ""}</td></tr>`).join("")}</tbody></table></div>` : `<p class="empty">Geen vaste prijsafspraken. Deze klant betaalt de staffel- of verkoopprijs.</p>`}</section>
+    <section class="panel"><h3>Facturen</h3>${fk.length ? `<div class="rows">${fk.map(f => { const rest = num(f.totaal_incl) - num(f.betaald), laat = f.status === "definitief" && f.vervaldatum && String(f.vervaldatum).slice(0, 10) < plusDays(0); return `<button class="row" data-fa="${f.id}"><span class="t">${f.nummer ? esc(f.nummer) : "Concept"}<span class="pill ${f.status === "betaald" ? "good" : f.status === "concept" ? "" : laat ? "bad" : "acc"}">${f.status === "definitief" && laat ? "te laat" : esc(STATUS_FACTUUR[f.status] || f.status)}</span>${f.type === "credit" ? `<span class="pill warn">creditnota</span>` : ""}</span><span class="s">${dt(f.datum)}${f.status === "definitief" ? ` · nog ${eur2(rest)}` : ""}</span><span class="r">${eur2(f.totaal_incl)}</span></button>`; }).join("")}</div>` : `<p class="empty">Nog geen facturen in het Salesbureau. Facturen uit MyBusiness staan hier niet.</p>`}</section>
     <section class="panel"><h3>Offertes en reserveringen</h3>${ofs.length ? `<div class="rows">${ofs.map(o => `<button class="row" data-of="${o.id}"><span class="t">Offerte ${esc(o.id)}<span class="pill ${statusKleur(o.status)}">${esc(statusNaam(o.status))}</span></span><span class="s">${dt(o.datum)}</span><span class="r">${eur(o.waarde)}</span></button>`).join("")}</div>` : `<p class="empty">Nog geen offertes.</p>`}
       <div style="margin-top:8px"><button class="btn" id="b-newof">Nieuwe offerte of order</button></div></section>
     <section class="panel"><h3>Orders</h3>${orders.length ? `<div class="tbl"><table><thead><tr><th>Datum</th><th>Order</th><th class="n">Bedrag</th></tr></thead><tbody>${orders.map(o => `<tr><td class="mono">${dt(o.datum)}</td><td>${esc(o.omschrijving || "")}<div class="note">${esc(o.status || "")} · ${esc(o.nummer)}</div></td><td class="n">${eur(o.prijs)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="empty">Nog geen orders.</p>`}</section>`;
@@ -517,6 +535,24 @@ function drawKlant() {
   $("#b-newof").addEventListener("click", () => openOfferte(null, { klant: k, lines: [] }));
   document.querySelectorAll("[data-of]").forEach(b => b.addEventListener("click", () => openOfferte(b.dataset.of)));
   $("#b-edit").addEventListener("click", () => klantForm(k));
+  $("#pa-new").addEventListener("click", () => afspraakForm(k));
+  document.querySelectorAll("[data-fa]").forEach(b => b.addEventListener("click", () => openFactuur(b.dataset.fa)));
+  const peForm = x => {
+    const box = $("#pe-form"); x = x || {};
+    box.innerHTML = `<form class="f" id="pe-f" style="margin-top:10px"><div class="line">${fld("pe-naam", "Naam", x.naam, "text", "required")}${fld("pe-functie", "Functie", x.functie)}</div><div class="line">${fld("pe-email", "E-mail", x.email, "email")}${fld("pe-tel", "Telefoon", x.telefoon)}</div>${fld("pe-opm", "Opmerking", x.opmerking)}<div><button class="btn primary" type="submit">${x.id ? "Opslaan" : "Contactpersoon toevoegen"}</button> <button class="btn" type="button" id="pe-x">Annuleren</button></div><div class="note" id="pe-msg"></div></form>`;
+    $("#pe-x").addEventListener("click", () => { box.innerHTML = ""; });
+    $("#pe-f").addEventListener("submit", async e => { e.preventDefault(); const m = $("#pe-msg"); m.textContent = "Opslaan…";
+      try {
+        const v = [gv("pe-naam"), gv("pe-functie"), gv("pe-email"), gv("pe-tel"), gv("pe-opm")].map(lit);
+        if (x.id) await sql(`update personen set naam=${v[0]}, functie=${v[1]}, email=${v[2]}, telefoon=${v[3]}, opmerking=${v[4]} where id=${num(x.id)} and klant_id=${num(k.id)}`);
+        else await sql(`insert into personen (klant_id, naam, functie, email, telefoon, opmerking) values (${num(k.id)}, ${v.join(", ")})`);
+        await openKlant(k.id);
+      } catch (er) { m.textContent = explain(er); } });
+    $("#pe-naam").focus();
+  };
+  $("#pe-new").addEventListener("click", () => peForm());
+  document.querySelectorAll("[data-pe]").forEach(b => b.addEventListener("click", () => peForm(pe.find(x => String(x.id) === b.dataset.pe))));
+  document.querySelectorAll("[data-pd]").forEach(b => b.addEventListener("click", async () => { try { await sql(`update personen set vervallen = true where id = ${num(b.dataset.pd)} and klant_id = ${num(k.id)}`); await openKlant(k.id); } catch (er) { alert0(er); } }));
   document.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => { $("#" + b.dataset.act).click(); if (b.dataset.act === "b-mail") setTimeout(() => { const m = $("#mail-area"); if (m) m.scrollIntoView({ behavior: "smooth", block: "center" }); }, 50); }));
 }
 function alert0(e) { const b = $("#dr-body"); if (b) b.insertAdjacentHTML("afterbegin", `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`); }
@@ -695,6 +731,13 @@ function klantForm(k, onDone) {
     <div class="line">${sel("kf-taal", "Taal van de mails", ["NL", "EN", "DE"], x.taal)}${sel("kf-bron", "Soort", [["prospect", "Prospect (nog niet gekocht)"], ["relaties", "Klant"], ["orders", "Klant uit orders"]], x.bron || "prospect")}</div>
     <div class="line">${fld("kf-land", "Land", x.land)}${fld("kf-plaats", "Plaats", x.plaats)}</div>
     <div class="line">${fld("kf-beheer", "Relatiebeheer", x.relatiebeheer)}${fld("kf-letop", "Let op (waarschuwing)", x.let_op)}</div>
+    <details open><summary><b>Adres en facturatie</b></summary>
+    <div class="line">${fld("kf-aanhef", "Aanhef", x.aanhef)}${fld("kf-cp", "Contactpersoon", x.contactpersoon)}</div>
+    <div class="line">${fld("kf-adres", "Adres", x.adres)}${fld("kf-pc", "Postcode", x.postcode)}</div>
+    <div class="line">${fld("kf-btw", "Btw-nummer", x.btw_nr)}${fld("kf-kvk", "KvK-nummer", x.kvk_nr)}</div>
+    <div class="line">${fld("kf-nf", "Naam op factuur (indien anders)", x.naam_factuur)}${fld("kf-fmail", "E-mail voor facturen", x.factuur_email, "email")}</div>
+    <div class="line">${fld("kf-fadres", "Factuuradres (indien anders)", x.factuur_adres)}${fld("kf-fpc", "Factuur postcode", x.factuur_postcode)}</div>
+    <div class="line">${fld("kf-fplaats", "Factuur plaats", x.factuur_plaats)}${fld("kf-fland", "Factuur land", x.factuur_land)}${fld("kf-bt", "Betaaltermijn (dagen)", x.betaaltermijn_dagen, "number", 'min="0" step="1"')}</div></details>
     ${k ? "" : txa("kf-not", "Notitie", "", 3)}
     <div><button class="btn primary" type="submit">${k ? "Opslaan" : "Klant toevoegen"}</button></div><div class="note" id="kf-msg"></div></form>`);
   $("#kf").addEventListener("submit", async e => {
@@ -703,12 +746,14 @@ function klantForm(k, onDone) {
       const email = gv("kf-email");
       if (!k && email) { const dup = await sql(`select id, naam from klanten where lower(email)=lower(${lit(email)}) limit 1`); if (dup.length) { m.innerHTML = `Dit e-mailadres staat al bij <b>${esc(dup[0].naam)}</b>. <button type="button" class="btn small" id="kf-open">Open die klant</button>`; $("#kf-open").addEventListener("click", () => openKlant(dup[0].id)); return; } }
       const vals = [gv("kf-naam"), email, gv("kf-tel"), gv("kf-taal"), gv("kf-land"), gv("kf-plaats"), gv("kf-beheer"), gv("kf-letop"), gv("kf-bron")];
+      const ex = { aanhef: gv("kf-aanhef"), contactpersoon: gv("kf-cp"), adres: gv("kf-adres"), postcode: gv("kf-pc"), btw_nr: gv("kf-btw"), kvk_nr: gv("kf-kvk"), naam_factuur: gv("kf-nf"), factuur_email: gv("kf-fmail"), factuur_adres: gv("kf-fadres"), factuur_postcode: gv("kf-fpc"), factuur_plaats: gv("kf-fplaats"), factuur_land: gv("kf-fland") };
+      const bt = numLit(gv("kf-bt")), bti = bt === "null" ? "null" : String(Math.max(0, Math.round(Number(bt))));
       if (k) {
-        await sql(`update klanten set naam=${lit(vals[0])}, email=${lit(vals[1])}, telefoon=${lit(vals[2])}, taal=${lit(vals[3])}, land=${lit(vals[4])}, plaats=${lit(vals[5])}, relatiebeheer=${lit(vals[6])}, let_op=${lit(vals[7])}, bron=${lit(vals[8])} where id=${num(k.id)}`);
+        await sql(`update klanten set naam=${lit(vals[0])}, email=${lit(vals[1])}, telefoon=${lit(vals[2])}, taal=${lit(vals[3])}, land=${lit(vals[4])}, plaats=${lit(vals[5])}, relatiebeheer=${lit(vals[6])}, let_op=${lit(vals[7])}, bron=${lit(vals[8])}, ${Object.keys(ex).map(c => `${c}=${lit(ex[c])}`).join(", ")}, betaaltermijn_dagen=${bti} where id=${num(k.id)}`);
         await openKlant(k.id);
       } else {
-        const r = await sql(`with n as (select coalesce(max(id),0)+1 id from klanten) insert into klanten (id, naam, email, telefoon, taal, land, plaats, relatiebeheer, let_op, bron, notities)
-          select n.id, ${vals.slice(0, 9).map(lit).join(", ")}, ${lit(gv("kf-not"))} from n returning id, naam, email, taal, plaats, land`);
+        const r = await sql(`with n as (select coalesce(max(id),0)+1 id from klanten) insert into klanten (id, naam, email, telefoon, taal, land, plaats, relatiebeheer, let_op, bron, notities, ${Object.keys(ex).join(", ")}, betaaltermijn_dagen)
+          select n.id, ${vals.slice(0, 9).map(lit).join(", ")}, ${lit(gv("kf-not"))}, ${Object.keys(ex).map(c => lit(ex[c])).join(", ")}, ${bti} from n returning id, naam, email, taal, plaats, land`);
         if (onDone) onDone(r[0]); else openKlant(r[0].id);
       }
     } catch (er) { m.textContent = explain(er); }
@@ -979,21 +1024,34 @@ Antwoord alleen met JSON: {"onderwerp": "...", "tekst": "..."}`;
 
 /* ---------- Orders ---------- */
 const STATUS_ORDER = ["In bewerking", "Gereed", "Geleverd", "Te factureren", "Afgesloten"];
-const ord = { q: "", status: "", page: 0 };
+const ord = { q: "", status: "", page: 0, view: "lijst" };
 async function vOrders(main) {
   main.insertAdjacentHTML("beforeend", `<h2>Orders</h2><p class="lead">Alle orders. Een nieuwe order maak je via een offerte, dan worden regels en voorraad meteen bijgewerkt.</p>
     <form class="bar" id="or-bar"><input type="search" id="or-q" placeholder="Zoek op klant, ordernummer of omschrijving" value="${esc(ord.q)}"><select id="or-st" aria-label="Status"><option value="">Alle statussen</option>${STATUS_ORDER.map(t => `<option>${t}</option>`).join("")}</select>
-    <button class="btn primary" type="submit">Zoeken</button><button class="btn" type="button" id="or-new">Nieuwe order</button></form><div id="or-body"><p class="empty">Laden…</p></div>`);
-  $("#or-st").value = ord.status;
+    <select id="or-v" aria-label="Weergave"><option value="lijst">Lijst</option><option value="bord">Bord per status</option></select><button class="btn primary" type="submit">Zoeken</button><button class="btn" type="button" id="or-new">Nieuwe order</button></form><div id="or-body"><p class="empty">Laden…</p></div>`);
+  $("#or-st").value = ord.status; $("#or-v").value = ord.view;
+  $("#or-v").addEventListener("change", () => { ord.view = $("#or-v").value; $("#or-st").disabled = ord.view === "bord"; ord.page = 0; loadOrders(); });
+  $("#or-st").disabled = ord.view === "bord";
   $("#or-bar").addEventListener("submit", e => { e.preventDefault(); ord.q = gv("or-q"); ord.status = $("#or-st").value; ord.page = 0; loadOrders(); });
   $("#or-st").addEventListener("change", () => { ord.status = $("#or-st").value; ord.page = 0; loadOrders(); });
   $("#or-new").addEventListener("click", () => klantPicker("Order voor welke klant?", k => openOfferte(null, { klant: k, lines: [] })));
   loadOrders();
 }
+async function loadBord(body, w) {
+  const rows = await sql(`(select nummer, datum, klant_id, klantnaam, status, prijs from orders ${w.length ? "where " + w.join(" and ") + " and" : "where"} status is distinct from 'Afgesloten' order by datum desc, nummer desc limit 300)
+    union all (select nummer, datum, klant_id, klantnaam, status, prijs from orders ${w.length ? "where " + w.join(" and ") + " and" : "where"} status = 'Afgesloten' order by datum desc, nummer desc limit 12)`);
+  const kol = [...STATUS_ORDER, "Overig"], per = k => rows.filter(o => k === "Overig" ? !STATUS_ORDER.includes(o.status) : o.status === k);
+  body.innerHTML = `<div class="bord">${kol.map((k, ki) => { const lijst = per(k), volgende = STATUS_ORDER[ki + 1];
+    return `<section class="bcol"><h3><span>${esc(k)}</span><span class="mono">${lijst.length}${k === "Afgesloten" ? "+" : ""} · ${eur(lijst.reduce((t, o) => t + num(o.prijs), 0))}</span></h3>${lijst.length ? lijst.map(o => `<div class="bcard"><button class="t" data-or="${esc(o.nummer)}">${esc(o.klantnaam)}</button><div class="s">${dt(o.datum)} · order ${esc(o.nummer)}</div><div class="a"><b class="mono">${eur(o.prijs)}</b>${volgende && k !== "Overig" ? `<button class="btn small" data-nx="${esc(o.nummer)}" data-st="${esc(volgende)}">naar ${esc(volgende)}</button>` : ""}</div></div>`).join("") : `<p class="note">Geen orders.</p>`}</section>`; }).join("")}</div>
+    <p class="note">Bij Afgesloten staan de laatste 12. Met de knop zet je de status een stap verder; voor Geleverd gebruik je liever Uitvoering, dan wordt de pakbon vastgelegd.</p>`;
+  body.querySelectorAll("[data-or]").forEach(b => b.addEventListener("click", () => openOrder(b.dataset.or)));
+  body.querySelectorAll("[data-nx]").forEach(b => b.addEventListener("click", async () => { b.disabled = true; try { await sql(`update orders set status=${lit(b.dataset.st)} where nummer=${num(b.dataset.nx)}`); loadOrders(); } catch (e) { b.disabled = false; showError(body, e); } }));
+}
 async function loadOrders() {
   const body = $("#or-body"); if (!body) return;
   const PAGE = 40, w = [];
   if (ord.q) { const l = likeLit(ord.q); w.push(`(klantnaam ilike ${l} or omschrijving ilike ${l} or nummer::text = ${lit(ord.q)})`); }
+  if (ord.view === "bord") { try { await loadBord(body, w); } catch (e) { showError(body, e); } return; }
   if (ord.status) w.push(`status = ${lit(ord.status)}`);
   const where = w.length ? "where " + w.join(" and ") : "";
   try {
@@ -1031,13 +1089,23 @@ async function openOrder(nr) {
 const uit = { f: "open" };
 async function vUitvoering(main) {
   main.insertAdjacentHTML("beforeend", `<h2>Uitvoering</h2><p class="lead">Orders die nog klaargezet of verzonden moeten worden. Open een order voor de orderpick en de pakbon.</p>
-    <div class="bar"><select id="u-f" aria-label="Filter"><option value="open">Nog te verzenden</option><option value="verzonden">Verzonden, nog niet afgesloten</option><option value="alle">Alle open orders</option></select></div><div id="u-body"><p class="empty">Laden…</p></div>`);
+    <div class="bar"><select id="u-f" aria-label="Filter"><option value="open">Nog te verzenden</option><option value="verzonden">Verzonden, nog niet afgesloten</option><option value="alle">Alle open orders</option><option value="zendingen">Zendingen (pakbonnen)</option></select></div><div id="u-body"><p class="empty">Laden…</p></div>`);
   $("#u-f").value = uit.f;
   $("#u-f").addEventListener("change", () => { uit.f = $("#u-f").value; loadUitvoering(); });
   loadUitvoering();
 }
+async function loadZendingen(body) {
+  const [rows, vv] = await Promise.all([
+    sql(`select p.id, p.order_nummer, p.datum, p.verzonden_op, p.vervoerder, p.track_trace, o.klantnaam, o.status from pakbonnen p join orders o on o.nummer = p.order_nummer order by coalesce(p.verzonden_op, p.datum) desc, p.id desc limit 150`),
+    sql(`select naam, tracking_url from vervoerders where actief`),
+  ]);
+  const link = r => { const v = vv.find(x => String(x.naam).toLowerCase() === String(r.vervoerder || "").toLowerCase()); if (!v || !v.tracking_url || !r.track_trace) return ""; const u = String(v.tracking_url).replace("{nummer}", encodeURIComponent(r.track_trace)); return /^https:\/\//.test(u) ? u : ""; };
+  body.innerHTML = `<div class="panel">${rows.length ? `<div class="tbl"><table><thead><tr><th>Pakbon</th><th>Klant</th><th>Vervoerder</th><th>Track & trace</th><th>Verzonden</th></tr></thead><tbody>${rows.map(r => { const u = link(r); return `<tr><td><button class="btn small" data-pk="${esc(r.order_nummer)}">PB-${esc(r.id)}</button><div class="note">order ${esc(r.order_nummer)}</div></td><td>${esc(r.klantnaam)}</td><td>${esc(r.vervoerder || "")}</td><td class="mono">${u ? `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(r.track_trace)}</a>` : esc(r.track_trace || "")}</td><td>${r.verzonden_op ? dt(r.verzonden_op) : `<span class="pill warn">nog niet verzonden</span>`}</td></tr>`; }).join("")}</tbody></table></div>` : `<p class="empty">Er zijn nog geen pakbonnen vastgelegd.</p>`}</div>`;
+  body.querySelectorAll("[data-pk]").forEach(b => b.addEventListener("click", () => openPakbon(b.dataset.pk)));
+}
 async function loadUitvoering() {
   const body = $("#u-body"); if (!body) return;
+  if (uit.f === "zendingen") { try { await loadZendingen(body); } catch (e) { showError(body, e); } return; }
   try {
     const all = await sql(`select o.nummer, o.datum, o.klant_id, o.klantnaam, o.status, o.prijs, o.omschrijving,
       (select count(*) from order_regels r where r.order_nummer = o.nummer) regels,
@@ -1851,6 +1919,105 @@ async function loadVrdPlanning(body) {
       openInkoop(id);
     } catch (er) { $("#pl-msg").textContent = explain(er); }
   }));
+}
+
+/* ---------- Rapporten ---------- */
+const RAPPORTEN = [
+  ["omzet_maand", "Omzet per maand", true], ["omzet_klant", "Omzet per klant", true], ["omzet_land", "Omzet per land", true],
+  ["omzet_beheer", "Omzet en provisie per relatiebeheerder", true], ["omzet_artikel", "Omzet per artikel (orders met regels)", true],
+  ["btw", "Btw-overzicht per kwartaal", true], ["openstaand", "Openstaande posten en ouderdom", false], ["klantlijst", "Klantenlijst met adressen (NAW)", false],
+];
+const rap = { r: "omzet_maand", p: "12m", cols: [], rows: [] };
+const RAP_OK = "o.prijs between 0 and 10000000";
+function rapPeriode(col) {
+  if (rap.p === "12m") return `${col} > current_date - 365`;
+  if (rap.p === "alles") return "true";
+  const y = Math.round(num(rap.p)); return `${col} >= '${y}-01-01' and ${col} < '${y + 1}-01-01'`;
+}
+function rapPeriodeOpties() {
+  const y = new Date().getFullYear();
+  return [["12m", "Laatste 12 maanden"], [String(y), String(y)], [String(y - 1), String(y - 1)], [String(y - 2), String(y - 2)], [String(y - 3), String(y - 3)], ["alles", "Alles sinds 2018"]];
+}
+const pct1 = v => v == null || !isFinite(v) ? "" : String(Math.round(v * 10) / 10).replace(".", ",") + "%";
+const margePct = (m, b) => num(b) > 0 ? num(m) / num(b) * 100 : null;
+async function vRapporten(main) {
+  main.insertAdjacentHTML("beforeend", `<h2>Rapporten</h2><p class="lead">Omzet, marge, btw en openstaande posten. Omzet is excl. btw. Met "Kopieer voor Excel" plak je een rapport rechtstreeks in een werkblad.</p>
+    <div class="bar"><select id="rp-r" aria-label="Rapport">${RAPPORTEN.map(r => `<option value="${r[0]}">${esc(r[1])}</option>`).join("")}</select><select id="rp-p" aria-label="Periode">${rapPeriodeOpties().map(o => `<option value="${o[0]}">${esc(o[1])}</option>`).join("")}</select><button class="btn" id="rp-copy">Kopieer voor Excel</button></div><div id="rp-body"><p class="empty">Laden…</p></div>`);
+  $("#rp-r").value = rap.r; $("#rp-p").value = rap.p;
+  const upd = () => { $("#rp-p").disabled = !RAPPORTEN.find(r => r[0] === rap.r)[2]; };
+  $("#rp-r").addEventListener("change", () => { rap.r = $("#rp-r").value; upd(); loadRapport(); });
+  $("#rp-p").addEventListener("change", () => { rap.p = $("#rp-p").value; loadRapport(); });
+  $("#rp-copy").addEventListener("click", rapKopieer);
+  upd(); loadRapport();
+}
+async function rapKopieer() {
+  const nl = v => { const t = String(v ?? "").replace(/[\t\r\n]+/g, " "); return /^-?\d+\.\d+$/.test(t) ? t.replace(".", ",") : t; };
+  const tekst = [rap.cols.map(c => c.t).join("\t"), ...rap.rows.map(r => rap.cols.map(c => nl(c.raw ? c.raw(r) : r[c.k])).join("\t"))].join("\n");
+  const m = $("#rp-msg");
+  try { await navigator.clipboard.writeText(tekst); if (m) m.textContent = `${int(rap.rows.length)} rijen gekopieerd. Plak in Excel met Ctrl+V.`; }
+  catch { const b = $("#rp-body"); if (b) { b.insertAdjacentHTML("beforeend", `<section class="panel"><h3>Kopieer deze tekst</h3><textarea id="rp-txt" rows="8" readonly>${esc(tekst)}</textarea></section>`); const t = $("#rp-txt"); t.focus(); t.select(); } }
+}
+function rapTabel(cols, rows, tot) {
+  rap.cols = cols; rap.rows = rows;
+  const cap = 300, shown = rows.slice(0, cap);
+  const cell = (c, r) => c.html ? c.html(r) : c.f ? c.f(r[c.k], r) : esc(r[c.k] ?? "");
+  return `<div class="panel">${rows.length ? `<div class="tbl"><table><thead><tr>${cols.map(c => `<th class="${c.n ? "n" : ""}">${esc(c.t)}</th>`).join("")}</tr></thead><tbody>${shown.map(r => `<tr>${cols.map(c => `<td class="${c.n ? "n" : ""}">${cell(c, r)}</td>`).join("")}</tr>`).join("")}</tbody>${tot ? `<tfoot><tr>${cols.map((c, i) => `<th class="${c.n ? "n" : ""}">${i === 0 ? "Totaal" : tot[c.k] != null ? (c.f ? c.f(tot[c.k], tot) : esc(tot[c.k])) : ""}</th>`).join("")}</tr></tfoot>` : ""}</table></div>
+    ${rows.length > cap ? `<p class="note">${int(cap)} van ${int(rows.length)} rijen getoond; "Kopieer voor Excel" neemt alle rijen mee.</p>` : ""}` : `<p class="empty">Geen gegevens in deze periode.</p>`}<div class="note" id="rp-msg"></div></div>`;
+}
+async function loadRapport() {
+  const body = $("#rp-body"); if (!body) return;
+  const w = rapPeriode("o.datum"), r = rap.r;
+  const sumT = (rows, ks) => { const t = {}; ks.forEach(k => { t[k] = rows.reduce((a, x) => a + num(x[k]), 0); }); return t; };
+  const MB = `o.inkoop > 0 and o.inkoop < o.prijs * 5 and o.prijs > 0`;
+  const margeCols = [{ t: "Orders", k: "orders", n: true, f: int }, { t: "Omzet", k: "omzet", n: true, f: eur }, { t: "Marge", k: "marge", n: true, f: eur }, { t: "Marge %", k: "mp", n: true, f: pct1 }];
+  const metMarge = rows => { rows.forEach(x => { x.mp = margePct(x.marge, x.basis); }); return rows; };
+  const totMarge = rows => { const t = sumT(rows, ["orders", "omzet", "marge", "basis"]); t.mp = margePct(t.marge, t.basis); return t; };
+  try {
+    if (r === "omzet_maand") {
+      const rows = metMarge(await sql(`select to_char(date_trunc('month', o.datum), 'YYYY-MM') maand, count(*) orders, sum(o.prijs) omzet, coalesce(sum(o.prijs - o.inkoop) filter (where ${MB}), 0) marge, coalesce(sum(o.prijs) filter (where ${MB}), 0) basis from orders o where ${RAP_OK} and ${w} group by 1 order by 1 desc`));
+      body.innerHTML = rapTabel([{ t: "Maand", k: "maand" }, ...margeCols], rows, totMarge(rows)) + `<p class="note">Marge alleen over orders met een bekende inkoopprijs.</p>`;
+    } else if (r === "omzet_klant") {
+      const rows = metMarge(await sql(`select k.id, k.relatie_nr, k.naam, k.plaats, k.land, count(*) orders, sum(o.prijs) omzet, coalesce(sum(o.prijs - o.inkoop) filter (where ${MB}), 0) marge, coalesce(sum(o.prijs) filter (where ${MB}), 0) basis from orders o join klanten k on k.id = o.klant_id where ${RAP_OK} and ${w} group by k.id, k.relatie_nr, k.naam, k.plaats, k.land order by sum(o.prijs) desc`));
+      body.innerHTML = rapTabel([{ t: "Klant", k: "naam", html: x => `<button class="btn small" data-klant="${esc(x.id)}">${esc(x.naam)}</button>`, raw: x => x.naam }, { t: "Plaats", k: "plaats" }, { t: "Land", k: "land" }, ...margeCols], rows, totMarge(rows));
+      wireRows(body);
+    } else if (r === "omzet_land") {
+      const rows = metMarge(await sql(`select coalesce(nullif(k.land, ''), 'onbekend') land, count(distinct k.id) klanten, count(*) orders, sum(o.prijs) omzet, coalesce(sum(o.prijs - o.inkoop) filter (where ${MB}), 0) marge, coalesce(sum(o.prijs) filter (where ${MB}), 0) basis from orders o join klanten k on k.id = o.klant_id where ${RAP_OK} and ${w} group by 1 order by sum(o.prijs) desc`));
+      const t = totMarge(rows); t.klanten = null;
+      body.innerHTML = rapTabel([{ t: "Land", k: "land" }, { t: "Klanten", k: "klanten", n: true, f: int }, ...margeCols], rows, t);
+    } else if (r === "omzet_beheer") {
+      const rows = metMarge(await sql(`select initcap(g.lb) beheerder, count(distinct g.kid) klanten, count(*) orders, sum(g.prijs) omzet, coalesce(sum(g.prijs - g.inkoop) filter (where g.inkoop > 0 and g.inkoop < g.prijs * 5 and g.prijs > 0), 0) marge, coalesce(sum(g.prijs) filter (where g.inkoop > 0 and g.inkoop < g.prijs * 5 and g.prijs > 0), 0) basis, max(m.pct) pct
+        from (select lower(coalesce(nullif(trim(k.relatiebeheer), ''), 'niet toegewezen')) lb, k.id kid, o.prijs, o.inkoop from orders o join klanten k on k.id = o.klant_id where ${RAP_OK} and ${w}) g
+        left join (select lower(naam) ln, max(provisie_pct) pct from medewerkers group by 1) m on m.ln = g.lb group by g.lb order by sum(g.prijs) desc`));
+      rows.forEach(x => { x.provisie = x.pct != null ? num(x.omzet) * num(x.pct) / 100 : null; });
+      const t = totMarge(rows); t.klanten = null; t.provisie = rows.reduce((a, x) => a + num(x.provisie), 0);
+      body.innerHTML = rapTabel([{ t: "Relatiebeheerder", k: "beheerder" }, { t: "Klanten", k: "klanten", n: true, f: int }, ...margeCols, { t: "Provisie %", k: "pct", n: true, f: v => v == null ? "niet ingesteld" : pct1(num(v)) }, { t: "Provisie (over omzet)", k: "provisie", n: true, f: v => v == null ? "" : eur2(v) }], rows, t)
+        + `<p class="note">Provisie = percentage van de medewerker (Onderhoud, Stamgegevens, Medewerkers) maal de omzet excl. btw. Een medewerker wordt gekoppeld aan de klant via de naam in het veld Relatiebeheer. "System" is wat MyBusiness invulde bij klanten zonder eigen beheerder.</p>`;
+    } else if (r === "omzet_artikel") {
+      const rows = await sql(`select r.artikel_nr, coalesce(a.naam, max(r.omschrijving)) naam, sum(r.aantal) aantal, sum(r.aantal * r.prijs) omzet, coalesce(sum(r.aantal * (r.prijs - r.inkoop)) filter (where r.inkoop > 0), 0) marge from order_regels r join orders o on o.nummer = r.order_nummer left join artikelen a on a.artikel_nr = r.artikel_nr where r.artikel_nr is not null and ${w} group by r.artikel_nr, a.naam order by sum(r.aantal * r.prijs) desc limit 500`);
+      body.innerHTML = rapTabel([{ t: "Art.nr", k: "artikel_nr" }, { t: "Artikel", k: "naam", html: x => `<button class="btn small" data-a="${esc(x.artikel_nr)}">${esc(x.naam)}</button>`, raw: x => x.naam }, { t: "Aantal", k: "aantal", n: true, f: int }, { t: "Omzet", k: "omzet", n: true, f: eur }, { t: "Marge", k: "marge", n: true, f: eur }], rows, sumT(rows, ["aantal", "omzet", "marge"]))
+        + `<p class="note">Alleen orders met losse artikelregels, dus orders die in het Salesbureau zijn gemaakt. Orders uit MyBusiness hebben alleen een omschrijving.</p>`;
+      body.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => artikelForm(b.dataset.a)));
+    } else if (r === "btw") {
+      const rows = await sql(`select to_char(date_trunc('quarter', f.datum), 'YYYY"-K"Q') kwartaal, f.btw_regime regime, count(*) facturen, sum(f.totaal_excl) excl, sum(f.totaal_btw) btw from facturen f where f.status in ('definitief', 'betaald') and ${rapPeriode("f.datum")} group by 1, 2 order by 1 desc, 2`);
+      rows.forEach(x => { x.omschrijving = ({ NL: "Binnenland (aangifte rubriek 1a of 1b)", verlegd: "Btw verlegd, levering naar EU (rubriek 3b)", export: "Export buiten de EU (rubriek 3a)" })[x.regime] || x.regime; });
+      body.innerHTML = rapTabel([{ t: "Kwartaal", k: "kwartaal" }, { t: "Soort", k: "omschrijving" }, { t: "Facturen", k: "facturen", n: true, f: int }, { t: "Omzet excl.", k: "excl", n: true, f: eur2 }, { t: "Btw", k: "btw", n: true, f: eur2 }], rows, sumT(rows, ["facturen", "excl", "btw"]))
+        + `<p class="note">Alleen definitieve en betaalde facturen uit het Salesbureau, creditnota's tellen negatief mee. Facturen uit MyBusiness staan hier niet in: zolang de boekhouding daar loopt, gebruik je voor de aangifte die cijfers. De rubrieknummers zijn een hulpmiddel; laat de aangifte altijd controleren door je boekhouder.</p>`;
+    } else if (r === "openstaand") {
+      const rows = await sql(`select f.id, f.nummer, f.datum, f.vervaldatum, f.totaal_incl, k.id klant_id, k.naam, f.totaal_incl - coalesce((select sum(b.bedrag) from factuur_betalingen b where b.factuur_id = f.id), 0) rest, current_date - coalesce(f.vervaldatum, f.datum) dagen from facturen f join klanten k on k.id = f.klant_id where f.status = 'definitief' order by f.vervaldatum nulls last, f.id`);
+      const open = rows.filter(x => Math.abs(num(x.rest)) > 0.004);
+      const bk = [["Nog niet vervallen", x => num(x.dagen) <= 0], ["1 tot 30 dagen te laat", x => num(x.dagen) > 0 && num(x.dagen) <= 30], ["31 tot 60 dagen", x => num(x.dagen) > 30 && num(x.dagen) <= 60], ["61 tot 90 dagen", x => num(x.dagen) > 60 && num(x.dagen) <= 90], ["Meer dan 90 dagen", x => num(x.dagen) > 90]];
+      const sums = bk.map(b => open.filter(b[1]).reduce((t, x) => t + num(x.rest), 0));
+      const totaal = sums.reduce((a, b) => a + b, 0);
+      open.forEach(x => { x.klasse = bk.find(b => b[1](x))[0]; });
+      body.innerHTML = `<div class="kpis">${bk.map((b, i) => kpi(b[0], eur2(sums[i]), `${open.filter(b[1]).length} ${open.filter(b[1]).length === 1 ? "factuur" : "facturen"}`, i >= 3 && sums[i] > 0 ? "bad" : "")).join("")}${kpi("Totaal openstaand", eur2(totaal), `${open.length} ${open.length === 1 ? "factuur" : "facturen"}`)}</div><div style="height:12px"></div>`
+        + rapTabel([{ t: "Factuur", k: "nummer", html: x => `<button class="btn small" data-fa="${esc(x.id)}">${esc(x.nummer || "concept")}</button>`, raw: x => x.nummer }, { t: "Klant", k: "naam" }, { t: "Datum", k: "datum", f: dt }, { t: "Vervalt", k: "vervaldatum", f: dt }, { t: "Dagen te laat", k: "dagen", n: true, f: v => num(v) > 0 ? int(v) : "" }, { t: "Klasse", k: "klasse" }, { t: "Factuurbedrag", k: "totaal_incl", n: true, f: eur2 }, { t: "Nog open", k: "rest", n: true, f: eur2 }], open, null);
+      body.querySelectorAll("[data-fa]").forEach(b => b.addEventListener("click", () => openFactuur(b.dataset.fa)));
+    } else if (r === "klantlijst") {
+      const rows = await sql(`select k.relatie_nr, k.naam, k.naam_factuur, k.contactpersoon, k.adres, k.postcode, k.plaats, k.land, k.email, k.telefoon, k.btw_nr, k.kvk_nr, k.relatiebeheer, v.segment from klanten k join klant_overzicht v on v.id = k.id order by k.naam`);
+      const C = ["relatie_nr", "naam", "contactpersoon", "adres", "postcode", "plaats", "land", "email", "telefoon", "btw_nr", "kvk_nr", "relatiebeheer", "segment"], T = ["Relatie", "Naam", "Contactpersoon", "Adres", "Postcode", "Plaats", "Land", "E-mail", "Telefoon", "Btw-nr", "KvK", "Relatiebeheer", "Segment"];
+      body.innerHTML = rapTabel(C.map((k, i) => ({ t: T[i], k })), rows, null) + `<p class="note">Alle ${int(rows.length)} relaties. Controleer voor je ze voor iets gebruikt of mailt of ze niet zijn afgemeld of gestopt (zie Klanten).</p>`;
+    }
+  } catch (e) { showError(body, e); }
 }
 
 /* ---------- Dashboard ---------- */
