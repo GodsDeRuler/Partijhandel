@@ -368,7 +368,7 @@ async function boot() {
   try { sampleApi = await claude.use("sample"); } catch { sampleApi = null; }
   booted = true;
   render();
-  belVerversen();
+  belVerversen(); webVerversen(true);
   if (mcp) autoTaken(false).catch(() => { });
   if (mcp) sql(`select distinct trim(locatie) l from artikelen where coalesce(trim(locatie), '') <> '' order by 1 limit 400`).then(r => { window.__locs = r.map(z => z.l); }).catch(() => { });
   if (mcp) sql(`select count(*) n from opvolging where not afgehandeld and opvolgdatum <= current_date`).then(r => { openCount = num(r[0] && r[0].n); renderTabsOnly(); }).catch(() => { });
@@ -461,6 +461,10 @@ const TABS = [
   { id: "rapporten", label: "Rapporten", view: vRapporten },
   { id: "stam", label: "Stamgegevens", view: vStam },
   { id: "beheer", label: "Gegevens", view: vBeheer },
+  { id: "webformulieren", label: "Formulieren", view: vWebFormulieren },
+  { id: "webtoegang", label: "Toegang", view: vWebToegang },
+  { id: "webaanvragen", label: "Offertes via site", view: vWebAanvragen },
+  { id: "webbeheer", label: "Site-beheer", view: vWebBeheer },
 ];
 const GROUPS = [
   { id: "overzicht", label: "Dashboard", tabs: ["dashboard"] },
@@ -469,6 +473,7 @@ const GROUPS = [
   { id: "artikelen", label: "Artikelen", tabs: ["assortiment", "prijzen", "voorraad", "inkoop"] },
   { id: "financieel", label: "Financieel", tabs: ["facturen", "debiteuren", "rapporten"] },
   { id: "marketing", label: "Marketing", tabs: ["vandaag", "campagnes", "opvolging"] },
+  { id: "website", label: "Website", tabs: ["webaanvragen", "webformulieren", "webtoegang", "webbeheer"] },
   { id: "onderhoud", label: "Onderhoud", tabs: ["stam", "beheer"] },
 ];
 const groupOf = id => GROUPS.find(g => g.tabs.includes(id)) || GROUPS[0];
@@ -479,10 +484,10 @@ const badge = () => openCount ? `<span class="n">${openCount}</span>` : "";
 function goTab(id) { tab = id; store.set("tab", id); store.set("sub_" + groupOf(id).id, id); closeLayer(); render(); window.scrollTo(0, 0); }
 function render() {
   const grp = groupOf(tab);
-  $("#tabs").innerHTML = GROUPS.map(g => `<button class="tab" role="tab" aria-selected="${g === grp}" data-g="${g.id}">${esc(g.label)}${g.id === "marketing" ? badge() : ""}</button>`).join("");
+  $("#tabs").innerHTML = GROUPS.map(g => `<button class="tab" role="tab" aria-selected="${g === grp}" data-g="${g.id}">${esc(g.label)}${g.id === "marketing" ? badge() : g.id === "website" && webSom() ? `<span class="n">${webSom()}</span>` : ""}</button>`).join("");
   $("#tabs").querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => { const g = GROUPS.find(x => x.id === b.dataset.g), last = store.get("sub_" + g.id); goTab(g.tabs.includes(last) ? last : g.tabs[0]); }));
   $("#subbar").hidden = grp.tabs.length < 2;
-  $("#subtabs").innerHTML = grp.tabs.length < 2 ? "" : grp.tabs.map(id => `<button class="subtab" aria-selected="${id === tab}" data-t="${id}">${esc(TABS.find(t => t.id === id).label)}${id === "opvolging" ? badge() : ""}</button>`).join("");
+  $("#subtabs").innerHTML = grp.tabs.length < 2 ? "" : grp.tabs.map(id => `<button class="subtab" aria-selected="${id === tab}" data-t="${id}">${esc(TABS.find(t => t.id === id).label)}${id === "opvolging" ? badge() : webSubBadge(id)}</button>`).join("");
   $("#subtabs").querySelectorAll(".subtab").forEach(b => b.addEventListener("click", () => goTab(b.dataset.t)));
   const main = $("#main");
   main.innerHTML = "";
@@ -493,7 +498,7 @@ function render() {
     if (tab !== "beheer") return;
   }
   TABS.find(t => t.id === tab).view(main);
-  belVerversen();
+  belVerversen(); webVerversen();
 }
 function showError(el, e) { el.innerHTML = `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`; }
 
@@ -3155,7 +3160,7 @@ async function berichtenBlok(ctx) {
     box.innerHTML = `<h3>Berichten${nieuw.size ? `<span class="pill bad">${nieuw.size} nieuw</span>` : ""}</h3>
       ${rows.length ? `<div class="chat">${rows.map(r => `<div class="bub ${r.afzender === "klant" ? "kl" : "vk"}"><div>${esc(r.tekst)}</div><small>${esc(r.afzender === "klant" ? "Klant" : r.afzender_naam || "Verkoop")} · ${esc(tijdTekst(r.aangemaakt))}${r.kanaal !== "website" ? " · " + esc(KANALEN[r.kanaal] || r.kanaal) : ""}${nieuw.has(r.id) ? " · nieuw" : ""}</small></div>`).join("")}</div>` : `<p class="note">Nog geen berichten bij deze offerte of order.</p>`}
       <form class="f" id="bb-f"><label>Soort<select id="bb-soort">${BERICHT_SOORTEN.map(s => `<option value="${s[0]}">${esc(s[1])}</option>`).join("")}</select></label><label>Bericht<textarea id="bb-txt" rows="3" maxlength="4000" placeholder="Typ je antwoord, of de vraag die de klant stelde"></textarea></label>
-      <div class="line"><button class="btn primary" type="submit">Plaatsen</button></div><div class="note" id="bb-msg">Een antwoord via de website ziet de klant pas als de nieuwe site live is en hij krijgt er geen mail van. Het Salesbureau mailt nooit zelf: stuur je antwoord tot die tijd ook per mail.</div></form>`;
+      <div class="line"><button class="btn primary" type="submit">Plaatsen</button></div><div class="note" id="bb-msg">Een antwoord via de website staat bij de klant in Mijn omgeving op de nieuwe site. Of hij daar ook een mail van krijgt, staat in Site-beheer (Mails vanuit de site). Het Salesbureau mailt zelf nooit: tot de nieuwe site live is, stuur je je antwoord ook per mail.</div></form>`;
     $("#bb-f").addEventListener("submit", async e => {
       e.preventDefault(); const m = $("#bb-msg"), t = gv("bb-txt"); if (!t) { m.textContent = "Typ eerst een bericht."; return; }
       const [af, ka] = $("#bb-soort").value.split("|"); m.textContent = "Opslaan…";
@@ -3166,6 +3171,303 @@ async function berichtenBlok(ctx) {
     });
     if (nieuw.size) { await sql(`update berichten set gelezen_op = now() where afzender = 'klant' and gelezen_op is null and (${cond})`); belVerversen(); if (tab === "berichten") loadBerichten(true); }
   } catch (e) { box.innerHTML = `<h3>Berichten</h3><div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`; }
+}
+
+/* ---------- Website: formulieren, toegang, aanvragen via de site en beheer ---------- */
+const WEB_SOORT = { aanmelding: "Aanmelding als klant", contact: "Vraag", partij_aanbieden: "Partij aangeboden", handel_alert: "Handel-alert" };
+const WEB_DATA = { interesses: "Interesses", branche: "Soort bedrijf", land: "Land", kvk_nr: "KvK-nummer", btw_nr: "Btw-nummer", omschrijving: "Omschrijving partij", hoeveelheid: "Hoeveelheid", prijsidee: "Prijsidee", link: "Link", bestaande_klant: "Bestond al als klant" };
+const WEB_TABS = ["webformulieren", "webtoegang", "webaanvragen"];
+let webN = { f: 0, t: 0, a: 0, k: 0 }, webLaatst = 0;
+const webSom = () => webN.f + webN.t + webN.a + webN.k;
+const webSubN = id => ({ webformulieren: webN.f, webtoegang: webN.t, webaanvragen: webN.a + webN.k }[id] || 0);
+const webSubBadge = id => webSubN(id) ? `<span class="n">${webSubN(id)}</span>` : "";
+function webBadges() {
+  const g = $('[data-g="website"]'); if (g) g.innerHTML = `Website${webSom() ? `<span class="n">${webSom()}</span>` : ""}`;
+  WEB_TABS.forEach(id => { const t = $(`[data-t="${id}"]`); if (t) t.innerHTML = `${esc(TABS.find(x => x.id === id).label)}${webSubBadge(id)}`; });
+}
+async function webVerversen(force) {
+  if (!mcp || (!force && Date.now() - webLaatst < 30000)) return;
+  webLaatst = Date.now();
+  try {
+    // een online akkoord is afgehandeld zodra de offerte een order is geworden
+    await sql(`update opvolging set afgehandeld = true where not afgehandeld and tekst like '[site:akkoord:%' and exists (select 1 from offertes o where o.id::text = substring(opvolging.tekst from '\\[site:akkoord:([0-9]+)\\]') and o.order_nummer is not null)`);
+    const r = (await sql(`select (select count(*) from website_formulieren where verwerkt_op is null) f, (select count(*) from klant_accounts where status = 'aangevraagd') t,
+      (select count(*) from offertes where via_site and status = 'aanvraag') a,
+      (select count(*) from offertes where via_site and klant_akkoord_op is not null and order_nummer is null and status not in ('besteld', 'afgewezen', 'verlopen')) k`))[0] || {};
+    webN = { f: num(r.f), t: num(r.t), a: num(r.a), k: num(r.k) };
+    webBadges();
+  } catch { }
+}
+const webTabelNaam = id => (TABS.find(x => x.id === id) || {}).label || id;
+
+/* --- Formulieren --- */
+const webf = { f: "open", s: "" };
+async function vWebFormulieren(main) {
+  main.insertAdjacentHTML("beforeend", `<h2>Formulieren van de site</h2><p class="lead">Wat bezoekers op de nieuwe website invullen: aanmeldingen als klant, vragen, aangeboden partijen en Handel-alerts. Alles komt hier binnen, ook zolang er geen mail aan hangt. Open een regel om te antwoorden of af te handelen.</p>
+    <div class="bar"><select id="wf-f" aria-label="Status"><option value="open">Nog te doen</option><option value="klaar">Afgehandeld</option><option value="alles">Alles</option></select><select id="wf-s" aria-label="Soort"><option value="">Alle soorten</option>${Object.entries(WEB_SOORT).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("")}</select></div><div id="wf-body"><p class="empty">Laden…</p></div>`);
+  $("#wf-f").value = webf.f; $("#wf-s").value = webf.s;
+  $("#wf-f").addEventListener("change", () => { webf.f = $("#wf-f").value; loadWebFormulieren(); });
+  $("#wf-s").addEventListener("change", () => { webf.s = $("#wf-s").value; loadWebFormulieren(); });
+  loadWebFormulieren();
+}
+async function loadWebFormulieren() {
+  const body = $("#wf-body"); if (!body) return;
+  try {
+    const w = [webf.f === "open" ? "f.verwerkt_op is null" : webf.f === "klaar" ? "f.verwerkt_op is not null" : "true", webf.s ? `f.soort = ${lit(webf.s)}` : "true"].join(" and ");
+    const rows = await sql(`select f.id, f.soort, f.taal, f.naam, f.bedrijf, f.email, f.aangemaakt, f.verwerkt_op, f.klant_id, k.naam klantnaam from website_formulieren f left join klanten k on k.id = f.klant_id where ${w} order by f.aangemaakt desc limit 200`);
+    body.innerHTML = `<div class="panel">${rows.length ? `<div class="rows">${rows.map(r => `<button class="row" data-f="${r.id}"><span class="t">${esc(r.bedrijf || r.naam || r.email)}<span class="pill acc">${esc(WEB_SOORT[r.soort] || r.soort)}</span>${r.verwerkt_op ? `<span class="pill good">afgehandeld</span>` : `<span class="pill warn">nieuw</span>`}</span>
+      <span class="s">${esc([r.naam && r.bedrijf ? r.naam : "", r.email, r.taal].filter(Boolean).join(" · "))}${r.klant_id ? ` · bekende klant: ${esc(r.klantnaam)}` : ""}</span><span class="r">${esc(tijdTekst(r.aangemaakt))}</span></button>`).join("")}</div>` : `<p class="empty">${webf.f === "open" ? "Niets dat nog afgehandeld moet worden." : "Niets gevonden."}</p>`}</div>`;
+    body.querySelectorAll("[data-f]").forEach(b => b.addEventListener("click", () => openWebFormulier(b.dataset.f)));
+  } catch (e) { showError(body, e); }
+}
+async function openWebFormulier(id) {
+  drawer("Formulier laden…", "", `<p class="empty">Laden…</p>`);
+  try {
+    const f = (await sql(`select * from website_formulieren where id = ${num(id)}`))[0];
+    if (!f) { drawer("Formulier", "", `<p class="empty">Dit formulier bestaat niet meer.</p>`); return; }
+    const [k, acc, cats] = await Promise.all([f.klant_id ? sql(`select id, naam, email, relatie_nr, let_op, site_toegang, interesses from klanten where id = ${num(f.klant_id)}`) : [], f.klant_id ? sql(`select status, laatst_ingelogd from klant_accounts where klant_id = ${num(f.klant_id)} order by aangemaakt desc limit 1`) : [], sql(`select code, naam_nl from artikel_categorieen where niveau = 'hoofd'`).catch(() => [])]);
+    const kl = k[0], ac = acc[0], d = f.data || {}, cn = new Map(cats.map(c => [c.code, c.naam_nl]));
+    const fmt = (key, v) => Array.isArray(v) ? v.map(x => key === "interesses" ? cn.get(x) || x : x).join(", ") : v === true ? "ja" : v === false ? "nee" : v;
+    const velden = Object.entries(WEB_DATA).filter(([key]) => d[key] != null && d[key] !== "" && !(Array.isArray(d[key]) && !d[key].length)).map(([key, label]) => [label, fmt(key, d[key])]);
+    const mijnToegang = !kl ? "" : ac ? `Account: ${ac.status}${ac.laatst_ingelogd ? `, laatst ingelogd ${tijdTekst(ac.laatst_ingelogd)}` : ""}` : kl.site_toegang ? `Toegang: ${kl.site_toegang}` : "Nog niet ingelogd";
+    drawer(`${WEB_SOORT[f.soort] || f.soort}: ${f.bedrijf || f.naam || f.email}`, esc(tijdTekst(f.aangemaakt)) + (f.verwerkt_op ? ` · afgehandeld ${esc(tijdTekst(f.verwerkt_op))}` : ""), `
+      ${kl && (kl.let_op || /let op/i.test(kl.naam)) ? `<div class="banner bad"><b>Let op bij deze klant</b>${esc(kl.let_op || kl.naam)}. Geef pas toegang als je dit hebt nagelopen.</div>` : ""}
+      <section class="panel"><dl class="kv"><dt>Naam</dt><dd>${esc(f.naam || "")}</dd><dt>Bedrijf</dt><dd>${esc(f.bedrijf || "")}</dd><dt>E-mail</dt><dd>${esc(f.email)}</dd><dt>Telefoon</dt><dd>${esc(f.telefoon || "")}</dd><dt>Taal</dt><dd>${esc(f.taal)}</dd>${velden.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join("")}</dl>
+      ${f.tekst ? `<p style="white-space:pre-line;margin:10px 0 0">${esc(f.tekst)}</p>` : ""}</section>
+      ${kl ? `<section class="panel"><h3>Gekoppelde klant</h3><p><button class="btn" id="wf-kl">${esc(kl.naam)}${kl.relatie_nr ? ` (relatie ${esc(kl.relatie_nr)})` : " (prospect)"}</button></p><p class="note">${esc(mijnToegang)}</p></section>` : `<section class="panel"><h3>Klant</h3><p class="note">Dit mailadres staat niet bij een klant.</p></section>`}
+      <section class="panel"><div class="line" style="display:flex;flex-wrap:wrap;gap:8px">
+        ${f.soort === "aanmelding" && kl ? `<button class="btn primary" id="wf-ok" ${ac && ac.status === "goedgekeurd" ? "disabled" : ""}>${ac && ac.status === "goedgekeurd" ? "Heeft toegang" : "Toegang tot de site geven"}</button>` : ""}
+        ${f.soort === "handel_alert" && kl && (d.interesses || []).length ? `<button class="btn" id="wf-int">Interesses bij de klant zetten</button>` : ""}
+        <a class="btn" id="wf-mail" href="mailto:${encodeURIComponent(f.email)}?subject=${encodeURIComponent("Uw bericht aan Frank van de Wijgert Partijhandel")}" target="_blank" rel="noopener">Antwoorden per mail</a>
+        <button class="btn ${f.verwerkt_op ? "" : "primary"}" id="wf-done">${f.verwerkt_op ? "Weer openzetten" : "Markeer als afgehandeld"}</button></div>
+        <div class="note" id="wf-msg">${f.soort === "aanmelding" ? "Controleer eerst het KvK- of btw-nummer. Een aanmelding maakt een prospect aan; pas na jouw goedkeuring ziet de klant prijzen. " : ""}Er wordt niets automatisch verstuurd. E-mailadres: ${esc(f.email)}</div></section>`);
+    const msg = t => { const m = $("#wf-msg"); if (m) m.textContent = t; };
+    if ($("#wf-kl")) $("#wf-kl").addEventListener("click", () => openKlant(kl.id));
+    $("#wf-done").addEventListener("click", async () => {
+      try { await sql(f.verwerkt_op ? `update website_formulieren set verwerkt_op = null, verwerkt_door = null where id = ${num(f.id)}` : `update website_formulieren set verwerkt_op = now(), verwerkt_door = 'Michel' where id = ${num(f.id)}`); webVerversen(true); if (tab === "webformulieren") loadWebFormulieren(); openWebFormulier(f.id); } catch (e) { msg(explain(e)); }
+    });
+    if ($("#wf-ok")) $("#wf-ok").addEventListener("click", async () => {
+      try { await webToegangZetten(kl.id, "goedgekeurd"); await sql(`update website_formulieren set verwerkt_op = coalesce(verwerkt_op, now()), verwerkt_door = coalesce(verwerkt_door, 'Michel') where id = ${num(f.id)}`); webVerversen(true); if (tab === "webformulieren") loadWebFormulieren(); openWebFormulier(f.id); } catch (e) { msg(explain(e)); }
+    });
+    if ($("#wf-int")) $("#wf-int").addEventListener("click", async () => {
+      try { await sql(`update klanten set interesses = array(select distinct x from unnest(coalesce(interesses, '{}'::text[]) || ${pgTekstArr(d.interesses)}) x) where id = ${num(kl.id)}`); msg("De interesses staan nu bij de klant."); } catch (e) { msg(explain(e)); }
+    });
+  } catch (e) { drawer("Formulier", "", `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`); }
+}
+// zet de toegang van een klant: onthouden bij de klant (geldt voor elk account) en toepassen op bestaande accounts
+async function webToegangZetten(klantId, status) {
+  const K = num(klantId);
+  if (status === "goedgekeurd") await sql(`update klanten set site_toegang = 'goedgekeurd' where id = ${K}; update klant_accounts set status = 'goedgekeurd', goedgekeurd_op = now(), goedgekeurd_door = 'Michel' where klant_id = ${K}`);
+  else if (status === "geblokkeerd") await sql(`update klanten set site_toegang = 'geblokkeerd' where id = ${K}; update klant_accounts set status = 'geblokkeerd' where klant_id = ${K}`);
+  else await sql(`update klanten set site_toegang = null where id = ${K}; update klant_accounts set status = 'aangevraagd', goedgekeurd_op = null, goedgekeurd_door = null where klant_id = ${K}`);
+}
+
+/* --- Toegang --- */
+const webt = { f: "aangevraagd", q: "" };
+const TOEGANG_NAAM = { aangevraagd: "wacht op goedkeuring", goedgekeurd: "heeft toegang", geblokkeerd: "geblokkeerd" };
+const TOEGANG_KLEUR = { aangevraagd: "warn", goedgekeurd: "good", geblokkeerd: "bad" };
+async function vWebToegang(main) {
+  main.insertAdjacentHTML("beforeend", `<h2>Toegang tot de site</h2><p class="lead">Klanten loggen op de nieuwe website in met een link in hun mail. Bestaande klanten met een e-mailadres dat bij ons bekend is en zonder waarschuwing krijgen automatisch toegang (instelling in Site-beheer). Alle anderen staan hier, wachtend op jouw ja of nee. Zonder toegang ziet een bezoeker geen prijzen.</p>
+    <form class="bar" id="wt-bar"><input type="search" id="wt-q" placeholder="Zoek op klant of e-mail" value="${esc(webt.q)}"><select id="wt-f" aria-label="Status"><option value="aangevraagd">Wacht op goedkeuring</option><option value="goedgekeurd">Heeft toegang</option><option value="geblokkeerd">Geblokkeerd</option><option value="">Alle accounts</option></select><button class="btn primary" type="submit">Zoeken</button></form><div id="wt-body"><p class="empty">Laden…</p></div>`);
+  $("#wt-f").value = webt.f;
+  $("#wt-bar").addEventListener("submit", e => { e.preventDefault(); webt.q = gv("wt-q"); webt.f = $("#wt-f").value; loadWebToegang(); });
+  $("#wt-f").addEventListener("change", () => { webt.f = $("#wt-f").value; loadWebToegang(); });
+  loadWebToegang();
+}
+async function loadWebToegang() {
+  const body = $("#wt-body"); if (!body) return;
+  try {
+    const l = webt.q ? likeLit(webt.q) : null;
+    const rows = await sql(`select a.auth_user_id, a.klant_id, a.email, a.status, a.opmerking, a.aangemaakt, a.laatst_ingelogd, k.naam, k.relatie_nr, k.let_op from klant_accounts a left join klanten k on k.id = a.klant_id
+      where ${webt.f ? `a.status = ${lit(webt.f)}` : "true"}${l ? ` and (a.email ilike ${l} or k.naam ilike ${l})` : ""} order by (a.status = 'aangevraagd') desc, a.aangemaakt desc limit 200`);
+    body.innerHTML = `<div class="panel">${rows.length ? `<div class="rows">${rows.map((r, i) => `<button class="row" data-a="${i}"><span class="t">${esc(r.naam || "Nog niet gekoppeld aan een klant")}<span class="pill ${TOEGANG_KLEUR[r.status] || ""}">${esc(TOEGANG_NAAM[r.status] || r.status)}</span>${r.let_op ? `<span class="pill bad">let op</span>` : ""}${r.klant_id && !r.relatie_nr ? `<span class="pill">prospect</span>` : ""}</span>
+      <span class="s">${esc(r.email)} · aangemeld ${esc(tijdTekst(r.aangemaakt))}${r.laatst_ingelogd ? ` · laatst ingelogd ${esc(tijdTekst(r.laatst_ingelogd))}` : ""}</span></button>`).join("")}</div>` : `<p class="empty">${webt.f === "aangevraagd" ? "Niemand wacht op goedkeuring." : "Geen accounts gevonden."}</p>`}</div>`;
+    body.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => openWebAccount(rows[b.dataset.a])));
+  } catch (e) { showError(body, e); }
+}
+function openWebAccount(r) {
+  const U = lit(r.auth_user_id);
+  drawer(r.naam || r.email, esc(r.email), `
+    ${r.let_op ? `<div class="banner bad"><b>Let op bij deze klant</b>${esc(r.let_op)}</div>` : ""}
+    ${r.opmerking ? `<div class="banner"><b>Opmerking van de site</b>${esc(r.opmerking)}</div>` : ""}
+    <section class="panel"><dl class="kv"><dt>Status</dt><dd>${esc(TOEGANG_NAAM[r.status] || r.status)}</dd><dt>E-mail</dt><dd>${esc(r.email)}</dd><dt>Klant</dt><dd>${r.klant_id ? `<button class="btn small" id="wa-kl">${esc(r.naam)}${r.relatie_nr ? ` (relatie ${esc(r.relatie_nr)})` : " (prospect)"}</button>` : "nog niet gekoppeld"}</dd><dt>Aangemeld</dt><dd>${esc(tijdTekst(r.aangemaakt))}</dd><dt>Laatst ingelogd</dt><dd>${r.laatst_ingelogd ? esc(tijdTekst(r.laatst_ingelogd)) : "nog nooit"}</dd></dl></section>
+    <section class="panel"><div class="line" style="display:flex;flex-wrap:wrap;gap:8px">
+      ${r.klant_id ? "" : `<button class="btn primary" id="wa-koppel">Koppel aan een klant</button>`}
+      ${r.klant_id && r.status !== "goedgekeurd" ? `<button class="btn primary" id="wa-ok">Toegang geven</button>` : ""}
+      ${r.klant_id && r.status !== "geblokkeerd" ? `<button class="btn" id="wa-no">Blokkeren</button>` : ""}
+      ${r.klant_id && r.status !== "aangevraagd" ? `<button class="btn" id="wa-reset">Terug naar wachtend</button>` : ""}</div>
+      <div class="note" id="wa-msg">Goedkeuren of blokkeren onthoudt het bij de klant: elk volgend mailadres van deze klant krijgt dezelfde beslissing.</div></section>`);
+  const msg = t => { const m = $("#wa-msg"); if (m) m.textContent = t; };
+  const zet = async st => { try { await webToegangZetten(r.klant_id, st); webVerversen(true); loadWebToegang(); closeLayer(); } catch (e) { msg(explain(e)); } };
+  if ($("#wa-kl")) $("#wa-kl").addEventListener("click", () => openKlant(r.klant_id));
+  if ($("#wa-ok")) $("#wa-ok").addEventListener("click", () => zet("goedgekeurd"));
+  if ($("#wa-no")) $("#wa-no").addEventListener("click", () => zet("geblokkeerd"));
+  if ($("#wa-reset")) $("#wa-reset").addEventListener("click", () => zet("aangevraagd"));
+  if ($("#wa-koppel")) $("#wa-koppel").addEventListener("click", () => klantPicker("Bij welke klant hoort dit account?", async k => {
+    try { await sql(`update klant_accounts set klant_id = ${num(k.id)}, opmerking = null where auth_user_id = ${U}`); webVerversen(true); loadWebToegang(); closeLayer(); } catch (e) { drawer("Koppelen", "", `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`); }
+  }));
+}
+
+/* --- Aanvragen en biedingen via de site --- */
+const weba = { f: "open" };
+async function vWebAanvragen(main) {
+  main.insertAdjacentHTML("beforeend", `<h2>Offertes via de site</h2><p class="lead">Aanvragen, reserveringen en biedingen op een hele partij die klanten op de website plaatsen. Open er een om te antwoorden of er een offerte van te maken; staat de klant online akkoord, dan zet je de offerte met één klik om naar een order, de voorraad gaat er dan automatisch af. Het bod als percentage van de vraagprijs zie alleen jij hier: de klant ziet nooit een voorgesteld bedrag.</p>
+    <div class="bar"><select id="wa-f" aria-label="Filter"><option value="open">Nog open</option><option value="akkoord">Klant is akkoord, nog geen order</option><option value="bod">Biedingen</option><option value="alles">Alles via de site</option></select></div><div id="wa-body"><p class="empty">Laden…</p></div>`);
+  $("#wa-f").value = weba.f; $("#wa-f").addEventListener("change", () => { weba.f = $("#wa-f").value; loadWebAanvragen(); });
+  loadWebAanvragen();
+}
+async function loadWebAanvragen() {
+  const body = $("#wa-body"); if (!body) return;
+  try {
+    const w = { open: "o.status in ('aanvraag', 'gereserveerd', 'offerte') and o.order_nummer is null", akkoord: "o.klant_akkoord_op is not null and o.order_nummer is null and o.status not in ('besteld', 'afgewezen', 'verlopen')", bod: "o.soort = 'bod'", alles: "true" }[weba.f];
+    const rows = await sql(`select o.id, o.nummer, o.datum, o.status, o.soort, o.bod_bedrag, o.klant_akkoord_op, o.order_nummer, o.aangemaakt, k.naam,
+      (select coalesce(sum(r.aantal * r.prijs * (1 - r.korting_pct / 100)) filter (where not r.vervallen and not r.optioneel), 0) from offerte_regels r where r.offerte_id = o.id) waarde,
+      (select coalesce(sum(r.aantal * coalesce(a.verkoopprijs, 0)), 0) from offerte_regels r join artikelen a on a.artikel_nr = r.artikel_nr where r.offerte_id = o.id and not r.vervallen) vraag
+      from offertes o join klanten k on k.id = o.klant_id where o.via_site and ${w} order by (o.klant_akkoord_op is not null and o.order_nummer is null) desc, o.aangemaakt desc limit 200`);
+    body.innerHTML = `<div class="panel">${rows.length ? `<div class="rows">${rows.map(r => {
+      const pct = r.soort === "bod" && num(r.vraag) > 0 ? Math.round(num(r.bod_bedrag) / num(r.vraag) * 100) : null;
+      return `<button class="row" data-o="${r.id}"><span class="t">${esc(r.naam)}<span class="pill ${statusKleur(r.status)}">${esc(statusNaam(r.status))}</span>${r.soort === "bod" ? `<span class="pill acc">bod op hele partij</span>` : ""}${r.klant_akkoord_op && !r.order_nummer ? `<span class="pill good">klant is akkoord</span>` : ""}${r.order_nummer ? `<span class="pill good">order ${esc(r.order_nummer)}</span>` : ""}</span>
+      <span class="s">Offerte ${esc(r.nummer || r.id)} · binnen ${esc(tijdTekst(r.aangemaakt))}${r.soort === "bod" ? ` · bod ${eur(r.bod_bedrag)}${pct !== null ? ` = ${pct}% van de vraagprijs ${eur(r.vraag)}` : ""}` : ""}</span><span class="r">${eur(r.waarde)}</span></button>`; }).join("")}</div>` : `<p class="empty">${weba.f === "open" ? "Er staat niets open dat via de site binnenkwam." : "Niets gevonden."}</p>`}</div>`;
+    body.querySelectorAll("[data-o]").forEach(b => b.addEventListener("click", () => openOfferte(b.dataset.o)));
+  } catch (e) { showError(body, e); }
+}
+
+/* --- Site-beheer: koppelingsstatus, instellingen, agenda en artikelen op de site --- */
+const WEB_INSTELLINGEN = [["website_mails_aan", "Mails vanuit de site", [["nee", "Uit: de site mailt niets"], ["ja", "Aan: info@ en klanten krijgen berichten"]]], ["website_auto_goedkeuren", "Bestaande klanten automatisch toegang", [["ja", "Ja, bij hun eerste keer inloggen"], ["nee", "Nee, ik keur ieder account goed"]]]];
+async function vWebBeheer(main) {
+  main.insertAdjacentHTML("beforeend", `<h2>Site-beheer</h2><p class="lead">Hier zie je of de nieuwe website en het Salesbureau goed met elkaar verbonden zijn, en stel je af wat de site mag doen. Alles wat op de site staat komt uit dezelfde database als dit programma.</p><div id="wb-status"><p class="empty">Laden…</p></div><div id="wb-inst"></div><div id="wb-agenda"></div><div id="wb-art"></div>`);
+  loadWebStatus(); loadWebInstellingen(); loadWebAgenda(); webArtikelPaneel();
+}
+async function loadWebStatus() {
+  const box = $("#wb-status"); if (!box) return;
+  try {
+    const [a, acc, q, fm] = await Promise.all([
+      sql(`select count(*) filter (where zichtbaarheid = 'openbaar') openbaar, count(*) filter (where zichtbaarheid = 'inlog') inlog, count(*) filter (where zichtbaarheid = 'alleen_mail') alleen_mail,
+        count(*) filter (where zichtbaarheid in ('openbaar', 'inlog') and coalesce(slug_nl, '') = '') zonder_slug, count(*) filter (where zichtbaarheid in ('openbaar', 'inlog') and coalesce(site_naam_nl, '') = '') zonder_naam,
+        count(*) filter (where zichtbaarheid in ('openbaar', 'inlog') and foto_grijs) grijs from artikelen`),
+      sql(`select status, count(*) n, max(laatst_ingelogd) laatst from klant_accounts group by 1`),
+      sql(`select count(*) filter (where verstuurd_op is null and pogingen < 5 and aangemaakt > now() - interval '3 days') wacht, count(*) filter (where verstuurd_op is not null) verstuurd, count(*) filter (where verstuurd_op is null and fout is not null) fouten from website_meldingen`),
+      sql(`select count(*) n, max(aangemaakt) laatst from website_formulieren`),
+    ]);
+    const x = a[0] || {}, m = q[0] || {}, f = fm[0] || {}, st = s => acc.find(r => r.status === s) || {};
+    const laatsteLogin = acc.map(r => r.laatst).filter(Boolean).sort().pop();
+    const rij = (label, val, tone) => `<dt>${esc(label)}</dt><dd><b class="${tone || ""}">${val}</b></dd>`;
+    box.innerHTML = `<section class="panel"><div class="hd"><h3>Wat de site laat zien</h3><button class="btn small" id="wb-slugs">Ontbrekende webadressen aanmaken</button></div>
+      <dl class="kv">${rij("Openbaar zichtbaar", int(x.openbaar) + " artikelen")}${rij("Alleen na inloggen", int(x.inlog) + " artikelen")}${rij("Alleen per mail aangeboden", int(x.alleen_mail) + " artikelen")}
+      ${rij("Zonder webadres", int(x.zonder_slug), num(x.zonder_slug) ? "bad" : "good")}${rij("Zonder sitenaam (valt terug op de artikelnaam)", int(x.zonder_naam), num(x.zonder_naam) ? "warn" : "good")}${rij("Met grijze standaardfoto", int(x.grijs), num(x.grijs) ? "warn" : "good")}</dl><div class="note" id="wb-slugmsg">Een webadres is het stukje achter /product/. Het wordt aangemaakt uit de artikelnaam, zonder bestaande adressen te wijzigen.</div></section>
+      <section class="panel"><div class="hd"><h3>Klantaccounts en formulieren</h3></div>
+      <dl class="kv">${rij("Hebben toegang", int(st("goedgekeurd").n))}${rij("Wachten op goedkeuring", int(st("aangevraagd").n), num(st("aangevraagd").n) ? "warn" : "")}${rij("Geblokkeerd", int(st("geblokkeerd").n))}${rij("Laatste inlog", laatsteLogin ? esc(tijdTekst(laatsteLogin)) : "nog niemand")}${rij("Formulieren ontvangen", int(f.n) + (f.laatst ? ` (laatste ${esc(tijdTekst(f.laatst))})` : ""))}</dl></section>
+      <section class="panel"><div class="hd"><h3>Meldingen per mail</h3></div>
+      <dl class="kv">${rij("Wachten op verzending", int(m.wacht))}${rij("Verstuurd", int(m.verstuurd))}${rij("Mislukt", int(m.fouten), num(m.fouten) ? "bad" : "")}</dl><div class="note">Meldingen blijven 3 dagen in de wachtrij en worden alleen verstuurd als hieronder 'Mails vanuit de site' op Aan staat. Aanvragen, antwoorden en formulieren staan hoe dan ook in dit programma.</div></section>`;
+    $("#wb-slugs").addEventListener("click", async () => { const t = $("#wb-slugmsg"); t.textContent = "Bezig…"; try { const r = await sql(`select site_slugs_aanvullen() n`); t.textContent = `${int(r[0] && r[0].n)} webadressen aangemaakt.`; loadWebStatus(); } catch (e) { t.textContent = explain(e); } });
+  } catch (e) { showError(box, e); }
+}
+async function loadWebInstellingen() {
+  const box = $("#wb-inst"); if (!box) return;
+  try {
+    const rows = await sql(`select sleutel, waarde from instellingen where sleutel like 'website\\_%' and sleutel <> 'website_geheim'`);
+    const v = k => (rows.find(r => r.sleutel === k) || {}).waarde || "";
+    box.innerHTML = `<section class="panel"><div class="hd"><h3>Instellingen van de site</h3></div><form class="f" id="wb-f">
+      ${WEB_INSTELLINGEN.map(([k, l, o]) => sel("wi-" + k, l, o, v(k))).join("")}
+      <div class="line">${fld("wi-website_info_mail", "Mailadres voor meldingen aan jou", v("website_info_mail"), "email")}${fld("wi-website_nieuw_dagen", "Label 'Nieuw' tot zoveel dagen na aanmaak", v("website_nieuw_dagen"), "number", 'min="1" max="365" step="1"')}</div>
+      <div><button class="btn primary" type="submit">Opslaan</button></div><div class="note" id="wb-fmsg">Zet 'Mails vanuit de site' pas op Aan als de verzendkant (Resend) op de nieuwe site is ingesteld en je dit wilt. Tot die tijd gaat er nooit een mail uit.</div></form></section>
+      <section class="panel"><div class="hd"><h3>Sleutel voor de website-server</h3></div><p class="note">De website-server heeft een geheime sleutel nodig om formulieren in te leveren en meldingen op te halen (WEBSITE_FORM_SECRET in Vercel). Hij staat alleen in de database en niet in de code. Deel hem met niemand.</p>
+      <div class="line" style="display:flex;flex-wrap:wrap;gap:8px"><button class="btn" id="wb-geheim">Toon de sleutel</button><input type="text" id="wb-gv" readonly hidden style="flex:1;min-width:220px"><button class="btn" id="wb-gk" hidden>Kopieer</button></div></section>`;
+    $("#wb-f").addEventListener("submit", async e => {
+      e.preventDefault(); const m = $("#wb-fmsg"); m.textContent = "Opslaan…";
+      try {
+        const dagen = Math.round(num(gv("wi-website_nieuw_dagen")));
+        if (!(dagen >= 1 && dagen <= 365)) { m.textContent = "Kies een aantal dagen tussen 1 en 365."; return; }
+        const mail = gv("wi-website_info_mail"); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { m.textContent = "Dit is geen geldig mailadres."; return; }
+        const vals = [["website_mails_aan", gv("wi-website_mails_aan")], ["website_auto_goedkeuren", gv("wi-website_auto_goedkeuren")], ["website_info_mail", mail], ["website_nieuw_dagen", String(dagen)]];
+        await sql(`insert into instellingen (sleutel, waarde, bijgewerkt) values ${vals.map(([k, x]) => `(${lit(k)}, ${lit(x)}, now())`).join(", ")} on conflict (sleutel) do update set waarde = excluded.waarde, bijgewerkt = now()`);
+        m.textContent = "Opgeslagen.";
+      } catch (er) { m.textContent = explain(er); }
+    });
+    $("#wb-geheim").addEventListener("click", async () => {
+      try { const r = await sql(`select waarde from instellingen where sleutel = 'website_geheim'`); const g = r[0] && r[0].waarde; const i = $("#wb-gv"); i.hidden = !g; $("#wb-gk").hidden = !g; i.value = g || ""; if (!g) $("#wb-geheim").textContent = "Er is nog geen sleutel"; else $("#wb-geheim").hidden = true; } catch (e) { showError(box, e); }
+    });
+    $("#wb-gk").addEventListener("click", async () => { const i = $("#wb-gv"); try { await navigator.clipboard.writeText(i.value); $("#wb-gk").textContent = "Gekopieerd"; } catch { i.select(); $("#wb-gk").textContent = "Selecteer en kopieer met Ctrl+C"; } });
+  } catch (e) { showError(box, e); }
+}
+async function loadWebAgenda() {
+  const box = $("#wb-agenda"); if (!box) return;
+  try {
+    const rows = await sql(`select id, datum, tot, plaats, titel_nl, zichtbaar from agenda order by datum desc, id desc limit 100`);
+    box.innerHTML = `<section class="panel"><div class="hd"><h3>Agenda (beurzen en bijzondere dagen)</h3><button class="btn small" id="wag-new">Toevoegen</button></div>${rows.length ? `<div class="rows">${rows.map(r => `<button class="row" data-ag="${r.id}"><span class="t">${esc(r.titel_nl)}${r.zichtbaar ? "" : `<span class="pill">verborgen</span>`}</span><span class="s">${esc(r.plaats || "")}</span><span class="r">${dt(r.datum)}${r.tot ? " t/m " + dt(r.tot) : ""}</span></button>`).join("")}</div>` : `<p class="empty">Nog niets in de agenda. Voeg bijvoorbeeld een vakbeurs toe: dan staat die op de website.</p>`}</section>`;
+    $("#wag-new").addEventListener("click", () => webAgendaForm(null));
+    box.querySelectorAll("[data-ag]").forEach(b => b.addEventListener("click", () => webAgendaForm(b.dataset.ag)));
+  } catch (e) { showError(box, e); }
+}
+async function webAgendaForm(id) {
+  try {
+    const a = id ? (await sql(`select * from agenda where id = ${num(id)}`))[0] || {} : { zichtbaar: true };
+    const d = v => v ? String(v).slice(0, 10) : "";
+    drawer(id ? "Agenda-item wijzigen" : "Nieuw agenda-item", "", `<form class="f panel" id="ag-f">
+      <div class="line">${fld("ag-datum", "Datum", d(a.datum), "date", "required")}${fld("ag-tot", "Tot en met (optioneel)", d(a.tot), "date")}${fld("ag-plaats", "Plaats", a.plaats)}</div>
+      ${fld("ag-tn", "Titel (Nederlands)", a.titel_nl, "text", "required")}${txa("ag-xn", "Tekst (Nederlands)", a.tekst_nl, 3)}
+      ${fld("ag-te", "Titel (Engels, leeg = Nederlands)", a.titel_en)}${txa("ag-xe", "Tekst (Engels)", a.tekst_en, 3)}
+      ${fld("ag-td", "Titel (Duits, leeg = Nederlands)", a.titel_de)}${txa("ag-xd", "Tekst (Duits)", a.tekst_de, 3)}
+      ${fld("ag-link", "Link (optioneel)", a.link, "url")}<label class="mandl"><input type="checkbox" id="ag-z" ${a.zichtbaar === false ? "" : "checked"}> Zichtbaar op de website</label>
+      <div><button class="btn primary" type="submit">Opslaan</button></div><div class="note" id="ag-msg"></div></form>`);
+    $("#ag-f").addEventListener("submit", async e => {
+      e.preventDefault(); const m = $("#ag-msg"); if (!gv("ag-datum") || !gv("ag-tn")) { m.textContent = "Datum en titel zijn nodig."; return; }
+      if (gv("ag-tot") && gv("ag-tot") < gv("ag-datum")) { m.textContent = "De einddatum ligt voor de begindatum."; return; }
+      m.textContent = "Opslaan…";
+      try {
+        const v = [lit(gv("ag-datum")), lit(gv("ag-tot")), lit(gv("ag-plaats")), lit(gv("ag-tn")), lit(gv("ag-te")), lit(gv("ag-td")), lit(gv("ag-xn")), lit(gv("ag-xe")), lit(gv("ag-xd")), lit(gv("ag-link")), $("#ag-z").checked];
+        await sql(id ? `update agenda set datum=${v[0]}, tot=${v[1]}, plaats=${v[2]}, titel_nl=${v[3]}, titel_en=${v[4]}, titel_de=${v[5]}, tekst_nl=${v[6]}, tekst_en=${v[7]}, tekst_de=${v[8]}, link=${v[9]}, zichtbaar=${v[10]} where id=${num(id)}`
+          : `insert into agenda (datum, tot, plaats, titel_nl, titel_en, titel_de, tekst_nl, tekst_en, tekst_de, link, zichtbaar) values (${v.join(", ")})`);
+        closeLayer(); loadWebAgenda();
+      } catch (er) { m.textContent = explain(er); }
+    });
+  } catch (e) { drawer("Agenda", "", `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`); }
+}
+const wbArt = { q: "", f: "" };
+function webArtikelPaneel() {
+  const box = $("#wb-art"); if (!box) return;
+  box.innerHTML = `<section class="panel"><div class="hd"><h3>Artikelen op de site</h3></div><p class="note">Zoek een artikel om te bepalen of en hoe het op de site staat: zichtbaarheid, namen in drie talen, webadres en foto. Alles over prijzen, voorraad en inkoop wijzig je zoals altijd bij Assortiment.</p>
+    <form class="bar" id="wba-bar"><input type="search" id="wba-q" placeholder="Artikelnummer of naam" value="${esc(wbArt.q)}"><select id="wba-f" aria-label="Filter"><option value="">Alle artikelen</option><option value="openbaar">Openbaar</option><option value="inlog">Na inloggen</option><option value="alleen_mail">Alleen per mail</option><option value="zonder_slug">Zonder webadres</option><option value="zonder_naam">Zonder sitenaam</option><option value="grijs">Grijze foto</option></select><button class="btn primary" type="submit">Zoeken</button></form><div id="wba-res"><p class="empty">Zoek hierboven, of kies een filter.</p></div></section>`;
+  $("#wba-f").value = wbArt.f;
+  $("#wba-bar").addEventListener("submit", e => { e.preventDefault(); wbArt.q = gv("wba-q"); wbArt.f = $("#wba-f").value; loadWebArtikelen(); });
+  $("#wba-f").addEventListener("change", () => { wbArt.q = gv("wba-q"); wbArt.f = $("#wba-f").value; loadWebArtikelen(); });
+}
+async function loadWebArtikelen() {
+  const box = $("#wba-res"); if (!box) return;
+  if (!wbArt.q && !wbArt.f) { box.innerHTML = `<p class="empty">Zoek hierboven, of kies een filter.</p>`; return; }
+  try {
+    const l = wbArt.q ? likeLit(wbArt.q) : null, nr = /^\d+$/.test(wbArt.q) ? Number(wbArt.q) : null;
+    const fw = { openbaar: "zichtbaarheid = 'openbaar'", inlog: "zichtbaarheid = 'inlog'", alleen_mail: "zichtbaarheid = 'alleen_mail'", zonder_slug: "zichtbaarheid in ('openbaar', 'inlog') and coalesce(slug_nl, '') = ''", zonder_naam: "zichtbaarheid in ('openbaar', 'inlog') and coalesce(site_naam_nl, '') = ''", grijs: "zichtbaarheid in ('openbaar', 'inlog') and foto_grijs" }[wbArt.f] || "true";
+    const rows = await sql(`select artikel_nr, naam, site_naam_nl, zichtbaarheid, slug_nl, voorraad, foto_grijs from artikelen where ${fw}${l ? ` and (naam ilike ${l} or site_naam_nl ilike ${l}${nr !== null ? ` or artikel_nr = ${nr}` : ""})` : ""} order by naam limit 60`);
+    box.innerHTML = rows.length ? `<div class="rows">${rows.map(r => `<button class="row" data-wa="${r.artikel_nr}"><span class="t">${esc(r.site_naam_nl || r.naam)}<span class="pill ${r.zichtbaarheid === "openbaar" ? "good" : r.zichtbaarheid === "inlog" ? "acc" : ""}">${esc(zichtNaam(r.zichtbaarheid))}</span>${r.foto_grijs ? `<span class="pill warn">grijze foto</span>` : ""}</span><span class="s">${esc(r.artikel_nr)} · voorraad ${int(r.voorraad)}${r.slug_nl ? " · /product/" + esc(r.slug_nl) + "/" : " · nog geen webadres"}</span></button>`).join("")}</div>${rows.length === 60 ? `<p class="note">De eerste 60. Maak je zoekopdracht specifieker.</p>` : ""}` : `<p class="empty">Niets gevonden.</p>`;
+    box.querySelectorAll("[data-wa]").forEach(b => b.addEventListener("click", () => webArtikelForm(b.dataset.wa)));
+  } catch (e) { showError(box, e); }
+}
+async function webArtikelForm(nr) {
+  drawer("Artikel laden…", "", `<p class="empty">Laden…</p>`);
+  try {
+    const a = (await sql(`select * from artikelen where artikel_nr = ${num(nr)}`))[0];
+    if (!a) { drawer("Artikel", "", `<p class="empty">Dit artikel bestaat niet meer.</p>`); return; }
+    drawer(a.naam, `Artikel ${esc(a.artikel_nr)} op de site`, `<form class="f panel" id="wa2-f">
+      ${sel("wa2-z", "Zichtbaarheid", ZICHTBAAR, a.zichtbaarheid || "alleen_mail")}
+      <div class="line">${fld("wa2-landen", "Niet leveren aan landen (codes, bv. NL BE LU)", (a.geblokkeerde_landen || []).join(" "))}</div>${fld("wa2-beperk", "Verkoopbeperking (de site toont het als waarschuwing)", a.verkoopbeperking)}
+      ${fld("wa2-nn", "Naam op de site (Nederlands)", a.site_naam_nl)}${fld("wa2-ne", "Naam op de site (Engels)", a.site_naam_en)}${fld("wa2-nd", "Naam op de site (Duits)", a.site_naam_de)}
+      ${fld("wa2-sn", "Webadres NL (alleen kleine letters, cijfers en streepjes)", a.slug_nl)}${fld("wa2-se", "Webadres EN", a.slug_en)}${fld("wa2-sd", "Webadres DE", a.slug_de)}
+      <label class="mandl"><input type="checkbox" id="wa2-g" ${a.foto_grijs ? "checked" : ""}> De foto is de grijze standaardafbeelding (de site toont dan geen foto)</label>
+      <div class="line" style="display:flex;flex-wrap:wrap;gap:8px"><button class="btn primary" type="submit">Opslaan</button><button class="btn" type="button" id="wa2-vol">Alle artikelgegevens</button></div><div class="note" id="wa2-msg">Een gewijzigd webadres maakt de oude link ongeldig. Wijzig adressen alleen als het echt moet.</div></form>`);
+    $("#wa2-vol").addEventListener("click", () => artikelForm(a.artikel_nr));
+    $("#wa2-f").addEventListener("submit", async e => {
+      e.preventDefault(); const m = $("#wa2-msg"), SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+      const sl = [["slug_nl", gv("wa2-sn")], ["slug_en", gv("wa2-se")], ["slug_de", gv("wa2-sd")]];
+      for (const [k, v] of sl) if (v && !SLUG.test(v)) { m.textContent = `Webadres ${k.slice(5).toUpperCase()}: alleen kleine letters, cijfers en streepjes, geen spaties.`; return; }
+      m.textContent = "Opslaan…";
+      try {
+        for (const [k, v] of sl) if (v) { const d = await sql(`select artikel_nr from artikelen where ${k} = ${lit(v)} and artikel_nr <> ${num(a.artikel_nr)} limit 1`); if (d.length) { m.textContent = `Webadres ${v} wordt al gebruikt door artikel ${d[0].artikel_nr}.`; return; } }
+        await sql(`update artikelen set zichtbaarheid = ${lit(gv("wa2-z") || "alleen_mail")}, geblokkeerde_landen = ${pgTekstArr(parseLanden(gv("wa2-landen")))}, verkoopbeperking = ${lit(gv("wa2-beperk"))}, site_naam_nl = ${lit(gv("wa2-nn"))}, site_naam_en = ${lit(gv("wa2-ne"))}, site_naam_de = ${lit(gv("wa2-nd"))}, slug_nl = ${lit(gv("wa2-sn"))}, slug_en = ${lit(gv("wa2-se"))}, slug_de = ${lit(gv("wa2-sd"))}, foto_grijs = ${$("#wa2-g").checked}, bijgewerkt = now() where artikel_nr = ${num(a.artikel_nr)}`);
+        m.textContent = "Opgeslagen."; loadWebArtikelen(); loadWebStatus();
+      } catch (er) { m.textContent = explain(er); }
+    });
+  } catch (e) { drawer("Artikel", "", `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`); }
 }
 
 /* ---------- Order annuleren ---------- */
@@ -3557,7 +3859,7 @@ const DGO = {
   orders: () => { ord.view = "bord"; goTab("orders"); }, uitvoering: () => { uit.f = "open"; goTab("uitvoering"); },
   openstaand: () => { deb.f = "te_laat"; goTab("debiteuren"); }, facturen: () => { fakf.f = "open"; goTab("facturen"); },
   voorraad: () => { vrd.s = "analyse"; goTab("voorraad"); }, inkoop: () => { ikf.status = "open"; goTab("inkoop"); },
-  berichten: () => { ber.f = "wacht"; goTab("berichten"); }, opvolging: () => goTab("opvolging"), picken: () => goTab("picken"), werkbrieven: () => goTab("werkbrieven"), retouren: () => goTab("retouren"), klanten: () => goTab("klanten"), campagnes: () => goTab("campagnes"), assortiment: () => goTab("assortiment"),
+  berichten: () => { ber.f = "wacht"; goTab("berichten"); }, webakkoord: () => { weba.f = "akkoord"; goTab("webaanvragen"); }, webaanvragen: () => { weba.f = "open"; goTab("webaanvragen"); }, webformulieren: () => { webf.f = "open"; goTab("webformulieren"); }, webtoegang: () => { webt.f = "aangevraagd"; webt.q = ""; goTab("webtoegang"); }, opvolging: () => goTab("opvolging"), picken: () => goTab("picken"), werkbrieven: () => goTab("werkbrieven"), retouren: () => goTab("retouren"), klanten: () => goTab("klanten"), campagnes: () => goTab("campagnes"), assortiment: () => goTab("assortiment"),
   doelen: () => { stam.s = "doelen"; goTab("stam"); }, backup: () => goTab("beheer"),
   maand: () => { rap.r = "omzet_maand"; goTab("rapporten"); }, klantrap: () => { rap.r = "omzet_klant"; goTab("rapporten"); }, kaart: () => { const e = $("#km-panel"); if (e) e.scrollIntoView({ behavior: "smooth", block: "start" }); },
 };
@@ -3596,6 +3898,7 @@ async function vDashboard(main) {
       sql(`select o.status, count(distinct o.id) n, coalesce(sum(r.aantal * r.prijs * (1 - r.korting_pct / 100)) filter (where not r.vervallen and not r.optioneel), 0) waarde from offertes o left join offerte_regels r on r.offerte_id = o.id group by 1`),
       sql(`select count(*) filter (where verzonden_op > now() - interval '30 days') verzonden, count(*) filter (where verzonden_op > now() - interval '30 days' and geopend) geopend, count(*) filter (where verzonden_op > now() - interval '30 days' and gereageerd) gereageerd from verzendingen`),
     ]);
+    await webVerversen(true);
     const [s, kd, pl, uo, fin, vi, lt, dl, bk] = await Promise.all([
       safe(sql(`select coalesce(sum(prijs) filter (where datum >= date_trunc('month', current_date)), 0) mnd,
         coalesce(sum(prijs) filter (where datum >= date_trunc('month', current_date) - interval '1 month' and datum <= current_date - interval '1 month'), 0) mnd_vorig,
@@ -3639,7 +3942,7 @@ async function vDashboard(main) {
     // aandacht
     const oud = num(st("In bewerking").oud) + num(st("Gereed").oud);
     const att = [
-      [vi.vragen, "vragen van klanten wachten op antwoord", "", "berichten"], [pl.aanvragen, "aanvragen wachten op antwoord", "", "aanvragen"], [pl.volgen, "offertes verstuurd zonder reactie (5+ dagen)", "", "volgen"], [pl.te_laat, "opvolgingen te laat", num(pl.vandaag) ? `${int(pl.vandaag)} staan voor vandaag` : "", "opvolging"],
+      [vi.vragen, "vragen van klanten wachten op antwoord", "", "berichten"], [webN.k, "klanten zijn online akkoord met een offerte: zet om naar order", "", "webakkoord"], [webN.a, "aanvragen en biedingen via de website", "", "webaanvragen"], [webN.f, "formulieren van de website zijn nog niet afgehandeld", "", "webformulieren"], [webN.t, "klanten vragen toegang tot de website", "", "webtoegang"], [pl.aanvragen, "aanvragen wachten op antwoord", "", "aanvragen"], [pl.volgen, "offertes verstuurd zonder reactie (5+ dagen)", "", "volgen"], [pl.te_laat, "opvolgingen te laat", num(pl.vandaag) ? `${int(pl.vandaag)} staan voor vandaag` : "", "opvolging"],
       [fin.laat_n, "openstaande posten voorbij de vervaldatum", eur(fin.laat_w), "openstaand"], [fin.onfact_n, "orders nog niet gefactureerd (controleer eerst MyBusiness)", eur(fin.onfact_w), "facturen"],
       [oud, "orders die al 30+ dagen openstaan", "", "uitvoering"], [vi.ink_laat, "inkooporders voorbij de verwachte datum", "", "inkoop"],
       [vi.te_picken, "orders om te picken", "", "picken"], [vi.wb_laat, "werkbrieven voorbij de deadline", "", "werkbrieven"], [vi.ret_open, "retouren om af te handelen", "", "retouren"],
