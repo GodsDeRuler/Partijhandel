@@ -27,7 +27,7 @@ Na de overstap wordt "openbaar" een vinkje per artikel in het Salesbureau, met e
 | Huidige pagina (NL / EN / DE) | Nieuwe site | |
 |---|---|---|
 | Home | Home | Zelfde opbouw: hero, nieuw binnen, categorieën, agenda, Handel alert |
-| Partijgoederen / Shop (68 pagina's, ook uitverkochte artikelen) | Partijen | Alleen artikelen op voorraad; filter op 17 hoofd- en 86 subcategorieën |
+| Partijgoederen / Shop (68 pagina's, ook uitverkochte artikelen) | Partijen | Alleen artikelen op voorraad; filter op de nieuwe 17 hoofdcategorieën en hun subcategorieën |
 | Product (`/product/<naam>/`) | Zelfde adres | Zelfde naam in het adres, dus geen doorverwijzing nodig voor de 678 huidige |
 | Productcategorie (10 oude) | Categoriepagina | Oude adressen verwijzen door naar de best passende nieuwe categorie |
 | Klant worden | Klant worden | **Werkt nu niet**: in NL, EN en DE staat alleen de tekst `[wc-user-registration-page]` |
