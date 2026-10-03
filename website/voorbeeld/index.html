@@ -189,6 +189,18 @@ table.list tr:hover td{background:var(--ice)}
 .bid{border:2px dashed var(--cyan);border-radius:var(--r-card);padding:14px 16px;display:grid;gap:10px;background:var(--paper)}
 .bid .row2{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
 .sumrow{display:flex;gap:18px;flex-wrap:wrap;padding:12px 4px 0;color:var(--navy);font-weight:600}
+/* chat */
+.chat{display:grid;gap:10px}
+.msgs{display:flex;flex-direction:column;gap:8px;max-height:380px;overflow:auto;padding:4px}
+.bub{max-width:78%;padding:9px 13px;border-radius:16px;font-size:14px;line-height:1.45;overflow-wrap:anywhere}
+.bub small{display:block;font-size:11.5px;opacity:.75;margin-top:3px}
+.bub.me{align-self:flex-end;background:var(--blue);color:#fff;border-bottom-right-radius:4px}
+.bub.them{align-self:flex-start;background:var(--ice);color:var(--navy);border-bottom-left-radius:4px}
+.chatin{display:flex;gap:8px;align-items:flex-end}
+.chatin textarea{flex:1;min-width:0;font:inherit;border:1px solid var(--line);border-radius:16px;padding:9px 12px;min-height:44px;resize:vertical}
+.dot{display:inline-block;min-width:18px;padding:0 6px;border-radius:9px;background:#E5484D;color:#fff;font-size:11px;font-weight:800;text-align:center;line-height:18px}
+.inbox{display:grid;gap:10px}
+.inbox .ev textarea{width:100%;font:inherit;border:1px solid var(--line);border-radius:10px;padding:7px 9px;margin-top:8px;min-height:54px}
 .thumb{width:44px;height:44px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:8px}
 
 /* footer */
@@ -263,6 +275,7 @@ footer p{margin:0;opacity:.9}
   <header><b>Achter de schermen</b><button id="closedrawer">Sluiten</button></header>
   <div class="in">
     <div class="src" id="srcinfo"></div>
+    <div id="inbox"></div>
     <div id="events"></div>
   </div>
 </aside>
@@ -286,7 +299,7 @@ klantOk:'Bedankt voor je aanmelding. We controleren je gegevens en sturen je een
 loginP:'Vul je e-mailadres in. Je krijgt een inloglink, een wachtwoord is niet nodig.',stuurLink:'Stuur inloglink',
 mAanbod:'Mijn aanbod',mOffertes:'Mijn offertes',mOrders:'Mijn orders',mGeg:'Mijn gegevens',welkom:'Welkom terug',
 aanbodP:'Deze partijen staan niet openbaar op de site. Ze zijn voor jou geselecteerd.',
-nieuwB:'Nieuw',prijsSt:'Prijs/st.',mOpen:'Openstaand',docOff:'Offerte',docOrd:'Order',stA:'Aanvraag',stV:'Wacht op jouw akkoord',stOG:'Order geworden',stAf:'Afgewezen',stIB:'In bewerking',stG:'Klaar om af te halen',stGL:'Geleverd',stTF:'Te factureren',stAS:'Afgesloten',uA:'Wij maken je offerte. Je krijgt bericht zodra hij klaarstaat.',uV:'Bekijk de offerte en geef akkoord vóór de vervaldatum.',uIB:'We zijn je order aan het verzamelen.',uG:'Je order staat klaar in ons magazijn in Tilburg. Afhalen is gratis.',uTF:'Geleverd; de factuur volgt.',niksOpen:'Er staat niets open.',geldig:'Geldig tot',datum:'Datum',bekijk2:'Bekijken',akkoord:'Akkoord, maak er een order van',afwijzen:'Afwijzen',vraagB:'Vraag stellen',terugM:'Terug naar mijn omgeving',regels:'Regels',bijOff:'Hoort bij offerte',bijOrd:'Werd order',pakbon:'Pakbon bekijken',afhaal:'Afhaalmoment doorgeven',open2:'Wat staat er open?',totaal:'Totaal excl. btw',levW:'Levering',lev:'Levering',levA:'Afhalen in Tilburg (gratis)',levT:'Laten bezorgen',levTP:'Wij vragen een transportprijs op en zetten die in je offerte.',adres:'Afleveradres',pc:'Postcode',plaats:'Plaats',klep:'Laadklep nodig (geen laaddock)',pal:'Geschat',palN:'pallets',palO:'aantal pallets bepalen wij',kg:'kg',restant:'Restant',restantP:'Minder dan één omdoos op voorraad. Neem contact op voor een prijs voor het restant.',perOm:'per omdoos',
+nieuwB:'Nieuw',prijsSt:'Prijs/st.',mOpen:'Openstaand',chatT:'Vragen en berichten',chatP:'Stel hier je vraag over deze offerte of order. Je krijgt antwoord in dit gesprek en per mail.',chatPh:'Typ je vraag...',stuur:'Verstuur',mBer:'Berichten',geenBer:'Nog geen berichten. Open een offerte of order om een vraag te stellen.',wij:'Frank van de Wijgert',jij:'Jij',docOff:'Offerte',docOrd:'Order',stA:'Aanvraag',stV:'Wacht op jouw akkoord',stOG:'Order geworden',stAf:'Afgewezen',stIB:'In bewerking',stG:'Klaar om af te halen',stGL:'Geleverd',stTF:'Te factureren',stAS:'Afgesloten',uA:'Wij maken je offerte. Je krijgt bericht zodra hij klaarstaat.',uV:'Bekijk de offerte en geef akkoord vóór de vervaldatum.',uIB:'We zijn je order aan het verzamelen.',uG:'Je order staat klaar in ons magazijn in Tilburg. Afhalen is gratis.',uTF:'Geleverd; de factuur volgt.',niksOpen:'Er staat niets open.',geldig:'Geldig tot',datum:'Datum',bekijk2:'Bekijken',akkoord:'Akkoord, maak er een order van',afwijzen:'Afwijzen',vraagB:'Vraag stellen',terugM:'Terug naar mijn omgeving',regels:'Regels',bijOff:'Hoort bij offerte',bijOrd:'Werd order',pakbon:'Pakbon bekijken',afhaal:'Afhaalmoment doorgeven',open2:'Wat staat er open?',totaal:'Totaal excl. btw',levW:'Levering',lev:'Levering',levA:'Afhalen in Tilburg (gratis)',levT:'Laten bezorgen',levTP:'Wij vragen een transportprijs op en zetten die in je offerte.',adres:'Afleveradres',pc:'Postcode',plaats:'Plaats',klep:'Laadklep nodig (geen laaddock)',pal:'Geschat',palN:'pallets',palO:'aantal pallets bepalen wij',kg:'kg',restant:'Restant',restantP:'Minder dan één omdoos op voorraad. Neem contact op voor een prijs voor het restant.',perOm:'per omdoos',
 hoeT:'Zo werkt het',h1:'Kies je partijen',h1p:'Zet artikelen op je offertelijst, per omdoos of per pallet.',h2:'Offerte binnen 48 uur',h2p:'Je krijgt een offerte op maat, met prijzen voor jouw aantallen.',h3:'Afhalen of laten bezorgen',h3p:'Afhalen in Tilburg is altijd gratis. Wil je het laten bezorgen? Dan vragen wij een transportprijs op en zetten die in je offerte.',
 kaart:'Tegels',lijst:'Partijlijst',plus1:'+ 1 omdoos',
 alertCat:'Mail mij als er nieuwe partijen binnenkomen in',alertCatB:'Ja, mail mij',alertCatOk:'Aangemeld. Je krijgt een mail bij nieuwe partijen in deze categorie.',
@@ -312,7 +325,7 @@ klantOk:'Thank you for registering. We will check your details and send you a lo
 loginP:'Enter your email address. You will receive a login link, no password needed.',stuurLink:'Send login link',
 mAanbod:'My offer',mOffertes:'My quotes',mOrders:'My orders',mGeg:'My details',welkom:'Welcome back',
 aanbodP:'These lots are not listed publicly. They were selected for you.',
-nieuwB:'New',prijsSt:'Price/pc',mOpen:'Open items',docOff:'Quote',docOrd:'Order',stA:'Requested',stV:'Awaiting your approval',stOG:'Became order',stAf:'Declined',stIB:'In progress',stG:'Ready for collection',stGL:'Delivered',stTF:'To be invoiced',stAS:'Closed',uA:'We are preparing your quote. You will be notified when it is ready.',uV:'Review the quote and approve it before it expires.',uIB:'We are picking your order.',uG:'Your order is ready in our warehouse in Tilburg. Collection is free.',uTF:'Delivered; the invoice will follow.',niksOpen:'Nothing is open.',geldig:'Valid until',datum:'Date',bekijk2:'View',akkoord:'Approve, turn into order',afwijzen:'Decline',vraagB:'Ask a question',terugM:'Back to my account',regels:'Lines',bijOff:'Belongs to quote',bijOrd:'Became order',pakbon:'View packing slip',afhaal:'Schedule collection',open2:'What is open?',totaal:'Total excl. VAT',levW:'Delivery',lev:'Delivery',levA:'Collect in Tilburg (free)',levT:'Have it delivered',levTP:'We request a transport price and add it to your quote.',adres:'Delivery address',pc:'Postcode',plaats:'City',klep:'Tail lift needed (no loading dock)',pal:'Estimated',palN:'pallets',palO:'we determine the number of pallets',kg:'kg',restant:'Remainder',restantP:'Less than one outer box in stock. Contact us for a price for the remainder.',perOm:'per outer box',
+nieuwB:'New',prijsSt:'Price/pc',mOpen:'Open items',chatT:'Questions and messages',chatP:'Ask your question about this quote or order here. You will get the answer in this conversation and by email.',chatPh:'Type your question...',stuur:'Send',mBer:'Messages',geenBer:'No messages yet. Open a quote or order to ask a question.',wij:'Frank van de Wijgert',jij:'You',docOff:'Quote',docOrd:'Order',stA:'Requested',stV:'Awaiting your approval',stOG:'Became order',stAf:'Declined',stIB:'In progress',stG:'Ready for collection',stGL:'Delivered',stTF:'To be invoiced',stAS:'Closed',uA:'We are preparing your quote. You will be notified when it is ready.',uV:'Review the quote and approve it before it expires.',uIB:'We are picking your order.',uG:'Your order is ready in our warehouse in Tilburg. Collection is free.',uTF:'Delivered; the invoice will follow.',niksOpen:'Nothing is open.',geldig:'Valid until',datum:'Date',bekijk2:'View',akkoord:'Approve, turn into order',afwijzen:'Decline',vraagB:'Ask a question',terugM:'Back to my account',regels:'Lines',bijOff:'Belongs to quote',bijOrd:'Became order',pakbon:'View packing slip',afhaal:'Schedule collection',open2:'What is open?',totaal:'Total excl. VAT',levW:'Delivery',lev:'Delivery',levA:'Collect in Tilburg (free)',levT:'Have it delivered',levTP:'We request a transport price and add it to your quote.',adres:'Delivery address',pc:'Postcode',plaats:'City',klep:'Tail lift needed (no loading dock)',pal:'Estimated',palN:'pallets',palO:'we determine the number of pallets',kg:'kg',restant:'Remainder',restantP:'Less than one outer box in stock. Contact us for a price for the remainder.',perOm:'per outer box',
 hoeT:'How it works',h1:'Choose your lots',h1p:'Add items to your quote list, per outer box or per pallet.',h2:'Quote within 48 hours',h2p:'You receive a tailored quote with prices for your quantities.',h3:'Collect or have it delivered',h3p:'Collection in Tilburg is always free. Want it delivered? We request a transport price and add it to your quote.',
 kaart:'Tiles',lijst:'Stock list',plus1:'+ 1 box',
 alertCat:'Email me when new lots arrive in',alertCatB:'Yes, email me',alertCatOk:'Signed up. You will get an email when new lots arrive in this category.',
@@ -338,7 +351,7 @@ klantOk:'Vielen Dank für Ihre Registrierung. Wir prüfen Ihre Daten und senden 
 loginP:'Geben Sie Ihre E-Mail-Adresse ein. Sie erhalten einen Anmeldelink, ein Passwort ist nicht nötig.',stuurLink:'Anmeldelink senden',
 mAanbod:'Mein Angebot',mOffertes:'Meine Angebote',mOrders:'Meine Aufträge',mGeg:'Meine Daten',welkom:'Willkommen zurück',
 aanbodP:'Diese Posten sind nicht öffentlich gelistet. Sie wurden für Sie ausgewählt.',
-nieuwB:'Neu',prijsSt:'Preis/Stk.',mOpen:'Offene Punkte',docOff:'Angebot',docOrd:'Auftrag',stA:'Angefragt',stV:'Wartet auf Ihre Zustimmung',stOG:'Auftrag erteilt',stAf:'Abgelehnt',stIB:'In Bearbeitung',stG:'Abholbereit',stGL:'Geliefert',stTF:'Rechnung folgt',stAS:'Abgeschlossen',uA:'Wir erstellen Ihr Angebot. Sie werden benachrichtigt, sobald es bereitsteht.',uV:'Prüfen Sie das Angebot und stimmen Sie vor Ablauf zu.',uIB:'Wir kommissionieren Ihren Auftrag.',uG:'Ihr Auftrag steht in unserem Lager in Tilburg bereit. Abholung ist kostenlos.',uTF:'Geliefert; die Rechnung folgt.',niksOpen:'Nichts offen.',geldig:'Gültig bis',datum:'Datum',bekijk2:'Ansehen',akkoord:'Zustimmen, Auftrag erteilen',afwijzen:'Ablehnen',vraagB:'Frage stellen',terugM:'Zurück zu Mein Konto',regels:'Positionen',bijOff:'Gehört zu Angebot',bijOrd:'Wurde Auftrag',pakbon:'Lieferschein ansehen',afhaal:'Abholtermin mitteilen',open2:'Was ist offen?',totaal:'Summe zzgl. MwSt.',levW:'Lieferung',lev:'Lieferung',levA:'Abholung in Tilburg (kostenlos)',levT:'Liefern lassen',levTP:'Wir holen einen Transportpreis ein und nehmen ihn in Ihr Angebot auf.',adres:'Lieferadresse',pc:'PLZ',plaats:'Ort',klep:'Hebebühne nötig (keine Laderampe)',pal:'Geschätzt',palN:'Paletten',palO:'Palettenanzahl bestimmen wir',kg:'kg',restant:'Restmenge',restantP:'Weniger als ein Umkarton auf Lager. Fragen Sie nach einem Preis für die Restmenge.',perOm:'pro Umkarton',
+nieuwB:'Neu',prijsSt:'Preis/Stk.',mOpen:'Offene Punkte',chatT:'Fragen und Nachrichten',chatP:'Stellen Sie hier Ihre Frage zu diesem Angebot oder Auftrag. Die Antwort erhalten Sie in diesem Gespräch und per E-Mail.',chatPh:'Ihre Frage...',stuur:'Senden',mBer:'Nachrichten',geenBer:'Noch keine Nachrichten. Öffnen Sie ein Angebot oder einen Auftrag, um eine Frage zu stellen.',wij:'Frank van de Wijgert',jij:'Sie',docOff:'Angebot',docOrd:'Auftrag',stA:'Angefragt',stV:'Wartet auf Ihre Zustimmung',stOG:'Auftrag erteilt',stAf:'Abgelehnt',stIB:'In Bearbeitung',stG:'Abholbereit',stGL:'Geliefert',stTF:'Rechnung folgt',stAS:'Abgeschlossen',uA:'Wir erstellen Ihr Angebot. Sie werden benachrichtigt, sobald es bereitsteht.',uV:'Prüfen Sie das Angebot und stimmen Sie vor Ablauf zu.',uIB:'Wir kommissionieren Ihren Auftrag.',uG:'Ihr Auftrag steht in unserem Lager in Tilburg bereit. Abholung ist kostenlos.',uTF:'Geliefert; die Rechnung folgt.',niksOpen:'Nichts offen.',geldig:'Gültig bis',datum:'Datum',bekijk2:'Ansehen',akkoord:'Zustimmen, Auftrag erteilen',afwijzen:'Ablehnen',vraagB:'Frage stellen',terugM:'Zurück zu Mein Konto',regels:'Positionen',bijOff:'Gehört zu Angebot',bijOrd:'Wurde Auftrag',pakbon:'Lieferschein ansehen',afhaal:'Abholtermin mitteilen',open2:'Was ist offen?',totaal:'Summe zzgl. MwSt.',levW:'Lieferung',lev:'Lieferung',levA:'Abholung in Tilburg (kostenlos)',levT:'Liefern lassen',levTP:'Wir holen einen Transportpreis ein und nehmen ihn in Ihr Angebot auf.',adres:'Lieferadresse',pc:'PLZ',plaats:'Ort',klep:'Hebebühne nötig (keine Laderampe)',pal:'Geschätzt',palN:'Paletten',palO:'Palettenanzahl bestimmen wir',kg:'kg',restant:'Restmenge',restantP:'Weniger als ein Umkarton auf Lager. Fragen Sie nach einem Preis für die Restmenge.',perOm:'pro Umkarton',
 hoeT:'So funktioniert es',h1:'Posten auswählen',h1p:'Legen Sie Artikel auf Ihre Angebotsliste, pro Umkarton oder pro Palette.',h2:'Angebot innerhalb von 48 Stunden',h2p:'Sie erhalten ein individuelles Angebot mit Preisen für Ihre Mengen.',h3:'Abholen oder liefern lassen',h3p:'Abholung in Tilburg ist immer kostenlos. Lieferung gewünscht? Wir holen einen Transportpreis ein und nehmen ihn in Ihr Angebot auf.',
 kaart:'Kacheln',lijst:'Postenliste',plus1:'+ 1 Karton',
 alertCat:'Mailen Sie mir neue Posten in',alertCatB:'Ja, bitte mailen',alertCatOk:'Angemeldet. Sie erhalten eine E-Mail bei neuen Posten in dieser Kategorie.',
@@ -351,7 +364,7 @@ const AGENDA=[
  {d:'28–29 okt 2026',n:'Goodies Messe',p:'Ankum (DE)'},
  {d:'4–5 nov 2026',n:'SVG Fair',p:'Winterswijk'},
 ];
-const S={lang:'nl',user:null,route:'home',cat:null,sub:null,sort:'nieuw',q:'',prod:null,quote:{},mijnTab:'open',detail:null,myReqs:[],docState:{},newOrders:[],docLink:{},view:'kaart',bid:false,lev:'afhalen',events:[],sent:null,klantSent:false,offerteNr:41};
+const S={lang:'nl',user:null,route:'home',cat:null,sub:null,sort:'nieuw',q:'',prod:null,quote:{},mijnTab:'open',detail:null,myReqs:[],docState:{},newOrders:[],docLink:{},chats:{},unreadKlant:{},unreadMichel:{},view:'kaart',bid:false,lev:'afhalen',events:[],sent:null,klantSent:false,offerteNr:41};
 let D={items:[],cats:[],totaal_publiek:{},mijn:[]};
 const t=k=>(T[S.lang][k]??T.nl[k]??k);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -412,7 +425,7 @@ function topnav(){
   const n=Object.values(S.quote).reduce((a,b)=>a+b,0);
   document.getElementById('hdrbtns').innerHTML=
    `<button class="btn cy" data-r="offerte">${t('offerte')} <span class="qcount">${Object.keys(S.quote).length}</span></button>`+
-   (S.user?`<button class="btn" data-r="mijn">${t('mijn')}${openCount()?` <span class="qcount">${openCount()}</span>`:''}</button>`:`<button class="btn" data-r="klant">${t('klant')}</button><button class="btn ghost" data-r="login">${t('login')}</button>`);
+   (S.user?`<button class="btn" data-r="mijn">${t('mijn')}${openCount()?` <span class="qcount">${openCount()}</span>`:''}${unreadK()?` <span class="dot">${unreadK()}</span>`:''}</button>`:`<button class="btn" data-r="klant">${t('klant')}</button><button class="btn ghost" data-r="login">${t('login')}</button>`);
   document.getElementById('q').placeholder=t('zoek');
   document.getElementById('foot').innerHTML=`
    <div><h4>Contact</h4><p>Rheastraat 19<br>5047 TL Tilburg<br>+31 (0)13 57 11 75 5<br>info@fvdwpartijhandel.nl</p></div>
@@ -512,7 +525,7 @@ function docDetail(){
   const rows=o.regels.map(r=>{const x=byId(r.id);if(!x)return '';const om=parseInt(x.om)||1;return `<tr><td><img class="thumb" src="f/${x.id}.jpg" alt=""></td><td class="nm"><a href="#" data-p="${x.id}">${esc(nm(x))}</a><br><small style="color:var(--muted)">${t('artnr')} ${x.id}</small></td><td class="num">${r.q} × ${om} = ${nf(r.q*om)} ${t('st')}</td><td class="num">${eur(x.p)}</td><td class="num">${eur(x.p*r.q*om)}</td></tr>`}).join('');
   const link=o.order?`<p style="margin:0">${t('bijOrd')}: <a href="#" data-doc="order:${o.order}">${o.order}</a></p>`:o.offerte?`<p style="margin:0">${t('bijOff')}: <a href="#" data-doc="offerte:${o.offerte}">${o.offerte}</a></p>`:'';
   let acts='';
-  if(type==='offerte'&&o.status==='Verstuurd') acts=`<button class="btn cy" data-docact="akkoord">${t('akkoord')}</button><button class="btn ghost" data-docact="afwijzen">${t('afwijzen')}</button><button class="btn ghost" data-docact="vraag">${t('vraagB')}</button>`;
+  if(type==='offerte'&&o.status==='Verstuurd') acts=`<button class="btn cy" data-docact="akkoord">${t('akkoord')}</button><button class="btn ghost" data-docact="afwijzen">${t('afwijzen')}</button><a href="#chat" class="btn ghost" data-act="tochat">${t('vraagB')}</a>`;
   if(type==='order'&&o.status==='Gereed') acts=`<button class="btn cy" data-docact="afhaal">${t('afhaal')}</button>`;
   if(type==='order') acts+=`<button class="btn ghost" data-docact="pakbon">${t('pakbon')}</button>`;
   return `<section class="blk"><div class="wrap" style="max-width:960px">
@@ -522,7 +535,22 @@ function docDetail(){
    <div class="box tw"><table class="t"><thead><tr><th></th><th>${t('regels')}</th><th>${t('aantalOm')}</th><th>${t('prijsSt')}</th><th></th></tr></thead><tbody>${rows}</tbody>
    <tfoot><tr><td></td><td><b>${t('totaal')}</b></td><td></td><td></td><td class="num"><b>${eur(docSum(o))}</b></td></tr></tfoot></table>
    <div style="display:grid;gap:10px;margin-top:14px">${link}${acts?`<div style="display:flex;gap:8px;flex-wrap:wrap">${acts}</div>`:''}</div></div>
+   <div style="margin-top:16px">${chatPanel(S.detail)}</div>
   </div></section>`;
+}
+const now=()=>new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+const unreadK=()=>Object.values(S.unreadKlant).reduce((a,b)=>a+b,0);
+function chatPanel(key){
+  const m=S.chats[key]||[];
+  return `<div class="box chat" id="chat"><b style="color:var(--navy)">${t('chatT')}</b><span class="src">${t('chatP')}</span>
+   ${m.length?`<div class="msgs" id="msgs">${m.map(x=>`<div class="bub ${x.from==='klant'?'me':'them'}">${esc(x.text)}<small>${x.from==='klant'?t('jij'):t('wij')+(x.naam?' · '+esc(x.naam):'')} · ${x.time}</small></div>`).join('')}</div>`:''}
+   <form class="chatin" id="chatform" data-key="${key}"><textarea id="chatin" placeholder="${t('chatPh')}" aria-label="${t('chatPh')}"></textarea><button class="btn bl" type="submit">${t('stuur')}</button></form></div>`;
+}
+function berichtenTab(){
+  const keys=Object.keys(S.chats);
+  if(!keys.length) return `<div class="box"><p>${t('geenBer')}</p></div>`;
+  return `<div class="box tw"><table class="t list"><tbody>${keys.map(k=>{const [type,nr]=k.split(':'),m=S.chats[k],last=m[m.length-1];
+    return `<tr data-doc="${k}"><td><a href="#" data-doc="${k}">${type==='offerte'?t('docOff'):t('docOrd')} ${nr}</a></td><td style="min-width:200px">${esc(last.text.slice(0,70))}${last.text.length>70?'…':''}</td><td>${last.time}</td><td>${S.unreadKlant[k]?`<span class="dot">${S.unreadKlant[k]}</span>`:''}</td></tr>`}).join('')}</tbody></table></div>`;
 }
 function palletSchatting(ids){
   let n=0,onbekend=0;
@@ -626,12 +654,13 @@ V.login=()=>`<section class="blk"><div class="wrap" style="max-width:560px"><div
   <div class="note">In dit voorbeeld log je in met de knop <b>Ingelogde klant</b> in de donkere balk bovenaan. Het land van de voorbeeldklant volgt de vlag: NL, Engeland of Duitsland.</div></div></div></section>`;
 V.mijn=()=>{
   if(!S.user) return V.login();
-  if(S.detail) return docDetail();
-  const tabs=['open','aanbod','offertes','orders','geg'];
-  const lbl={open:t('mOpen')+(openCount()?` (${openCount()})`:''),aanbod:t('mAanbod'),offertes:t('mOffertes'),orders:t('mOrders'),geg:t('mGeg')};
+  if(S.detail){delete S.unreadKlant[S.detail]; return docDetail();}
+  const tabs=['open','berichten','aanbod','offertes','orders','geg'];
+  const lbl={open:t('mOpen')+(openCount()?` (${openCount()})`:''),berichten:t('mBer')+(unreadK()?` (${unreadK()})`:''),aanbod:t('mAanbod'),offertes:t('mOffertes'),orders:t('mOrders'),geg:t('mGeg')};
   let body='';
   if(S.mijnTab==='aanbod'){body=`<div class="note" style="margin-bottom:14px">${t('aanbodP')}</div><div class="grid">${D.mijn.map(byId).map(card).join('')}</div>`}
   if(S.mijnTab==='open') body=openOverview();
+  if(S.mijnTab==='berichten') body=berichtenTab();
   if(S.mijnTab==='offertes') body=docTable('offerte',docs().offertes)+`<p class="src">Voorbeeldregels. In de echte site komen deze uit <b>offertes</b> en <b>offerte_regels</b> in het Salesbureau, alleen die van deze klant.</p>`;
   if(S.mijnTab==='orders') body=docTable('order',docs().orders)+`<p class="src">Voorbeeldregels. Statussen zijn die uit MyBusiness en het Salesbureau (In bewerking, Gereed, Geleverd, Te factureren, Afgesloten).</p>`;
   if(S.mijnTab==='geg'){body=`<div class="box"><div class="form"><div class="field"><label>${t('bedrijf')}</label><input value="${esc(S.user.naam)}" readonly></div><div class="field"><label>${t('land')}</label><input value="${S.user.land}" readonly></div><div class="field"><label>${t('kvk')}</label><input value="12345678" readonly></div><div class="field"><label>${t('btw')}</label><input value="${S.user.land}000000000B01" readonly></div></div><p class="src">Komt uit de tabel klanten. Wijzigingen gaan als verzoek naar Michel.</p></div>
@@ -697,12 +726,20 @@ const SRC={
  offerte:'Versturen maakt een rij in <b>offertes</b> (status Aanvraag, bron website) met <b>offerte_regels</b> in omdozen. Michel ziet die direct onder Offertes in het Salesbureau.',
  klant:'Aanmelden maakt een prospect in <b>klanten</b>, met KvK, btw en interesses. Pas na goedkeuren in het Salesbureau gaat er een inloglink naar de klant.',
  login:'Inloggen met een inloglink per mail (Supabase Auth). De koppeling login ↔ klant staat in een nieuwe tabel <b>klant_accounts</b>.',
- mijn:'Klantomgeving: toegangsregels in Supabase zorgen dat een klant alleen eigen offertes, orders en gegevens ziet. Persoonlijk aanbod: artikelen die niet openbaar zijn, voor deze klant geselecteerd.',
+ mijn:'Klantomgeving met berichten per offerte en order (tabel <b>berichten</b>: klant_id, offerte/order, afzender, tekst, gelezen). Toegangsregels in Supabase zorgen dat een klant alleen eigen offertes, orders en gegevens ziet. Persoonlijk aanbod: artikelen die niet openbaar zijn, voor deze klant geselecteerd.',
  aanbieden:'Een aangeboden partij komt bij <b>Opvolging</b> in het Salesbureau als inkoopkans, met de bijlagen in Supabase-opslag.',
  agenda:'Agenda-items komen uit een nieuwe tabel <b>agenda</b>, te beheren in het Salesbureau.',
  contact:'Contactformulier gaat naar <b>Opvolging</b> en als mail naar info@.',
  over:'Vaste tekst in drie talen.',voorstel:'Het voorstel zelf; staat ook als bestand in de projectmap website/voorstel.md.'};
+function renderInbox(){
+  const keys=Object.keys(S.chats).filter(k=>S.chats[k].length);
+  const n=Object.values(S.unreadMichel).reduce((a,b)=>a+b,0);
+  document.getElementById('inbox').innerHTML=keys.length?`<div class="inbox"><b>Salesbureau · Vragen van klanten ${n?`<span class="dot">${n}</span>`:''}</b>
+   ${keys.map(k=>{const m=S.chats[k],last=m[m.length-1];return `<div class="ev"><div class="when">${k.replace(':',' ')} · ${esc(S.user?S.user.naam:'klant')}</div>${S.unreadMichel[k]?'<b>Nieuwe vraag</b><br>':'<span class="st g">Beantwoord</span><br>'}“${esc((m.filter(x=>x.from==='klant').pop()||last).text)}”
+   <form class="replyform" data-key="${k}"><textarea aria-label="Antwoord als Michel" placeholder="Antwoord als Michel..."></textarea><button class="btn bl sm" type="submit" style="margin-top:6px">Antwoord versturen</button></form></div>`}).join('')}</div>`:'';
+}
 function renderDrawer(){
+  renderInbox();
   document.getElementById('srcinfo').innerHTML=`<b>Op deze pagina</b><br>${SRC[S.route]||''}`;
   document.getElementById('events').innerHTML=S.events.length?S.events.map(e=>`<div class="ev"><div class="when">${e.when} · ${esc(e.table||'')}</div><b>${esc(e.title)}</b>${e.body?`<pre>${esc(e.body)}</pre>`:''}</div>`).join(''):
    '<p class="src">Nog niets gebeurd. Vraag een offerte aan, meld je aan als klant of bied een partij aan: hier zie je wat er in het Salesbureau binnenkomt.</p>';
@@ -740,6 +777,7 @@ document.addEventListener('click',e=>{
   if(d.tab){S.mijnTab=d.tab; S.detail=null; render(); return}
   if(d.act==='logout'){S.user=null; S.detail=null; go('home'); return}
   if(d.act==='terugmijn'){S.detail=null; render(); return}
+  if(d.act==='tochat'){const c=document.getElementById('chatin'); c&&c.focus(); document.getElementById('chat').scrollIntoView({behavior:'smooth',block:'center'}); return}
   if(d.act==='magic'){log('Inloglink verstuurd naar inkoop@voorbeeld.nl','Supabase Auth stuurt een eenmalige link.\nAlleen als het adres bij een goedgekeurde klant hoort.','auth'); openDrawer(); return}
   if(d.act==='alert'){log('Aanmelding Handel alert','Komt in de Mailchimp-lijst met taal '+S.lang.toUpperCase()+'\nen als prospect in klanten (bron: website).','mailchimp + klanten'); openDrawer(); return}
   if(d.act==='alertcat'){log('Handel alert per categorie',`Mailchimp: interesse ${catName(S.sub||S.cat)} (${S.sub||S.cat})\n${S.user?'klant: '+S.user.naam+'\nklanten.interesses bijgewerkt':'nieuw adres → bevestigingsmail (dubbele opt-in)'}`,'mailchimp + klanten'); a.closest('.alertcat').innerHTML='<p>'+t('alertCatOk')+'</p>'; openDrawer(); return}
@@ -772,6 +810,14 @@ document.addEventListener('submit',e=>{
     log('Nieuwe aanmelding: wacht op goedkeuring',`klanten: ${v('k-b')}\n  type: prospect   bron: website\n  kvk: ${v('k-k')}   btw: ${v('k-btw')}\n  land: ${v('k-l')}   taal: ${S.lang.toUpperCase()}\n  interesses: ${ints}\nSalesbureau: knop "Goedkeuren" stuurt de inloglink.`,'klanten');
     S.klantSent=true; render(); openDrawer(); return}
   if(f.id==='aanbiedform'){log('Partij aangeboden',`opvolging: inkoopkans\n  van: ${document.getElementById('a-b').value}\n  ${document.getElementById('a-o').value}`,'opvolging'); f.innerHTML='<div class="ok">'+(S.lang==='nl'?'Bedankt, we reageren binnen 48 uur.':'Thank you, we will reply within 48 hours.')+'</div>'; openDrawer(); return}
+  if(f.id==='chatform'){const k=f.dataset.key,txt=document.getElementById('chatin').value.trim(); if(!txt) return;
+    (S.chats[k]=S.chats[k]||[]).push({from:'klant',text:txt,time:now()}); S.unreadMichel[k]=(S.unreadMichel[k]||0)+1;
+    log('Melding voor Michel: nieuwe vraag',`${k.replace(':',' ')} · ${S.user.naam}\n“${txt}”\nmeldingen: teller in het Salesbureau + mail naar info@\n(later: pushmelding op telefoon)`,'berichten');
+    render(); openDrawer(); const ms=document.getElementById('msgs'); if(ms) ms.scrollTop=ms.scrollHeight; return}
+  if(f.classList.contains('replyform')){const k=f.dataset.key,txt=f.querySelector('textarea').value.trim(); if(!txt) return;
+    (S.chats[k]=S.chats[k]||[]).push({from:'fvdw',naam:'Michel',text:txt,time:now()}); delete S.unreadMichel[k]; S.unreadKlant[k]=(S.unreadKlant[k]||0)+1;
+    log('Antwoord verstuurd aan klant',`${k.replace(':',' ')}\nklant ziet het in Mijn omgeving > Berichten\nen krijgt een mail: "Je hebt antwoord op je vraag"`,'berichten');
+    render(); const ms=document.getElementById('msgs'); if(ms) ms.scrollTop=ms.scrollHeight; return}
   if(f.id==='bidform'){const x=byId(S.prod),bod=+document.getElementById('bid-p').value||0;
     log('Bod op de hele partij',`offertes: status Bod   bron: website\n  klant: ${S.user.naam}\n  ${x.id} ${x.nl}\n  ${nf(x.v)} st. × ${eur(bod)} = ${eur(bod*x.v)}\n  vraagprijs ${eur(x.p)} (bod ${Math.round(bod/x.p*100)}%)`,'offertes');
     S.bid=x.id; render(); openDrawer(); return}

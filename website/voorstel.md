@@ -50,6 +50,7 @@ Wat het voorbeeld laat zien en wat de huidige site niet heeft:
 | Labels **Nieuw** (laatste 3 weken binnen) en **Restant** (minder dan 1 omdoos) | Nieuw trekt herhaalbezoek; bij een restant ziet de klant direct dat hij moet bellen, net als nu op de site |
 | **Handel alert per categorie** ("mail mij bij nieuwe partijen in Koken & tafelen") | Meer en betere aanmeldingen; past op de interesses in Mailchimp |
 | **Openstaand** in de klantomgeving, met klikbare offertes en orders (regels, status, wat er nog moet gebeuren). Offerte online accepteren wordt direct een order; afhaalmoment doorgeven; pakbon bekijken | Klant ziet zelf wat er openstaat, minder bellen en mailen; akkoord komt meteen in het Salesbureau |
+| **Chat per offerte en order**: de klant stelt zijn vraag bij de offerte of order, jij antwoordt vanuit het Salesbureau, het hele gesprek blijft bij dat document. Tabblad Berichten met ongelezen-teller | Geen losse mails meer; vragen komen bij het juiste document binnen |
 | **Mijn interesses** in de klantomgeving | Klant houdt zelf bij wat hij wil krijgen; stuurt het persoonlijke aanbod en de mails |
 | **Landfilter met uitleg**: ingelogde klant ziet hoeveel artikelen voor zijn land verborgen zijn, en op de productpagina waar een artikel niet leverbaar is | Verkoopafspraken worden automatisch nageleefd |
 | **Leverkeuze** op de offertelijst: afhalen (gratis) of laten bezorgen, met palletschatting | Transportprijs komt automatisch in de offerte, zie Levering en transport |
@@ -57,6 +58,16 @@ Wat het voorbeeld laat zien en wat de huidige site niet heeft:
 | **WhatsApp-knop** (bestaat nu ook) en **Deel via WhatsApp** op elke partij | Handelaren sturen partijen door aan hun eigen klanten |
 | **Showroom op afspraak** bij Over ons | Zaterdag op afspraak staat nu alleen bij de openingstijden |
 | **Werkende aanmelding** met KvK, btw, land, soort bedrijf en interesses | De huidige pagina Klant worden is kapot |
+
+## Meldingen bij vragen van klanten
+
+Stelt een klant een vraag, dan krijg jij een melding:
+1. **Teller in het Salesbureau**, plus een lijst "Vragen van klanten" waar je direct antwoordt. Werkt meteen.
+2. **Mail naar info@** (of naar jouw adres) met de vraag en een link naar het gesprek. Werkt meteen.
+3. **Pushmelding op je telefoon.** Dat kan zodra het Salesbureau een eigen webadres heeft (bijvoorbeeld `sales.fvdwpartijhandel.nl`) en je het als app op je beginscherm zet. Als artifact kan het Salesbureau geen pushmeldingen sturen.
+4. Optioneel **WhatsApp-melding** via de WhatsApp Business API; dat kost per gesprek een klein bedrag en vraagt een zakelijk WhatsApp-account.
+
+De klant krijgt bij jouw antwoord een mail ("Je hebt antwoord op je vraag") en ziet een teller bij Mijn omgeving. Nodig in Supabase: tabel `berichten` (klant, offerte of order, afzender, tekst, gelezen), met toegangsregels zodat een klant alleen zijn eigen gesprekken ziet.
 
 ## Levering en transport
 
