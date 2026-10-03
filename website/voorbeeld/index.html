@@ -467,6 +467,16 @@ function log(title,body,table){
   renderDrawer();
 }
 
+// Foto's: de meeste staan als los bestand in f/; een deel zit (wegens het maximum aantal bestanden per artifact) gebundeld in f/extra.json.
+const PIX='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+const FX={}; let XSET=new Set();
+const fsrc=id=>XSET.has(id)?(FX[id]||PIX):'f/'+id+'.jpg';
+async function loadExtra(){
+  try{const r=await fetch('f/extra.json'); const j=await r.json();
+    for(const [id,b64] of Object.entries(j)) FX[id]='data:image/jpeg;base64,'+b64;
+    document.querySelectorAll('img[data-fid]').forEach(im=>{const id=im.dataset.fid; if(FX[id]) im.src=FX[id]});
+  }catch(e){}
+}
 /* ---------- pieces ---------- */
 function priceHtml(x){
   if(!S.user) return `<span class="lock">🔒 ${t('prijsNa')}</span>`;
@@ -477,7 +487,7 @@ function card(x){
   const pill=x.st==='niet_op_site'?`<span class="pill cy">${t('persoonlijk')}</span>`:x.st==='alleen_inlog'?`<span class="pill wn">${t('alleenInlog')}</span>`:isNew(x)?`<span class="pill nw">${t('nieuwB')}</span>`:'';
   const rest=isRest(x)?`<span class="pill rs">${t('restant')}</span>`:'';
   return `<article class="card" data-p="${x.id}" tabindex="0">
-   <div class="ph">${pill}${rest}<img loading="lazy" src="f/${x.id}.jpg" alt=""></div>
+   <div class="ph">${pill}${rest}<img loading="lazy" src="${fsrc(x.id)}" data-fid="${x.id}" alt=""></div>
    <div class="body"><h3>${esc(nm(x))}</h3>${priceHtml(x)}
    <div class="strip"><div><span class="k">${t('voorraad')}</span><span class="v">${nf(x.v)}</span></div>
    <div><span class="k">${t('omdoos')}</span><span class="v">${x.om?x.om+' '+t('st'):'–'}</span></div></div></div></article>`;
@@ -502,7 +512,7 @@ function topnav(){
 const V={};
 V.home=()=>{
   const nieuw=D.items.filter(x=>x.st==='publiek').sort((a,b)=>b.d.localeCompare(a.d)).slice(0,10);
-  const tot=Object.values(D.totaal_publiek).reduce((a,b)=>a+b,0);
+  const zicht=D.items.filter(x=>visible(x)&&x.st!=='niet_op_site'), tot=zicht.length;
   const hoofd=D.cats.filter(c=>c.n==='hoofd');
   return `<section class="hero"><img src="img/magazijn.jpg" alt=""><div class="wrap">
    <h1>${t('heroT')}</h1><p>${t('heroP')}</p>
@@ -522,7 +532,7 @@ V.home=()=>{
    ${trustBlock()}
    <section class="blk" style="padding-top:0"><div class="wrap">
     <div class="sh"><h2>${t('cats')}</h2></div>
-    <div class="cats">${hoofd.map(c=>`<button class="cat" data-cat="${c.c}"><b>${esc(c[S.lang])}</b><span class="num">${D.totaal_publiek[c.c]||0}</span></button>`).join('')}</div></div></section>
+    <div class="cats">${hoofd.map(c=>`<button class="cat" data-cat="${c.c}"><b>${esc(c[S.lang])}</b><span class="num">${zicht.filter(x=>x.h===c.c).length}</span></button>`).join('')}</div></div></section>
    <section class="blk" style="padding-top:0"><div class="wrap split">
     <div class="panel c"><h3>${t('aanbiedenT')}</h3><p>${t('aanbiedenP')}</p><button class="btn" data-r="aanbieden">${t('aanbiedenB')}</button></div>
     <div class="panel i"><h3>${t('agendaT')}</h3><p>${t('agendaP')}</p>${AGENDA.map(a=>`<div class="agenda-row"><span class="d">${a.d}</span><span><b>${a.n}</b><br>${a.p}</span></div>`).join('')}<button class="btn bl sm" data-r="agenda">${t('agenda')} →</button></div>
@@ -590,7 +600,7 @@ function docDetail(){
   const [type,nr]=S.detail.split(':'),d=docs(),o=(type==='offerte'?d.offertes:d.orders).find(x=>x.nr===nr);
   if(!o){S.detail=null;return V.mijn()}
   const m=STATUS[o.status]||[];
-  const rows=o.regels.map(r=>{const x=byId(r.id);if(!x)return '';const om=parseInt(x.om)||1;return `<tr><td><img class="thumb" src="f/${x.id}.jpg" alt=""></td><td class="nm"><a href="#" data-p="${x.id}">${esc(nm(x))}</a><br><small style="color:var(--muted)">${t('artnr')} ${x.id}</small></td><td class="num">${r.q} × ${om} = ${nf(r.q*om)} ${t('st')}</td><td class="num">${eur(x.p)}</td><td class="num">${eur(x.p*r.q*om)}</td></tr>`}).join('');
+  const rows=o.regels.map(r=>{const x=byId(r.id);if(!x)return '';const om=parseInt(x.om)||1;return `<tr><td><img class="thumb" src="${fsrc(x.id)}" data-fid="${x.id}" alt=""></td><td class="nm"><a href="#" data-p="${x.id}">${esc(nm(x))}</a><br><small style="color:var(--muted)">${t('artnr')} ${x.id}</small></td><td class="num">${r.q} × ${om} = ${nf(r.q*om)} ${t('st')}</td><td class="num">${eur(x.p)}</td><td class="num">${eur(x.p*r.q*om)}</td></tr>`}).join('');
   const link=o.order?`<p style="margin:0">${t('bijOrd')}: <a href="#" data-doc="order:${o.order}">${o.order}</a></p>`:o.offerte?`<p style="margin:0">${t('bijOff')}: <a href="#" data-doc="offerte:${o.offerte}">${o.offerte}</a></p>`:'';
   let acts='';
   if(type==='offerte'&&o.status==='Verstuurd') acts=`<button class="btn cy" data-docact="akkoord">${t('akkoord')}</button><button class="btn ghost" data-docact="afwijzen">${t('afwijzen')}</button><a href="#chat" class="btn ghost" data-act="tochat">${t('vraagB')}</a>`;
@@ -629,7 +639,7 @@ function palletSchatting(ids){
 function listTable(l){
   if(!l.length) return '<p>–</p>';
   return `<div class="box tw" style="padding:8px"><table class="t list"><thead><tr><th></th><th>${S.lang==='nl'?'Artikel':S.lang==='de'?'Artikel':'Item'}</th><th>${t('artnr')}</th><th>${t('voorraad')}</th><th>${t('omdoos')}</th><th>${t('pallet')}</th><th>${S.user?t('prijsSt'):''}</th><th></th></tr></thead><tbody>
-  ${l.map(x=>`<tr data-p="${x.id}"><td><img class="thumb" loading="lazy" src="f/${x.id}.jpg" alt=""></td><td class="nm">${esc(nm(x))}${isNew(x)?` <span class="st a">${t('nieuwB')}</span>`:''}${isRest(x)?` <span class="st o">${t('restant')}</span>`:''}</td><td>${x.id}</td><td>${nf(x.v)}</td><td>${x.om||'–'}</td><td>${x.pa?nf(+x.pa):'–'}</td><td>${S.user?eur(x.p):'🔒'}</td>
+  ${l.map(x=>`<tr data-p="${x.id}"><td><img class="thumb" loading="lazy" src="${fsrc(x.id)}" data-fid="${x.id}" alt=""></td><td class="nm">${esc(nm(x))}${isNew(x)?` <span class="st a">${t('nieuwB')}</span>`:''}${isRest(x)?` <span class="st o">${t('restant')}</span>`:''}</td><td>${x.id}</td><td>${nf(x.v)}</td><td>${x.om||'–'}</td><td>${x.pa?nf(+x.pa):'–'}</td><td>${S.user?eur(x.p):'🔒'}</td>
   <td><button class="btn ${S.quote[x.id]?'ghost':'cy'} sm" data-plus="${x.id}">${S.quote[x.id]?S.quote[x.id]+' ✓':t('plus1')}</button></td></tr>`).join('')}</tbody></table></div>`;
 }
 V.product=()=>{
@@ -669,7 +679,7 @@ V.product=()=>{
 V.offerte=()=>{
   const ids=Object.keys(S.quote);
   if(S.sent) return `<section class="blk"><div class="wrap" style="max-width:760px"><div class="ok">${t('verzonden')}</div><p style="margin-top:14px">${S.lang==='nl'?'Aanvraagnummer':'Request no.'} <b class="num">${S.sent}</b></p><button class="btn bl" data-r="partijen">${t('bekijk')}</button></div></section>`;
-  const rows=ids.map(id=>{const x=byId(id),om=parseInt(x.om)||1;return `<tr><td><img class="thumb" src="f/${id}.jpg" alt=""></td><td style="min-width:200px">${esc(nm(x))}<br><small class="num" style="color:var(--muted)">${t('artnr')} ${id}</small></td>
+  const rows=ids.map(id=>{const x=byId(id),om=parseInt(x.om)||1;return `<tr><td><img class="thumb" src="${fsrc(id)}" data-fid="${id}" alt=""></td><td style="min-width:200px">${esc(nm(x))}<br><small class="num" style="color:var(--muted)">${t('artnr')} ${id}</small></td>
     <td class="num">${S.quote[id]} × ${om} = ${nf(S.quote[id]*om)} ${t('st')}</td>${S.user?`<td class="num">${eur(x.p*S.quote[id]*om)}</td>`:''}<td><button class="btn ghost sm" data-del="${id}">✕</button></td></tr>`}).join('');
   const tot=ids.reduce((a,id)=>{const x=byId(id);return a+x.p*S.quote[id]*(parseInt(x.om)||1)},0);
   const guestForm=S.user?`<div class="note">${S.lang==='nl'?'Je bent ingelogd als':'Logged in as'} <b>${esc(S.user.naam)}</b>. ${S.lang==='nl'?'Je bedrijfsgegevens zijn al bekend.':''}</div>
@@ -852,16 +862,16 @@ function specRow3(x){
 }
 function gallery(x){
   const f=S.foto||'p';
-  return `<div class="ph"><img src="${f==='pa'?'img/magazijn.jpg':'f/'+x.id+'.jpg'}" alt="${esc(nm(x))}"${f==='pa'?' style="object-fit:cover;padding:0"':''}>${f==='pa'?`<span class="cap">${t('fotoPa')} · ${S.lang==='nl'?'voorbeeld':S.lang==='de'?'Beispiel':'example'}</span>`:''}</div>
+  return `<div class="ph"><img src="${f==='pa'?'img/magazijn.jpg':fsrc(x.id)}"${f==='pa'?'':` data-fid="${x.id}"`} alt="${esc(nm(x))}"${f==='pa'?' style="object-fit:cover;padding:0"':''}>${f==='pa'?`<span class="cap">${t('fotoPa')} · ${S.lang==='nl'?'voorbeeld':S.lang==='de'?'Beispiel':'example'}</span>`:''}</div>
    <div class="gal" role="group" aria-label="${S.lang==='nl'?"Foto's":S.lang==='de'?'Fotos':'Photos'}">
-    <button class="${f==='p'?'on':''}" data-foto="p" aria-label="${t('fotoP')}" aria-pressed="${f==='p'}"><img src="f/${x.id}.jpg" alt=""></button>
+    <button class="${f==='p'?'on':''}" data-foto="p" aria-label="${t('fotoP')}" aria-pressed="${f==='p'}"><img src="${fsrc(x.id)}" data-fid="${x.id}" alt=""></button>
     <button class="${f==='pa'?'on':''}" data-foto="pa" aria-label="${t('fotoPa')}" aria-pressed="${f==='pa'}"><img src="img/magazijn.jpg" alt=""></button></div>`;
 }
 function soldView(x){
   const rel=D.items.filter(y=>y.s===x.s&&visible(y)&&y.st!=='niet_op_site').sort((a,b)=>b.d.localeCompare(a.d)).slice(0,8);
   return `<section class="blk"><div class="wrap">
    <p><a href="#" data-r="partijen">← ${t('terug')}</a> · <span style="color:var(--muted)">${esc(catName(x.h))} / ${esc(catName(x.s))}</span></p>
-   <div class="pd"><div class="ph sold"><span class="pill rs">${t('uitv')}</span><img src="f/${x.id}.jpg" alt="${esc(nm(x))}"></div>
+   <div class="pd"><div class="ph sold"><span class="pill rs">${t('uitv')}</span><img src="${fsrc(x.id)}" data-fid="${x.id}" alt="${esc(nm(x))}"></div>
    <div style="display:flex;flex-direction:column;gap:16px;min-width:0"><h1>${esc(nm(x))}</h1>
     <div class="note wn">${t('uitvP')}</div>
     <div class="alertcat" style="margin-top:0"><p>${t('alertCat')} <b>${esc(catName(x.s))}</b></p><button class="btn cy sm" data-act="uitvalert">${t('alertCatB')}</button></div>
@@ -1143,7 +1153,7 @@ document.getElementById('as-guest').onclick=()=>{S.user=null;render()};
 document.getElementById('as-klant').onclick=()=>{S.user=USERS[S.lang];render()};
 
 (async()=>{
-  try{const r=await fetch('data.json'); D=await r.json(); NEWEST=D.items.reduce((m,x)=>x.d>m?x.d:m,'');}catch(e){document.getElementById('main').innerHTML='<div class="wrap blk"><p>De voorbeelddata kon niet worden geladen.</p></div>';return}
+  try{const r=await fetch('data.json'); D=await r.json(); NEWEST=D.items.reduce((m,x)=>x.d>m?x.d:m,''); XSET=new Set(D.fx||[]); loadExtra();}catch(e){document.getElementById('main').innerHTML='<div class="wrap blk"><p>De voorbeelddata kon niet worden geladen.</p></div>';return}
   const h=(location.hash||'').slice(1); if(V[h]&&h!=='product') S.route=h;
   render();
 })();
