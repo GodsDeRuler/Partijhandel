@@ -51,12 +51,28 @@ Wat het voorbeeld laat zien en wat de huidige site niet heeft:
 | **Handel alert per categorie** ("mail mij bij nieuwe partijen in Koken & tafelen") | Meer en betere aanmeldingen; past op de interesses in Mailchimp |
 | **Mijn interesses** in de klantomgeving | Klant houdt zelf bij wat hij wil krijgen; stuurt het persoonlijke aanbod en de mails |
 | **Landfilter met uitleg**: ingelogde klant ziet hoeveel artikelen voor zijn land verborgen zijn, en op de productpagina waar een artikel niet leverbaar is | Verkoopafspraken worden automatisch nageleefd |
+| **Leverkeuze** op de offertelijst: afhalen (gratis) of laten bezorgen, met palletschatting | Transportprijs komt automatisch in de offerte, zie Levering en transport |
 | **Zo werkt het** in drie stappen op de home | Nieuwe bezoekers snappen meteen dat het om offertes gaat, niet om bestellen |
 | **WhatsApp-knop** (bestaat nu ook) en **Deel via WhatsApp** op elke partij | Handelaren sturen partijen door aan hun eigen klanten |
 | **Showroom op afspraak** bij Over ons | Zaterdag op afspraak staat nu alleen bij de openingstijden |
 | **Werkende aanmelding** met KvK, btw, land, soort bedrijf en interesses | De huidige pagina Klant worden is kapot |
 
-Na te vragen bij Michel: de tekst "klaargezet voor afhalen of transport" in stap 3 is afgeleid (eigen vrachtwagen, vervoerders in het Salesbureau), niet bevestigd.
+## Levering en transport
+
+**Afhalen** in Tilburg kan altijd en is gratis (Michel, 3 oktober). **Transport** moet per keer bij een transportbedrijf worden opgevraagd. In het voorbeeld kiest de klant op de offertelijst tussen *Afhalen in Tilburg (gratis)* en *Laten bezorgen*. Bij bezorgen vult hij adres, land en laadklep in, en de site schat het aantal pallets.
+
+Automatiseren gaat in drie stappen:
+
+1. **Aanvraag klaar in één klik.** De transportvraag komt met adres, pallets en gewicht bij de offerte in het Salesbureau. Eén knop stuurt een aanvraagmail naar je vaste vervoerders. De tabel `vervoerders` is nog leeg: daarvoor zijn namen en mailadressen nodig.
+2. **Directe prijs via een palletplatform.** De site vraagt automatisch een prijs op bij een platform met een koppeling (API) en het Salesbureau toont die prijs plus jouw opslag. Met één klik staat hij als regel "Transport" in de offerte; geboekt wordt pas na akkoord van de klant. Platforms met een gedocumenteerde koppeling voor pallets in Europa zijn [Eurosender](https://www.eurosender.com/en/public-api) en [Cargoboard](https://cargoboard.com/use-cases/automation). Nederlandse platforms met online palletprijzen zijn [Quicargo](https://quicargo.com/nl/pallet-versturen/), [Boekuwzending](https://boekuwzending.com/pallet-transport/) en [Zipmend](https://zipmend.com/nl/pallet-versturen/); of die een koppeling hebben, is niet gecontroleerd. Vergelijk eerst een paar recente ritten met wat je nu betaalt.
+3. **Indicatieprijs direct op de site** (later). Dit pas doen als de palletgegevens compleet zijn en de prijzen van stap 2 betrouwbaar blijken.
+
+Wat daarvoor nodig is:
+- **Palletinhoud per artikel.** Die is bekend voor 440 van de 1.154 artikelen. De omdoosinhoud is bekend voor 814 artikelen.
+- **Gewicht per artikel.** Dat staat in de grote artikelexport bij 528 artikelen, maar nog niet in Supabase.
+- **Account en sleutel.** Een zakelijk account bij het gekozen platform, met een API-sleutel die je zelf bij Vercel invult.
+
+Zonder palletgegevens schat de site niets en bepaal jij het aantal pallets.
 
 ## Opbouw
 
