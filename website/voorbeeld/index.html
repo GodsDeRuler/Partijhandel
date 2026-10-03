@@ -1,0 +1,630 @@
+<title>Nieuwe fvdwpartijhandel.nl</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<style>
+/* Layout: brand website of the existing house style (white header, cyan top bar, navy footer), wrapped in a thin dark demo bar. Single light theme on purpose: it mirrors the live site. */
+:root{
+  --blue:#0060F0; --navy:#0E2B5D; --cyan:#4BD7E3; --ice:#EDF8FF;
+  --ink:#0B1730; --muted:#4F5F7A; --line:#D5E4F2; --paper:#FFFFFF; --ground:#F6FAFE;
+  --ok:#0E7A4F; --warn:#9A5B00; --warnbg:#FFF4DE;
+  --demo:#111A2E; --demofg:#E6EEF9;
+  --f-body:'Montserrat',Arial,Helvetica,sans-serif;
+  --f-label:'Barlow Condensed','Arial Narrow',Arial,sans-serif;
+  --r-pill:60px; --r-card:14px;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{background:var(--ground);color:var(--ink)}
+body{font-family:var(--f-body);font-size:15px;line-height:1.55;margin:0}
+a{color:var(--blue)}
+button{font-family:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px}
+h1,h2,h3{text-wrap:balance;line-height:1.15;margin:0}
+.lbl{font-family:var(--f-label);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.num{font-variant-numeric:tabular-nums}
+
+/* demo bar */
+@media (max-width:700px){.demo{position:static!important}}
+.demo{background:var(--demo);color:var(--demofg);font-size:13px;position:sticky;top:env(safe-area-inset-top,0px);z-index:40}
+.demo .wrap{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding-block:8px}
+.demo .tag{font-family:var(--f-label);font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--cyan);color:var(--demo);padding:2px 8px;border-radius:4px}
+.demo .grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.demo .grp span{opacity:.7;margin-right:2px}
+.demo button{background:transparent;color:var(--demofg);border:1px solid #3A4A6B;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12.5px}
+.demo button[aria-pressed="true"]{background:var(--demofg);color:var(--demo);border-color:var(--demofg)}
+.demo .sp{flex:1}
+.badge{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--cyan);color:var(--demo);font-weight:700;font-size:11px;text-align:center;margin-left:4px}
+
+/* site header */
+.top{background:var(--cyan)}
+.top .wrap{display:flex;gap:4px 22px;flex-wrap:wrap;align-items:center;min-height:38px;padding-block:4px}
+.top a{color:var(--blue);font-weight:600;text-decoration:none;font-size:15px;cursor:pointer}
+.top a:hover,.top a.on{color:var(--navy)}
+.top .langs{margin-left:auto;display:flex;gap:6px}
+.top .langs button{border:0;background:transparent;font-weight:700;color:var(--blue);cursor:pointer;padding:2px 4px;border-radius:4px}
+.top .langs button.on{background:var(--paper);color:var(--navy)}
+.hdr{background:var(--paper);border-bottom:1px solid var(--line)}
+.hdr .wrap{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding-block:14px}
+.hdr .logo{height:44px;width:auto;cursor:pointer;max-width:100%}
+.search{flex:1 1 220px;display:flex;background:var(--ice);border-radius:90px;padding:4px 6px 4px 18px;min-width:0}
+.search input{flex:1;border:0;background:transparent;font:inherit;color:var(--blue);min-width:0;outline:none}
+.search input::placeholder{color:var(--blue);opacity:.75}
+.search button{border:0;background:var(--blue);color:#fff;border-radius:50%;width:34px;height:34px;cursor:pointer;flex:none}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:var(--r-pill);padding:11px 22px;font-size:15px;font-weight:600;cursor:pointer;text-decoration:none;color:#fff;background:var(--navy);white-space:nowrap}
+.btn.cy{background:var(--cyan);color:var(--navy)}
+.btn.bl{background:var(--blue)}
+.btn.ghost{background:var(--ice);color:var(--navy)}
+.btn:hover{filter:brightness(1.08)}
+.btn.sm{padding:7px 14px;font-size:13.5px}
+.qcount{background:#fff;color:var(--navy);border-radius:10px;padding:0 7px;font-size:12px;font-weight:800}
+
+/* main */
+main{min-height:60vh}
+.hero{position:relative;background:var(--navy);color:#fff;overflow:hidden}
+.hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.45}
+.hero .wrap{position:relative;padding-block:56px 48px;display:grid;gap:18px}
+.hero h1{font-size:clamp(30px,5vw,52px);font-weight:900;text-transform:uppercase;letter-spacing:-.01em;max-width:18ch}
+.hero p{font-size:clamp(16px,2vw,21px);max-width:44ch;margin:0}
+.hero .ctas{display:flex;gap:10px;flex-wrap:wrap}
+.facts{background:var(--paper);border-bottom:1px solid var(--line)}
+.facts .wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0}
+.facts div{padding:16px 18px;border-left:1px solid var(--line)}
+.facts div:first-child{border-left:0}
+.facts b{display:block;font-size:22px;color:var(--blue);font-weight:800}
+.facts span{color:var(--muted);font-size:13.5px}
+section.blk{padding-block:40px}
+.sh{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.sh h2{font-size:26px;font-weight:800;text-transform:uppercase;color:var(--navy)}
+.sh p{margin:4px 0 0;color:var(--muted)}
+
+/* product cards as pallet labels */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden;display:flex;flex-direction:column;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.card:hover{transform:translateY(-2px);box-shadow:0 10px 24px -14px rgba(14,43,93,.45)}
+.card .ph{aspect-ratio:1/1;background:#fff;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line);position:relative;max-width:100%}
+.card .ph img{width:100%;height:100%;object-fit:contain;padding:10px}
+.card .body{padding:12px 14px;display:flex;flex-direction:column;gap:8px;flex:1}
+.card h3{font-size:14.5px;font-weight:600;color:var(--ink);line-height:1.3}
+.strip{display:grid;grid-template-columns:1fr 1fr;border-top:1px dashed var(--line);margin-top:auto;padding-top:8px;gap:4px 8px}
+.strip div{min-width:0}
+.strip .k{font-family:var(--f-label);text-transform:uppercase;letter-spacing:.06em;font-size:11.5px;color:var(--muted);display:block}
+.strip .v{font-weight:700;font-size:13.5px;font-variant-numeric:tabular-nums}
+.price{font-weight:800;color:var(--navy);font-size:17px;font-variant-numeric:tabular-nums}
+.price small{font-weight:500;color:var(--muted);font-size:12px}
+.lock{font-size:13px;color:var(--blue);font-weight:600}
+.pill{position:absolute;top:8px;left:8px;font-family:var(--f-label);text-transform:uppercase;letter-spacing:.05em;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:5px;background:var(--navy);color:#fff}
+.pill.cy{background:var(--cyan);color:var(--navy)}
+.pill.wn{background:var(--warnbg);color:var(--warn)}
+
+.cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.cat{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:baseline;text-align:left;font:inherit;color:var(--ink)}
+.cat:hover{border-color:var(--blue);color:var(--blue)}
+.cat b{font-weight:600}
+.cat span{font-family:var(--f-label);color:var(--muted);font-size:15px}
+
+.split{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.panel{border-radius:25px;padding:26px;display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+.panel h3{font-size:22px;font-weight:800;text-transform:uppercase}
+.panel.b{background:var(--blue);color:#fff}
+.panel.c{background:var(--cyan);color:var(--navy)}
+.panel.i{background:var(--ice);color:var(--navy)}
+.panel p{margin:0}
+.agenda-row{display:flex;gap:14px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(14,43,93,.18);width:100%}
+.agenda-row .d{font-family:var(--f-label);font-weight:700;font-size:20px;min-width:92px}
+
+/* catalogue */
+.cat-layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:820px){.cat-layout{grid-template-columns:minmax(0,1fr)}}
+.side{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-card);padding:10px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 52px)}
+@media (max-width:820px){.side{position:static}}
+.side button{display:flex;justify-content:space-between;width:100%;border:0;background:transparent;text-align:left;padding:7px 10px;border-radius:8px;cursor:pointer;color:var(--ink);font-size:14px;gap:8px}
+.side button:hover{background:var(--ice)}
+.side button.on{background:var(--navy);color:#fff}
+.side button.sub{padding-left:22px;font-size:13px;color:var(--muted)}
+.side button.sub.on{background:var(--ice);color:var(--navy);font-weight:600}
+.side .n{font-family:var(--f-label);opacity:.8}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.toolbar select,.field input,.field select,.field textarea{font:inherit;border:1px solid var(--line);border-radius:30px;padding:9px 14px;background:var(--paper);color:var(--ink)}
+.field textarea{border-radius:16px;min-height:90px;width:100%}
+.note{background:var(--ice);border-radius:12px;padding:12px 14px;color:var(--navy);font-size:13.5px}
+.note.wn{background:var(--warnbg);color:var(--warn)}
+
+/* product page */
+.pd{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:start}
+@media (max-width:820px){.pd{grid-template-columns:minmax(0,1fr)}}
+.pd .ph{background:#fff;border:1px solid var(--line);border-radius:var(--r-card);aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;max-width:100%}
+.pd .ph img{width:100%;height:100%;object-fit:contain;padding:24px}
+.pd h1{font-size:clamp(22px,3vw,30px);font-weight:800;color:var(--navy)}
+.label{border:2px solid var(--navy);border-radius:10px;overflow:hidden;background:var(--paper)}
+.label .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+.label .row div{padding:10px 12px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-width:0}
+.label .k{font-family:var(--f-label);text-transform:uppercase;letter-spacing:.06em;font-size:12px;color:var(--muted);display:block}
+.label .v{font-weight:700;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.label .bar{background:var(--navy);color:#fff;padding:6px 12px;font-family:var(--f-label);letter-spacing:.1em;text-transform:uppercase;font-weight:600;font-size:13px;display:flex;justify-content:space-between;gap:8px}
+.qty{display:flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:30px;overflow:hidden;background:var(--paper)}
+.qty button{border:0;background:var(--ice);width:38px;height:40px;font-size:18px;cursor:pointer;color:var(--navy)}
+.qty input{width:56px;text-align:center;border:0;font:inherit;font-weight:700}
+
+/* forms */
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px 16px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-weight:600;font-size:13.5px;color:var(--navy)}
+.field.full{grid-column:1/-1}
+.checks{display:flex;flex-wrap:wrap;gap:6px}
+.checks label{background:var(--ice);border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;font-weight:500}
+.checks input{margin-right:5px}
+.box{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-card);padding:22px}
+.ok{background:#E3F6EC;color:var(--ok);border-radius:12px;padding:14px 16px;font-weight:600}
+table.t{border-collapse:collapse;width:100%;font-size:14px}
+table.t th{text-align:left;font-family:var(--f-label);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;padding:8px;border-bottom:2px solid var(--line)}
+table.t td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle;font-variant-numeric:tabular-nums}
+.tw{overflow-x:auto}
+.st{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700}
+.st.a{background:var(--ice);color:var(--blue)}.st.g{background:#E3F6EC;color:var(--ok)}.st.o{background:var(--warnbg);color:var(--warn)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+.tabs button{border:1px solid var(--line);background:var(--paper);border-radius:30px;padding:8px 16px;cursor:pointer;font-weight:600;color:var(--navy)}
+.tabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.thumb{width:44px;height:44px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:8px}
+
+/* footer */
+footer{background:var(--navy);color:#fff;margin-top:40px}
+footer .wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px;padding-block:36px}
+footer h4{margin:0 0 10px;text-transform:uppercase;font-weight:800;font-size:17px}
+footer a{color:#fff;text-decoration:none;cursor:pointer;display:block;padding:2px 0}
+footer p{margin:0;opacity:.9}
+.copy{background:var(--cyan);color:#fff;font-size:13px}
+.copy .wrap{padding-block:8px;display:block}
+
+/* backstage drawer */
+.drawer[hidden]{display:none}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(440px,100%);background:var(--paper);border-left:1px solid var(--line);box-shadow:-20px 0 40px -20px rgba(14,43,93,.35);z-index:60;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.drawer header{background:var(--demo);color:var(--demofg);padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.drawer header button{background:transparent;color:var(--demofg);border:1px solid #3A4A6B;border-radius:6px;padding:4px 10px;cursor:pointer}
+.drawer .in{overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.ev{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13.5px}
+.ev .when{font-family:var(--f-label);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-size:12px}
+.ev pre{background:var(--ground);border-radius:8px;padding:8px;font-size:12px;overflow-x:auto;margin:8px 0 0;white-space:pre}
+.src{font-size:13.5px;color:var(--muted)}
+.src b{color:var(--navy)}
+
+/* proposal */
+.doc{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-card);padding:clamp(18px,4vw,44px);max-width:900px;margin:0 auto}
+.doc h1{font-size:clamp(26px,4vw,36px);font-weight:900;color:var(--navy);text-transform:uppercase;margin-bottom:8px}
+.doc h2{font-size:21px;font-weight:800;color:var(--navy);margin:34px 0 10px;text-transform:uppercase;letter-spacing:.01em}
+.doc h3{font-size:17px;font-weight:700;color:var(--navy);margin:22px 0 8px}
+.doc p,.doc li{max-width:72ch}
+.doc em:first-of-type{color:var(--muted)}
+.doc table{border-collapse:collapse;width:100%;font-size:14px;margin:8px 0}
+.doc .tw{margin:8px 0}
+.doc th{text-align:left;background:var(--ice);color:var(--navy);padding:8px 10px;font-weight:700}
+.doc td{border-bottom:1px solid var(--line);padding:8px 10px;vertical-align:top}
+.doc code{background:var(--ice);padding:1px 5px;border-radius:4px;font-size:.9em;overflow-wrap:anywhere}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="demo" role="region" aria-label="Voorbeeldbediening">
+  <div class="wrap">
+    <span class="tag">Voorbeeld</span>
+    <span>Niet live. Huidige site blijft ongemoeid.</span>
+    <span class="sp"></span>
+    <div class="grp"><span>Bekijk als</span>
+      <button id="as-guest" aria-pressed="true">Bezoeker</button>
+      <button id="as-nl" aria-pressed="false">Klant uit NL</button>
+      <button id="as-de" aria-pressed="false">Klant uit DE</button>
+    </div>
+    <div class="grp">
+      <button id="go-voorstel" aria-pressed="false">Voorstel</button>
+      <button id="go-backstage" aria-pressed="false">Achter de schermen<span class="badge" id="evcount">0</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="top"><div class="wrap" id="topnav"></div></div>
+<div class="hdr"><div class="wrap">
+  <img class="logo" src="img/logo.png" alt="Frank van de Wijgert partijhandel" id="logo" width="309" height="44">
+  <form class="search" id="searchform" role="search">
+    <input id="q" type="search" autocomplete="off">
+    <button aria-label="Zoeken" type="submit">⌕</button>
+  </form>
+  <div style="display:flex;gap:8px;flex-wrap:wrap" id="hdrbtns"></div>
+</div></div>
+
+<main id="main"></main>
+
+<footer><div class="wrap" id="foot"></div></footer>
+<div class="copy"><div class="wrap">Copyright fvdwpartijhandel | All Rights Reserved</div></div>
+
+<aside class="drawer" id="drawer" hidden aria-label="Achter de schermen">
+  <header><b>Achter de schermen</b><button id="closedrawer">Sluiten</button></header>
+  <div class="in">
+    <div class="src" id="srcinfo"></div>
+    <div id="events"></div>
+  </div>
+</aside>
+
+<script>
+const T={
+nl:{home:'Home',partijen:'Partijen',agenda:'Agenda',over:'Over ons',contact:'Contact',offerte:'Offertelijst',klant:'Klant worden',login:'Inloggen',mijn:'Mijn omgeving',logout:'Uitloggen',zoek:'Zoek in partijen...',
+heroT:'De B2B partner voor stocklots',heroP:'Restpartijen, overstock en faillissementspartijen uit ons eigen magazijn in Tilburg. Prijzen voor zakelijke klanten na inloggen.',bekijk:'Bekijk partijen',
+f1:'partijen op voorraad',f2:'Minimale afname',f2v:'1 omdoos',f3:'Eigen magazijn',f3v:'Tilburg',f4:'Talen',
+nieuw:'Net binnen',nieuwP:'De nieuwste partijen in ons magazijn',alles:'Alle partijen',cats:'Categorieën',
+aanbiedenT:'Partij te koop?',aanbiedenP:'Restpartij, overstock of faillissement? Bied het ons aan, we reageren binnen 48 uur.',aanbiedenB:'Partij aanbieden',
+alertT:'Handel alert',alertP:'Ontvang de nieuwste handel in je mailbox.',alertB:'Meld je aan',agendaT:'Onze agenda',agendaP:'Bezoek ons op een van de beurzen in Europa.',
+voorraad:'Voorraad',omdoos:'Omdoos',pallet:'Pallet',artnr:'Art.nr',st:'st.',prijsNa:'Prijs na inloggen',perSt:'per stuk excl. btw',
+opLijst:'Op offertelijst',toegevoegd:'Op je offertelijst',minAf:'Minimale afname: 1 omdoos per artikel',aantalOm:'Aantal omdozen',
+alleCat:'Alle categorieën',sort:'Sorteer',sNieuw:'Nieuwste eerst',sVoorraad:'Meeste voorraad',sNaam:'Naam A-Z',resultaten:'artikelen',
+alleenInlog:'Alleen voor klanten',persoonlijk:'Persoonlijk aanbod',terug:'Terug naar partijen',ook:'Misschien ook interessant',vraag:'Vragen over deze partij?',
+leeg:'Je offertelijst is leeg.',verstuur:'Offerte aanvragen',verzonden:'Bedankt. Je aanvraag is ontvangen; je krijgt de offerte per mail.',
+bedrijf:'Bedrijfsnaam',kvk:'KvK-nummer',btw:'Btw-nummer',land:'Land',naam:'Contactpersoon',email:'E-mail',tel:'Telefoon',opm:'Opmerking',soort:'Soort bedrijf',interesse:'Interesse in',
+klantP:'Als zakelijk klant krijg je toegang tot onze prijzen, je persoonlijke aanbod en de status van je offertes.',aanmelden:'Aanmelding versturen',
+klantOk:'Bedankt voor je aanmelding. We controleren je gegevens en sturen je een inloglink zodra je account is goedgekeurd.',
+loginP:'Vul je e-mailadres in. Je krijgt een inloglink, een wachtwoord is niet nodig.',stuurLink:'Stuur inloglink',
+mAanbod:'Mijn aanbod',mOffertes:'Mijn offertes',mOrders:'Mijn orders',mGeg:'Mijn gegevens',welkom:'Welkom terug',
+aanbodP:'Deze partijen staan niet openbaar op de site. Ze zijn voor jou geselecteerd.',
+},
+en:{home:'Home',partijen:'Stocklots',agenda:'Agenda',over:'About us',contact:'Contact',offerte:'Quote list',klant:'Become a customer',login:'Log in',mijn:'My account',logout:'Log out',zoek:'Search stocklots...',
+heroT:'Your B2B partner for stocklots',heroP:'End-of-line stock, overstock and liquidation lots from our own warehouse in Tilburg. Prices for business customers after logging in.',bekijk:'View stocklots',
+f1:'lots in stock',f2:'Minimum order',f2v:'1 outer box',f3:'Own warehouse',f3v:'Tilburg',f4:'Languages',
+nieuw:'Just in',nieuwP:'The newest lots in our warehouse',alles:'All stocklots',cats:'Categories',
+aanbiedenT:'Lot for sale?',aanbiedenP:'Surplus, overstock or bankruptcy stock? Offer it to us, we reply within 48 hours.',aanbiedenB:'Offer a lot',
+alertT:'Trade alert',alertP:'Get the newest deals in your inbox.',alertB:'Sign up',agendaT:'Our agenda',agendaP:'Visit us at one of the trade fairs in Europe.',
+voorraad:'Stock',omdoos:'Outer box',pallet:'Pallet',artnr:'Item no.',st:'pcs',prijsNa:'Price after login',perSt:'per piece excl. VAT',
+opLijst:'Add to quote',toegevoegd:'On your quote list',minAf:'Minimum order: 1 outer box per item',aantalOm:'Outer boxes',
+alleCat:'All categories',sort:'Sort',sNieuw:'Newest first',sVoorraad:'Most stock',sNaam:'Name A-Z',resultaten:'items',
+alleenInlog:'Customers only',persoonlijk:'Personal offer',terug:'Back to stocklots',ook:'You may also like',vraag:'Questions about this lot?',
+leeg:'Your quote list is empty.',verstuur:'Request quote',verzonden:'Thank you. Your request has been received; we will email you the quote.',
+bedrijf:'Company name',kvk:'Chamber of Commerce no.',btw:'VAT number',land:'Country',naam:'Contact person',email:'Email',tel:'Phone',opm:'Remarks',soort:'Type of business',interesse:'Interested in',
+klantP:'As a business customer you get access to our prices, your personal offer and the status of your quotes.',aanmelden:'Send registration',
+klantOk:'Thank you for registering. We will check your details and send you a login link once your account is approved.',
+loginP:'Enter your email address. You will receive a login link, no password needed.',stuurLink:'Send login link',
+mAanbod:'My offer',mOffertes:'My quotes',mOrders:'My orders',mGeg:'My details',welkom:'Welcome back',
+aanbodP:'These lots are not listed publicly. They were selected for you.',
+},
+de:{home:'Start',partijen:'Restposten',agenda:'Termine',over:'Über uns',contact:'Kontakt',offerte:'Angebotsliste',klant:'Kunde werden',login:'Anmelden',mijn:'Mein Konto',logout:'Abmelden',zoek:'Restposten suchen...',
+heroT:'Ihr B2B-Partner für Restposten',heroP:'Restposten, Überbestände und Insolvenzware aus unserem eigenen Lager in Tilburg. Preise für Geschäftskunden nach der Anmeldung.',bekijk:'Restposten ansehen',
+f1:'Posten auf Lager',f2:'Mindestabnahme',f2v:'1 Umkarton',f3:'Eigenes Lager',f3v:'Tilburg',f4:'Sprachen',
+nieuw:'Neu eingetroffen',nieuwP:'Die neuesten Posten in unserem Lager',alles:'Alle Restposten',cats:'Kategorien',
+aanbiedenT:'Posten zu verkaufen?',aanbiedenP:'Restposten, Überbestand oder Insolvenzware? Bieten Sie sie uns an, wir antworten innerhalb von 48 Stunden.',aanbiedenB:'Posten anbieten',
+alertT:'Handel-Alert',alertP:'Die neuesten Angebote in Ihrem Postfach.',alertB:'Anmelden',agendaT:'Unsere Termine',agendaP:'Besuchen Sie uns auf einer Messe in Europa.',
+voorraad:'Bestand',omdoos:'Umkarton',pallet:'Palette',artnr:'Art.-Nr.',st:'Stk.',prijsNa:'Preis nach Anmeldung',perSt:'pro Stück zzgl. MwSt.',
+opLijst:'Zum Angebot',toegevoegd:'Auf Ihrer Angebotsliste',minAf:'Mindestabnahme: 1 Umkarton pro Artikel',aantalOm:'Umkartons',
+alleCat:'Alle Kategorien',sort:'Sortieren',sNieuw:'Neueste zuerst',sVoorraad:'Größter Bestand',sNaam:'Name A-Z',resultaten:'Artikel',
+alleenInlog:'Nur für Kunden',persoonlijk:'Persönliches Angebot',terug:'Zurück zu Restposten',ook:'Das könnte Sie interessieren',vraag:'Fragen zu diesem Posten?',
+leeg:'Ihre Angebotsliste ist leer.',verstuur:'Angebot anfordern',verzonden:'Vielen Dank. Ihre Anfrage ist eingegangen; Sie erhalten das Angebot per E-Mail.',
+bedrijf:'Firmenname',kvk:'Handelsregisternr.',btw:'USt-IdNr.',land:'Land',naam:'Ansprechpartner',email:'E-Mail',tel:'Telefon',opm:'Bemerkung',soort:'Art des Unternehmens',interesse:'Interesse an',
+klantP:'Als Geschäftskunde erhalten Sie Zugang zu unseren Preisen, Ihrem persönlichen Angebot und dem Status Ihrer Angebote.',aanmelden:'Registrierung senden',
+klantOk:'Vielen Dank für Ihre Registrierung. Wir prüfen Ihre Daten und senden Ihnen einen Anmeldelink, sobald Ihr Konto freigegeben ist.',
+loginP:'Geben Sie Ihre E-Mail-Adresse ein. Sie erhalten einen Anmeldelink, ein Passwort ist nicht nötig.',stuurLink:'Anmeldelink senden',
+mAanbod:'Mein Angebot',mOffertes:'Meine Angebote',mOrders:'Meine Aufträge',mGeg:'Meine Daten',welkom:'Willkommen zurück',
+aanbodP:'Diese Posten sind nicht öffentlich gelistet. Sie wurden für Sie ausgewählt.',
+}};
+const AGENDA=[
+ {d:'28–29 okt 2026',n:'Goodies Messe',p:'Ankum (DE)'},
+ {d:'4–5 nov 2026',n:'SVG Fair',p:'Winterswijk'},
+];
+const S={lang:'nl',user:null,route:'home',cat:null,sub:null,sort:'nieuw',q:'',prod:null,quote:{},mijnTab:'aanbod',events:[],sent:null,klantSent:false,offerteNr:41};
+let D={items:[],cats:[],totaal_publiek:{},mijn:[]};
+const t=k=>(T[S.lang][k]??T.nl[k]??k);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const eur=n=>'€ '+n.toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});
+const nf=n=>n.toLocaleString('nl-NL');
+const nm=x=>x[S.lang]||x.nl;
+const catName=c=>{const o=D.cats.find(k=>k.c===c);return o?(o[S.lang]||o.nl):c};
+const byId=id=>D.items.find(x=>x.id===id);
+const USERS={nl:{naam:'Demo Outlet B.V. (voorbeeld)',land:'NL'},de:{naam:'Demo Handel GmbH (Beispiel)',land:'DE'}};
+
+// Wat mag deze bezoeker zien? Dezelfde regels die de echte site in Supabase krijgt.
+function visible(x){
+  if(x.st==='publiek') return true;
+  if(!S.user) return false;
+  if(x.st==='niet_op_site') return D.mijn.includes(x.id);
+  const benelux=['NL','BE','LU'], action=['NL','BE','DE','FR','PL'], L=S.user.land;
+  for(const b of x.b){
+    if(b.includes('Benelux') && benelux.includes(L)) return false;
+    if(b.includes('Nederland') && L==='NL') return false;
+    if(b.includes('België') && L==='BE') return false;
+    if(b.includes('Action') && action.includes(L)) return false;
+  }
+  return true;
+}
+function catalog(){
+  let l=D.items.filter(x=>visible(x)&&x.st!=='niet_op_site');
+  if(S.cat) l=l.filter(x=>x.h===S.cat);
+  if(S.sub) l=l.filter(x=>x.s===S.sub);
+  if(S.q){const q=S.q.toLowerCase();l=l.filter(x=>(x.nl+' '+x.en+' '+x.de+' '+x.id+' '+x.ean).toLowerCase().includes(q))}
+  const so={nieuw:(a,b)=>b.d.localeCompare(a.d),voorraad:(a,b)=>b.v-a.v,naam:(a,b)=>nm(a).localeCompare(nm(b))}[S.sort];
+  return l.sort(so);
+}
+function log(title,body,table){
+  S.events.unshift({when:new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}),title,body,table});
+  document.getElementById('evcount').textContent=S.events.length;
+  renderDrawer();
+}
+
+/* ---------- pieces ---------- */
+function priceHtml(x){
+  if(!S.user) return `<span class="lock">🔒 ${t('prijsNa')}</span>`;
+  return `<span class="price">${eur(x.p)} <small>${t('perSt')}</small></span>`;
+}
+function card(x){
+  const pill=x.st==='niet_op_site'?`<span class="pill cy">${t('persoonlijk')}</span>`:x.st==='alleen_inlog'?`<span class="pill wn">${t('alleenInlog')}</span>`:'';
+  return `<article class="card" data-p="${x.id}" tabindex="0">
+   <div class="ph">${pill}<img loading="lazy" src="f/${x.id}.jpg" alt=""></div>
+   <div class="body"><h3>${esc(nm(x))}</h3>${priceHtml(x)}
+   <div class="strip"><div><span class="k">${t('voorraad')}</span><span class="v">${nf(x.v)}</span></div>
+   <div><span class="k">${t('omdoos')}</span><span class="v">${x.om?x.om+' '+t('st'):'–'}</span></div></div></div></article>`;
+}
+function topnav(){
+  const items=['home','partijen','agenda','over','contact'];
+  document.getElementById('topnav').innerHTML=items.map(r=>`<a data-r="${r}" class="${S.route===r?'on':''}">${t(r)}</a>`).join('')+
+   `<div class="langs">${['nl','en','de'].map(l=>`<button data-l="${l}" class="${S.lang===l?'on':''}">${l.toUpperCase()}</button>`).join('')}</div>`;
+  const n=Object.values(S.quote).reduce((a,b)=>a+b,0);
+  document.getElementById('hdrbtns').innerHTML=
+   `<button class="btn cy" data-r="offerte">${t('offerte')} <span class="qcount">${Object.keys(S.quote).length}</span></button>`+
+   (S.user?`<button class="btn" data-r="mijn">${t('mijn')}</button>`:`<button class="btn" data-r="klant">${t('klant')}</button><button class="btn ghost" data-r="login">${t('login')}</button>`);
+  document.getElementById('q').placeholder=t('zoek');
+  document.getElementById('foot').innerHTML=`
+   <div><h4>Contact</h4><p>Rheastraat 19<br>5047 TL Tilburg<br>+31 (0)13 57 11 75 5<br>info@fvdwpartijhandel.nl</p></div>
+   <div><h4>${S.lang==='de'?'Allgemein':S.lang==='en'?'General':'Algemeen'}</h4><a data-r="home">${t('home')}</a><a data-r="partijen">${t('partijen')}</a><a data-r="over">${t('over')}</a><a data-r="agenda">${t('agenda')}</a><a data-r="contact">${t('contact')}</a></div>
+   <div><h4>${S.lang==='de'?'Kundenservice':S.lang==='en'?'Customer service':'Klantenservice'}</h4><a data-r="klant">${t('klant')}</a><a data-r="login">${t('login')}</a><a data-r="offerte">${t('offerte')}</a><a data-r="voorstel">Privacy · Voorwaarden</a></div>
+   <div class="panel b" style="border-radius:25px"><h4 style="margin:0">${t('alertT')}</h4><p>${t('alertP')}</p><button class="btn cy sm" data-act="alert">${t('alertB')}</button></div>`;
+}
+
+/* ---------- views ---------- */
+const V={};
+V.home=()=>{
+  const nieuw=D.items.filter(x=>x.st==='publiek').sort((a,b)=>b.d.localeCompare(a.d)).slice(0,8);
+  const tot=Object.values(D.totaal_publiek).reduce((a,b)=>a+b,0);
+  const hoofd=D.cats.filter(c=>c.n==='hoofd');
+  return `<section class="hero"><img src="img/magazijn.jpg" alt=""><div class="wrap">
+   <h1>${t('heroT')}</h1><p>${t('heroP')}</p>
+   <div class="ctas"><button class="btn cy" data-r="partijen">${t('bekijk')}</button>${S.user?'':`<button class="btn" data-r="klant">${t('klant')}</button><button class="btn ghost" data-r="login">${t('login')}</button>`}</div></div></section>
+   <div class="facts"><div class="wrap">
+    <div><b class="num">${nf(tot)}</b><span>${t('f1')}</span></div>
+    <div><b>${t('f2v')}</b><span>${t('f2')}</span></div>
+    <div><b>${t('f3v')}</b><span>${t('f3')}</span></div>
+    <div><b>NL · EN · DE</b><span>${t('f4')}</span></div></div></div>
+   <section class="blk"><div class="wrap">
+    <div class="sh"><div><h2>${t('nieuw')}</h2><p>${t('nieuwP')}</p></div><button class="btn bl sm" data-r="partijen">${t('alles')} →</button></div>
+    <div class="grid">${nieuw.map(card).join('')}</div></div></section>
+   <section class="blk" style="padding-top:0"><div class="wrap">
+    <div class="sh"><h2>${t('cats')}</h2></div>
+    <div class="cats">${hoofd.map(c=>`<button class="cat" data-cat="${c.c}"><b>${esc(c[S.lang])}</b><span class="num">${D.totaal_publiek[c.c]||0}</span></button>`).join('')}</div></div></section>
+   <section class="blk" style="padding-top:0"><div class="wrap split">
+    <div class="panel c"><h3>${t('aanbiedenT')}</h3><p>${t('aanbiedenP')}</p><button class="btn" data-r="aanbieden">${t('aanbiedenB')}</button></div>
+    <div class="panel i"><h3>${t('agendaT')}</h3><p>${t('agendaP')}</p>${AGENDA.map(a=>`<div class="agenda-row"><span class="d">${a.d}</span><span><b>${a.n}</b><br>${a.p}</span></div>`).join('')}<button class="btn bl sm" data-r="agenda">${t('agenda')} →</button></div>
+   </div></section>`;
+};
+V.partijen=()=>{
+  const l=catalog();
+  const base=D.items.filter(x=>visible(x)&&x.st!=='niet_op_site');
+  const hoofd=D.cats.filter(c=>c.n==='hoofd');
+  const side=`<button class="${!S.cat?'on':''}" data-cat="">${t('alleCat')} <span class="n">${base.length}</span></button>`+
+   hoofd.map(c=>{const n=base.filter(x=>x.h===c.c).length; if(!n) return '';
+     let h=`<button class="${S.cat===c.c&&!S.sub?'on':''}" data-cat="${c.c}">${esc(c[S.lang])} <span class="n">${n}</span></button>`;
+     if(S.cat===c.c){h+=D.cats.filter(s=>s.n==='sub'&&s.h===c.c).map(s=>{const m=base.filter(x=>x.s===s.c).length;return m?`<button class="sub ${S.sub===s.c?'on':''}" data-sub="${s.c}">${esc(s[S.lang])} <span class="n">${m}</span></button>`:''}).join('')}
+     return h}).join('');
+  return `<section class="blk"><div class="wrap">
+   <div class="sh"><div><h2>${S.cat?esc(catName(S.sub||S.cat)):t('partijen')}</h2><p class="num">${l.length} ${t('resultaten')}${S.q?` · “${esc(S.q)}”`:''}</p></div></div>
+   <div class="cat-layout"><nav class="side" aria-label="${t('cats')}">${side}</nav>
+   <div style="min-width:0"><div class="toolbar"><div class="note">${t('minAf')}</div><span style="flex:1"></span>
+    <label class="lbl" for="sortsel">${t('sort')}</label><select id="sortsel"><option value="nieuw">${t('sNieuw')}</option><option value="voorraad">${t('sVoorraad')}</option><option value="naam">${t('sNaam')}</option></select></div>
+   <div class="grid">${l.map(card).join('')||`<p>–</p>`}</div></div></div></div></section>`;
+};
+V.product=()=>{
+  const x=byId(S.prod); if(!x) return V.partijen();
+  const rel=D.items.filter(y=>y.s===x.s&&y.id!==x.id&&visible(y)&&y.st!=='niet_op_site').slice(0,4);
+  const om=parseInt(x.om)||1;
+  const restr=x.st==='alleen_inlog'?`<div class="note wn">${S.lang==='nl'?'Alleen zichtbaar voor ingelogde klanten in landen waar dit artikel verkocht mag worden.':S.lang==='en'?'Only visible to logged-in customers in countries where this item may be sold.':'Nur für angemeldete Kunden in Ländern sichtbar, in denen dieser Artikel verkauft werden darf.'}</div>`:'';
+  const pers=x.st==='niet_op_site'?`<div class="note">${t('aanbodP')}</div>`:'';
+  return `<section class="blk"><div class="wrap">
+   <p><a href="#" data-r="partijen">← ${t('terug')}</a> · <span style="color:var(--muted)">${esc(catName(x.h))} / ${esc(catName(x.s))}</span></p>
+   <div class="pd"><div class="ph"><img src="f/${x.id}.jpg" alt="${esc(nm(x))}"></div>
+   <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+    <h1>${esc(nm(x))}</h1>${restr}${pers}
+    <div>${priceHtml(x)}</div>
+    <div class="label"><div class="bar"><span>Frank van de Wijgert partijhandel</span><span class="num">${x.id}</span></div>
+     <div class="row"><div><span class="k">${t('artnr')}</span><span class="v">${x.id}</span></div>
+     <div><span class="k">EAN</span><span class="v">${x.ean||'–'}</span></div>
+     <div><span class="k">${t('voorraad')}</span><span class="v">${nf(x.v)} ${t('st')}</span></div></div>
+     <div class="row"><div><span class="k">${t('omdoos')}</span><span class="v">${x.om?x.om+' '+t('st'):'–'}</span></div>
+     <div><span class="k">${t('pallet')}</span><span class="v">${x.pa?nf(+x.pa)+' '+t('st'):'–'}</span></div>
+     <div><span class="k">${S.lang==='de'?'Verpackung':S.lang==='en'?'Packed':'Verpakking'}</span><span class="v">${esc(x.pk)||'–'}</span></div></div></div>
+    <div class="note">${t('minAf')}</div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+     <div class="qty"><button data-q="-1" aria-label="min">−</button><input id="qtyin" type="number" min="1" value="${S.quote[x.id]||1}" aria-label="${t('aantalOm')}"><button data-q="1" aria-label="plus">+</button></div>
+     <span class="num" id="qtyst" style="color:var(--muted)">× ${om} = ${nf((S.quote[x.id]||1)*om)} ${t('st')}</span>
+     <button class="btn cy" data-add="${x.id}">${S.quote[x.id]?'✓ '+t('toegevoegd'):t('opLijst')}</button></div>
+    <p style="margin:0;color:var(--muted)">${t('vraag')} +31 (0)13 57 11 75 5 · WhatsApp +31 6 18 30 61 48</p>
+   </div></div>
+   ${rel.length?`<div class="sh" style="margin-top:40px"><h2>${t('ook')}</h2></div><div class="grid">${rel.map(card).join('')}</div>`:''}
+  </div></section>`;
+};
+V.offerte=()=>{
+  const ids=Object.keys(S.quote);
+  if(S.sent) return `<section class="blk"><div class="wrap" style="max-width:760px"><div class="ok">${t('verzonden')}</div><p style="margin-top:14px">${S.lang==='nl'?'Aanvraagnummer':'Request no.'} <b class="num">${S.sent}</b></p><button class="btn bl" data-r="partijen">${t('bekijk')}</button></div></section>`;
+  const rows=ids.map(id=>{const x=byId(id),om=parseInt(x.om)||1;return `<tr><td><img class="thumb" src="f/${id}.jpg" alt=""></td><td style="min-width:200px">${esc(nm(x))}<br><small class="num" style="color:var(--muted)">${t('artnr')} ${id}</small></td>
+    <td class="num">${S.quote[id]} × ${om} = ${nf(S.quote[id]*om)} ${t('st')}</td>${S.user?`<td class="num">${eur(x.p*S.quote[id]*om)}</td>`:''}<td><button class="btn ghost sm" data-del="${id}">✕</button></td></tr>`}).join('');
+  const tot=ids.reduce((a,id)=>{const x=byId(id);return a+x.p*S.quote[id]*(parseInt(x.om)||1)},0);
+  const guestForm=S.user?`<div class="note">${S.lang==='nl'?'Je bent ingelogd als':'Logged in as'} <b>${esc(S.user.naam)}</b>. ${S.lang==='nl'?'Je bedrijfsgegevens zijn al bekend.':''}</div>
+    <div class="field full"><label for="o-opm">${t('opm')}</label><textarea id="o-opm"></textarea></div>`:
+    `<div class="form"><div class="field"><label for="o-b">${t('bedrijf')}</label><input id="o-b" required value="Voorbeeld Outlet"></div>
+     <div class="field"><label for="o-k">${t('kvk')}</label><input id="o-k" value="12345678"></div>
+     <div class="field"><label for="o-btw">${t('btw')}</label><input id="o-btw" value="NL000000000B01"></div>
+     <div class="field"><label for="o-e">${t('email')}</label><input id="o-e" type="email" required value="inkoop@voorbeeld.nl"></div>
+     <div class="field"><label for="o-l">${t('land')}</label><select id="o-l"><option>Nederland</option><option>België</option><option>Deutschland</option><option>Andere</option></select></div>
+     <div class="field full"><label for="o-opm">${t('opm')}</label><textarea id="o-opm"></textarea></div></div>`;
+  return `<section class="blk"><div class="wrap" style="max-width:900px">
+   <div class="sh"><div><h2>${t('offerte')}</h2><p>${t('minAf')}</p></div></div>
+   ${ids.length?`<div class="box"><div class="tw"><table class="t"><thead><tr><th></th><th>${S.lang==='nl'?'Artikel':'Item'}</th><th>${t('aantalOm')}</th>${S.user?'<th>Excl. btw</th>':''}<th></th></tr></thead><tbody>${rows}</tbody>
+   ${S.user?`<tfoot><tr><td></td><td><b>Totaal</b></td><td></td><td class="num"><b>${eur(tot)}</b></td><td></td></tr></tfoot>`:''}</table></div></div>
+   <form id="offerteform" class="box" style="margin-top:16px;display:grid;gap:14px">${guestForm}<div><button class="btn cy" type="submit">${t('verstuur')}</button></div></form>`
+   :`<div class="box"><p>${t('leeg')}</p><button class="btn bl" data-r="partijen">${t('bekijk')}</button></div>`}
+  </div></section>`;
+};
+V.klant=()=>{
+  if(S.klantSent) return `<section class="blk"><div class="wrap" style="max-width:760px"><div class="ok">${t('klantOk')}</div></div></section>`;
+  const hoofd=D.cats.filter(c=>c.n==='hoofd');
+  return `<section class="blk"><div class="wrap" style="max-width:900px">
+  <div class="sh"><div><h2>${t('klant')}</h2><p>${t('klantP')}</p></div></div>
+  <form id="klantform" class="box" style="display:grid;gap:16px"><div class="form">
+   <div class="field"><label for="k-b">${t('bedrijf')}</label><input id="k-b" required value="Voorbeeld Outlet"></div>
+   <div class="field"><label for="k-s">${t('soort')}</label><select id="k-s"><option>Winkel / outlet</option><option>Groothandel / partijhandel</option><option>Webshop</option><option>Marktkoopman</option><option>Horeca</option><option>Export</option></select></div>
+   <div class="field"><label for="k-k">${t('kvk')}</label><input id="k-k" required value="12345678"></div>
+   <div class="field"><label for="k-btw">${t('btw')}</label><input id="k-btw" value="NL000000000B01"></div>
+   <div class="field"><label for="k-n">${t('naam')}</label><input id="k-n" value="J. Voorbeeld"></div>
+   <div class="field"><label for="k-e">${t('email')}</label><input id="k-e" type="email" required value="inkoop@voorbeeld.nl"></div>
+   <div class="field"><label for="k-t">${t('tel')}</label><input id="k-t" value="+31 6 00000000"></div>
+   <div class="field"><label for="k-l">${t('land')}</label><select id="k-l"><option>Nederland</option><option>België</option><option>Deutschland</option><option>Andere</option></select></div>
+   <div class="field full"><label>${t('interesse')}</label><div class="checks">${hoofd.map((c,i)=>`<label><input type="checkbox" ${i<3?'checked':''} value="${c.c}">${esc(c[S.lang])}</label>`).join('')}</div></div>
+  </div><div><button class="btn cy" type="submit">${t('aanmelden')}</button></div></form></div></section>`;
+};
+V.login=()=>`<section class="blk"><div class="wrap" style="max-width:560px"><div class="box" style="display:grid;gap:14px">
+  <h2 style="color:var(--navy);text-transform:uppercase;font-weight:800">${t('login')}</h2><p style="margin:0">${t('loginP')}</p>
+  <div class="field"><label for="l-e">${t('email')}</label><input id="l-e" type="email" value="inkoop@voorbeeld.nl"></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn cy" data-act="magic">${t('stuurLink')}</button></div>
+  <div class="note">In dit voorbeeld log je in met de knoppen <b>Klant uit NL</b> of <b>Klant uit DE</b> in de donkere balk bovenaan.</div></div></div></section>`;
+V.mijn=()=>{
+  if(!S.user) return V.login();
+  const tabs=['aanbod','offertes','orders','geg'];
+  const lbl={aanbod:t('mAanbod'),offertes:t('mOffertes'),orders:t('mOrders'),geg:t('mGeg')};
+  let body='';
+  if(S.mijnTab==='aanbod'){body=`<div class="note" style="margin-bottom:14px">${t('aanbodP')}</div><div class="grid">${D.mijn.map(byId).map(card).join('')}</div>`}
+  if(S.mijnTab==='offertes'){const rows=[...S.events.filter(e=>e.nr).map(e=>({nr:e.nr,d:'vandaag',s:'Aanvraag',c:'a',b:e.bedrag})),{nr:'OF-2026-0388',d:'24-09-2026',s:'Verstuurd',c:'o',b:1840},{nr:'OF-2026-0351',d:'11-09-2026',s:'Order geworden',c:'g',b:3215.5}];
+    body=`<div class="box tw"><table class="t"><thead><tr><th>Nr</th><th>Datum</th><th>Status</th><th>Excl. btw</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.nr}</td><td>${r.d}</td><td><span class="st ${r.c}">${r.s}</span></td><td>${r.b!=null?eur(r.b):'–'}</td></tr>`).join('')}</tbody></table></div><p class="src">Voorbeeldregels. In de echte site komen deze uit de tabel <b>offertes</b> van het Salesbureau, alleen die van deze klant.</p>`}
+  if(S.mijnTab==='orders'){body=`<div class="box tw"><table class="t"><thead><tr><th>Order</th><th>Datum</th><th>Status</th><th>Excl. btw</th></tr></thead><tbody>
+    <tr><td>202600712</td><td>12-09-2026</td><td><span class="st g">Geleverd</span></td><td>${eur(3215.5)}</td></tr>
+    <tr><td>202600644</td><td>21-08-2026</td><td><span class="st o">Te factureren</span></td><td>${eur(980)}</td></tr></tbody></table></div><p class="src">Voorbeeldregels. Statussen zijn die uit MyBusiness en het Salesbureau (In bewerking, Gereed, Geleverd, Te factureren, Afgesloten).</p>`}
+  if(S.mijnTab==='geg'){body=`<div class="box"><div class="form"><div class="field"><label>${t('bedrijf')}</label><input value="${esc(S.user.naam)}" readonly></div><div class="field"><label>${t('land')}</label><input value="${S.user.land}" readonly></div><div class="field"><label>${t('kvk')}</label><input value="12345678" readonly></div><div class="field"><label>${t('btw')}</label><input value="${S.user.land}000000000B01" readonly></div></div><p class="src">Komt uit de tabel klanten. Wijzigingen gaan als verzoek naar Michel.</p></div>`}
+  return `<section class="blk"><div class="wrap"><div class="sh"><div><h2>${t('welkom')}</h2><p>${esc(S.user.naam)} · ${S.user.land}</p></div><button class="btn ghost sm" data-act="logout">${t('logout')}</button></div>
+   <div class="tabs">${tabs.map(k=>`<button class="${S.mijnTab===k?'on':''}" data-tab="${k}">${lbl[k]}</button>`).join('')}</div>${body}</div></section>`;
+};
+V.agenda=()=>`<section class="blk"><div class="wrap" style="max-width:900px"><div class="sh"><div><h2>${t('agenda')}</h2><p>${t('agendaP')}</p></div></div>
+  <div class="box">${[...AGENDA,{d:'14 jan 2026',n:'SVG Fair',p:'Winterswijk',old:1},{d:'24 mrt 2026',n:'IAW Trade Fair',p:'Keulen',old:1},{d:'8 sep 2026',n:'IAW Trade Fair',p:'Keulen',old:1}].map(a=>`<div class="agenda-row" style="${a.old?'opacity:.55':''}"><span class="d">${a.d}</span><span><b>${a.n}</b> · ${a.p}</span>${a.old?'':'<span style="margin-left:auto"><button class="btn bl sm" data-act="beurs">Afspraak maken</button></span>'}</div>`).join('')}
+  <p class="src" style="margin-top:12px">Week 45 is het magazijn gesloten; u kunt ons dan bezoeken op de SVG Fair in Winterswijk. Agenda-items worden in de nieuwe opzet in het Salesbureau beheerd.</p></div></div></section>`;
+V.over=()=>`<section class="blk"><div class="wrap split" style="align-items:center">
+  <div style="display:grid;gap:14px"><h2 style="color:var(--navy);font-size:30px;font-weight:900;text-transform:uppercase">${t('over')}</h2>
+  <p style="margin:0;max-width:60ch">Ruim 10 jaar is Frank van de Wijgert partijhandel actief in de verkoop van restpartijen. Onze klanten zijn van winkelketens en marktkramen tot groothandelaren. Na aankoop van de partijen worden de goederen in onze eigen magazijnen geteld en gesorteerd. Hierna worden de goederen ter verkoop aangeboden.</p>
+  <div><button class="btn bl" data-r="contact">${t('contact')}</button></div></div>
+  <img src="img/pand.jpg" alt="Bedrijfspand Rheastraat Tilburg" style="border-radius:25px;width:100%;max-width:100%"></div></section>`;
+V.contact=()=>`<section class="blk"><div class="wrap split">
+  <div class="box" style="display:grid;gap:10px"><h2 style="color:var(--navy);font-weight:800;text-transform:uppercase">${t('contact')}</h2>
+   <p style="margin:0">Rheastraat 19, 5047 TL Tilburg<br>+31 (0)13 57 11 75 5<br>info@fvdwpartijhandel.nl<br>WhatsApp +31 6 18 30 61 48</p>
+   <table class="t"><tbody><tr><td>Ma–vr</td><td>08:00–17:00</td></tr><tr><td>Za</td><td>Op afspraak</td></tr><tr><td>Zo</td><td>Gesloten</td></tr></tbody></table></div>
+  <form class="box" id="contactform" style="display:grid;gap:12px"><div class="form">
+   <div class="field"><label for="c-n">${t('naam')}</label><input id="c-n"></div><div class="field"><label for="c-b">${t('bedrijf')}</label><input id="c-b"></div>
+   <div class="field"><label for="c-e">${t('email')}</label><input id="c-e" type="email"></div><div class="field"><label for="c-k">${t('kvk')}</label><input id="c-k"></div>
+   <div class="field full"><label for="c-m">${t('opm')}</label><textarea id="c-m"></textarea></div></div><div><button class="btn bl" type="submit">${S.lang==='de'?'Senden':S.lang==='en'?'Send':'Verzenden'}</button></div></form>
+  </div></section>`;
+V.aanbieden=()=>`<section class="blk"><div class="wrap split">
+  <img src="img/vrachtwagen.jpg" alt="" style="border-radius:25px;width:100%;max-width:100%;max-height:520px;object-fit:cover">
+  <form class="box" id="aanbiedform" style="display:grid;gap:12px"><h2 style="color:var(--navy);font-weight:800;text-transform:uppercase">${t('aanbiedenT')}</h2><p style="margin:0">${t('aanbiedenP')}</p>
+  <div class="form"><div class="field"><label for="a-b">${t('bedrijf')}</label><input id="a-b" value="Voorbeeld Leverancier"></div><div class="field"><label for="a-e">${t('email')}</label><input id="a-e" type="email" value="verkoop@voorbeeld.nl"></div>
+  <div class="field full"><label for="a-o">${S.lang==='nl'?'Wat voor partij? (artikelen, aantallen, pallets, locatie)':'Describe the lot'}</label><textarea id="a-o">12 pallets tuinverlichting op zonne-energie, ca. 9.600 stuks, staat in Venlo.</textarea></div>
+  <div class="field full"><label for="a-f">${S.lang==='nl'?"Foto's of lijst (Excel/PDF)":'Photos or list'}</label><input id="a-f" type="file" multiple></div></div>
+  <div><button class="btn bl" type="submit">${S.lang==='de'?'Senden':S.lang==='en'?'Send':'Verzenden'}</button></div></form></div></section>`;
+V.voorstel=()=>`<section class="blk"><div class="wrap"><article class="doc" id="doc"><p>Voorstel laden...</p></article></div></section>`;
+
+/* ---------- render ---------- */
+function render(){
+  topnav();
+  document.getElementById('main').innerHTML=(V[S.route]||V.home)();
+  document.querySelectorAll('[aria-pressed]').forEach(b=>b.setAttribute('aria-pressed','false'));
+  document.getElementById(S.user?(S.user.land==='DE'?'as-de':'as-nl'):'as-guest').setAttribute('aria-pressed','true');
+  document.getElementById('go-voorstel').setAttribute('aria-pressed',S.route==='voorstel');
+  document.getElementById('go-backstage').setAttribute('aria-pressed',!document.getElementById('drawer').hidden);
+  const ss=document.getElementById('sortsel'); if(ss) ss.value=S.sort;
+  if(S.route==='voorstel') loadDoc();
+  renderDrawer();
+}
+let docMd=null;
+async function loadDoc(){
+  try{ if(!docMd){const r=await fetch('voorstel.md'); docMd=await r.text();}
+    const el=document.getElementById('doc'); if(!el) return;
+    el.innerHTML=window.marked?marked.parse(docMd):'<pre style="white-space:pre-wrap">'+esc(docMd)+'</pre>';
+    el.querySelectorAll('table').forEach(tb=>{const w=document.createElement('div');w.className='tw';tb.parentNode.insertBefore(w,tb);w.appendChild(tb)});
+  }catch(e){const el=document.getElementById('doc'); if(el) el.innerHTML='<p>Het voorstel kon niet worden geladen.</p>'}
+}
+const SRC={
+ home:'Net binnen en de tellers per categorie komen uit de view <b>publiek_artikelen</b> (alleen artikelen met vinkje openbaar en voorraad > 0). Geen prijzen, inkoop of leverancier in die view.',
+ partijen:'Catalogus: view <b>publiek_artikelen</b> met de categorieën uit <b>artikel_categorieen</b>. Ingelogd komen daar de artikelen bij die alleen voor klanten zijn, gefilterd op het land van de klant.',
+ product:'Productpagina: zelfde adres als nu (<b>/product/&lt;naam&gt;/</b>). Prijs alleen via een serverfunctie die controleert of de ingelogde gebruiker een goedgekeurde klant is.',
+ offerte:'Versturen maakt een rij in <b>offertes</b> (status Aanvraag, bron website) met <b>offerte_regels</b> in omdozen. Michel ziet die direct onder Offertes in het Salesbureau.',
+ klant:'Aanmelden maakt een prospect in <b>klanten</b>, met KvK, btw en interesses. Pas na goedkeuren in het Salesbureau gaat er een inloglink naar de klant.',
+ login:'Inloggen met een inloglink per mail (Supabase Auth). De koppeling login ↔ klant staat in een nieuwe tabel <b>klant_accounts</b>.',
+ mijn:'Klantomgeving: toegangsregels in Supabase zorgen dat een klant alleen eigen offertes, orders en gegevens ziet. Persoonlijk aanbod: artikelen die niet openbaar zijn, voor deze klant geselecteerd.',
+ aanbieden:'Een aangeboden partij komt bij <b>Opvolging</b> in het Salesbureau als inkoopkans, met de bijlagen in Supabase-opslag.',
+ agenda:'Agenda-items komen uit een nieuwe tabel <b>agenda</b>, te beheren in het Salesbureau.',
+ contact:'Contactformulier gaat naar <b>Opvolging</b> en als mail naar info@.',
+ over:'Vaste tekst in drie talen.',voorstel:'Het voorstel zelf; staat ook als bestand in de projectmap website/voorstel.md.'};
+function renderDrawer(){
+  document.getElementById('srcinfo').innerHTML=`<b>Op deze pagina</b><br>${SRC[S.route]||''}`;
+  document.getElementById('events').innerHTML=S.events.length?S.events.map(e=>`<div class="ev"><div class="when">${e.when} · ${esc(e.table||'')}</div><b>${esc(e.title)}</b>${e.body?`<pre>${esc(e.body)}</pre>`:''}</div>`).join(''):
+   '<p class="src">Nog niets gebeurd. Vraag een offerte aan, meld je aan als klant of bied een partij aan: hier zie je wat er in het Salesbureau binnenkomt.</p>';
+}
+function go(r){S.route=r; if(r!=='product') S.prod=null; if(r!=='offerte') S.sent=null; render(); window.scrollTo({top:0}); try{history.replaceState(null,'',['home','product'].includes(r)?location.pathname:'#'+r)}catch(e){}}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const a=e.target.closest('[data-r],[data-l],[data-cat],[data-sub],[data-p],[data-add],[data-del],[data-q],[data-tab],[data-act]');
+  if(!a) return;
+  if(a.tagName==='A') e.preventDefault();
+  const d=a.dataset;
+  if(d.r){ if(d.r==='klant') S.klantSent=false; go(d.r); return }
+  if(d.l){S.lang=d.l; render(); return}
+  if(d.cat!==undefined){S.cat=d.cat||null; S.sub=null; S.q=''; document.getElementById('q').value=''; go('partijen'); return}
+  if(d.sub){S.sub=d.sub; render(); return}
+  if(d.p){S.prod=d.p; S.route='product'; render(); window.scrollTo({top:0}); return}
+  if(d.q){const i=document.getElementById('qtyin'); i.value=Math.max(1,(+i.value||1)+(+d.q)); i.dispatchEvent(new Event('input')); return}
+  if(d.add){const n=Math.max(1,+document.getElementById('qtyin').value||1); S.quote[d.add]=n; render(); return}
+  if(d.del){delete S.quote[d.del]; render(); return}
+  if(d.tab){S.mijnTab=d.tab; render(); return}
+  if(d.act==='logout'){S.user=null; go('home'); return}
+  if(d.act==='magic'){log('Inloglink verstuurd naar inkoop@voorbeeld.nl','Supabase Auth stuurt een eenmalige link.\nAlleen als het adres bij een goedgekeurde klant hoort.','auth'); openDrawer(); return}
+  if(d.act==='alert'){log('Aanmelding Handel alert','Komt in de Mailchimp-lijst met taal '+S.lang.toUpperCase()+'\nen als prospect in klanten (bron: website).','mailchimp + klanten'); openDrawer(); return}
+  if(d.act==='beurs'){log('Afspraakverzoek beurs','Komt bij Opvolging in het Salesbureau.','opvolging'); openDrawer(); return}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('.card')){S.prod=e.target.dataset.p;S.route='product';render()}});
+document.addEventListener('input',e=>{
+  if(e.target.id==='qtyin'){const x=byId(S.prod),om=parseInt(x.om)||1,n=Math.max(1,+e.target.value||1);document.getElementById('qtyst').textContent=`× ${om} = ${nf(n*om)} ${t('st')}`}
+});
+document.addEventListener('change',e=>{if(e.target.id==='sortsel'){S.sort=e.target.value;render()}});
+document.addEventListener('submit',e=>{
+  e.preventDefault();
+  const f=e.target;
+  if(f.id==='searchform'){S.q=document.getElementById('q').value.trim(); S.cat=null; S.sub=null; go('partijen'); return}
+  if(f.id==='offerteform'){
+    const nr='OA-2026-'+String(++S.offerteNr).padStart(4,'0');
+    const ids=Object.keys(S.quote);
+    const bedrag=ids.reduce((a,id)=>{const x=byId(id);return a+x.p*S.quote[id]*(parseInt(x.om)||1)},0);
+    const klant=S.user?S.user.naam+' (bestaande klant)':document.getElementById('o-b').value+' (nieuw, KvK '+document.getElementById('o-k').value+')';
+    const body=`offertes: nummer ${nr}\n  status: Aanvraag   bron: website\n  klant: ${klant}\n  taal: ${S.lang.toUpperCase()}\nofferte_regels:\n`+ids.map(id=>{const x=byId(id),om=parseInt(x.om)||1;return `  ${id}  ${S.quote[id]} omdoos × ${om} = ${S.quote[id]*om} st.  à ${eur(x.p)}`}).join('\n')+`\nwaarde: ${eur(bedrag)} excl. btw`;
+    S.events.unshift({when:new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}),title:'Nieuwe offerteaanvraag in het Salesbureau',body,table:'offertes',nr,bedrag:S.user?bedrag:null});
+    document.getElementById('evcount').textContent=S.events.length;
+    S.quote={}; S.sent=nr; render(); openDrawer(); return}
+  if(f.id==='klantform'){
+    const v=id=>document.getElementById(id).value;
+    const ints=[...f.querySelectorAll('input[type=checkbox]:checked')].map(c=>c.value).join(', ');
+    log('Nieuwe aanmelding: wacht op goedkeuring',`klanten: ${v('k-b')}\n  type: prospect   bron: website\n  kvk: ${v('k-k')}   btw: ${v('k-btw')}\n  land: ${v('k-l')}   taal: ${S.lang.toUpperCase()}\n  interesses: ${ints}\nSalesbureau: knop "Goedkeuren" stuurt de inloglink.`,'klanten');
+    S.klantSent=true; render(); openDrawer(); return}
+  if(f.id==='aanbiedform'){log('Partij aangeboden',`opvolging: inkoopkans\n  van: ${document.getElementById('a-b').value}\n  ${document.getElementById('a-o').value}`,'opvolging'); f.innerHTML='<div class="ok">'+(S.lang==='nl'?'Bedankt, we reageren binnen 48 uur.':'Thank you, we will reply within 48 hours.')+'</div>'; openDrawer(); return}
+  if(f.id==='contactform'){log('Contactformulier','opvolging + mail naar info@fvdwpartijhandel.nl','opvolging'); f.innerHTML='<div class="ok">'+(S.lang==='nl'?'Bedankt, we nemen binnen 48 uur contact op.':'Thank you.')+'</div>'; openDrawer(); return}
+});
+function openDrawer(){document.getElementById('drawer').hidden=false; document.getElementById('go-backstage').setAttribute('aria-pressed','true')}
+document.getElementById('go-backstage').onclick=()=>{const d=document.getElementById('drawer');d.hidden=!d.hidden;render()};
+document.getElementById('closedrawer').onclick=()=>{document.getElementById('drawer').hidden=true;render()};
+document.getElementById('go-voorstel').onclick=()=>go(S.route==='voorstel'?'home':'voorstel');
+document.getElementById('logo').onclick=()=>go('home');
+document.getElementById('as-guest').onclick=()=>{S.user=null;render()};
+document.getElementById('as-nl').onclick=()=>{S.user=USERS.nl;render()};
+document.getElementById('as-de').onclick=()=>{S.user=USERS.de;S.lang=S.lang==='nl'?'de':S.lang;render()};
+
+(async()=>{
+  try{const r=await fetch('data.json'); D=await r.json();}catch(e){document.getElementById('main').innerHTML='<div class="wrap blk"><p>De voorbeelddata kon niet worden geladen.</p></div>';return}
+  const h=(location.hash||'').slice(1); if(V[h]&&h!=='product') S.route=h;
+  render();
+})();
+</script>
