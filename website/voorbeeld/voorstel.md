@@ -100,7 +100,7 @@ Voorstellen om in te bouwen, met wat het scheelt. De meeste zitten in het Salesb
 | 4 | **Aanmelding automatisch controleren.** Btw-nummer via de EU-controle (VIES), bedrijfsgegevens erbij. Klopt het, dan staat het account klaar voor jouw ene klik "goedkeuren"; twijfel wordt gemarkeerd. | Handmatig zoeken bij elke nieuwe klant | Website |
 | 5 | **Weekmail rechtstreeks uit de database.** Geen drie exports meer op maandag: de nieuwe artikelen van die week gaan per klantsoort en taal als concept naar Mailchimp. Versturen blijft jouw akkoord. | Exporteren en uploaden elke week | Mailchimp-sleutel bij Vercel |
 | 6 | **Nieuwe partij, meteen de juiste klanten.** Bij een nieuw artikel toont het Salesbureau welke klanten die categorie kochten of als interesse opgaven, met een knop "aanbieden" (mail of persoonlijk aanbod in hun omgeving). | Zelf bedenken wie het wil hebben | Salesbureau + categorieën |
-| 7 | **Bieden afhandelen met grenzen.** Per artikel stel je in: bod boven bijvoorbeeld 90% wordt een offerte ter goedkeuring met één klik, daartussen naar jou, ver eronder een nette afwijzing met tegenvoorstel. | Elk bod apart beoordelen | Antwoord op de biedvraag |
+| 7 | **Bieden met één klik afhandelen.** Elk bod op een hele partij komt bij jou binnen met het percentage van de vraagprijs erbij (alleen voor jou zichtbaar). Accepteren maakt er direct een offerte van, afwijzen stuurt een nette mail. De klant krijgt nergens een bedrag voorgesteld. | Elk bod apart overtypen en beantwoorden | Salesbureau |
 | 8 | **Afhaalafspraak met tijdslot en QR-code.** De klant kiest op de site een afhaalmoment; Logistiek ziet de dagplanning; bij uitgifte scant het magazijn de QR-code op de pakbon en de order staat op afgeleverd. | Bellen over afhaaltijden, orders handmatig afmelden | Website + Logistiek |
 | 9 | **Partijen die te lang staan.** Een lijstje artikelen zonder verkoop in bijvoorbeeld 90 dagen, met per artikel een voorstel: opruimprijs, aanbieden aan de 124 collega-handels of een biedactie. | Kapitaal dat stil in het magazijn staat | Salesbureau |
 | 10 | **Vraag peilen vóór je inkoopt.** Krijg je een partij aangeboden, dan maak je er een "inkoopkans" van en mail je die vrijblijvend naar geïnteresseerde klanten. Het Salesbureau telt de reacties, zodat je weet wat je kwijt kunt voordat je koopt. | Kopen op gevoel | Salesbureau + mail |
@@ -165,6 +165,7 @@ Ongeveer **€ 45 tot € 70 per maand**, plus de bouw. Daartegenover staan de h
 | Tijdelijk minder bezoekers via Google | Zelfde adressen, doorverwijzingen voor alles wat verdwijnt, sitemap direct aanmelden |
 | Mail valt uit bij de overstap | Alleen het `www`- en hoofdadres wijzigen; MX en mailrecords niet aanraken. Vooraf een lijst van alle DNS-records maken |
 | Prijzen of inkoopprijzen lekken | Nooit in de browser of openbare view; alleen via de server na inloggen. Test met een niet-goedgekeurd account |
+| Artikelen zonder foto | 377 van de 1.154 artikelen hebben in MyBusiness alleen een grijze standaardafbeelding. Voor 228 staat een foto op de huidige webshop; die nemen we mee naar Supabase-opslag. De overige 149 (vooral artikelen die alleen per mail gaan) hebben een foto nodig via de fotoknop in het Salesbureau. Lijst: `website/artikelen_zonder_grote_foto.csv` |
 | Artikel staat ten onrechte openbaar | Vinkje openbaar en landbeperking per artikel, standaard uit voor nieuwe artikelen |
 | Data niet compleet | In Supabase is de kolom verpakking bij alle 1.154 artikelen leeg (de waarden staan wel in de import, `5_artikel_extra.csv`). Eerst vullen, want de omdoos is de minimale afname |
 | Alles hangt aan één database | Supabase Pro met dagelijkse back-ups; de site blijft lezen als het Salesbureau even niet werkt |
@@ -190,4 +191,4 @@ Ongeveer **€ 45 tot € 70 per maand**, plus de bouw. Daartegenover staan de h
 2. Mogen artikelen met "geen online consumentenverkoop" wel achter de inlog voor zakelijke klanten? (Voorstel: ja, want alleen zakelijke klanten loggen in.)
 3. Is de webbouwer Allround Web, en wat is de opzegtermijn?
 4. Mag de voorraad openbaar zichtbaar blijven (nu wel), of alleen na inloggen?
-5. Mag het bieden op een hele partij erin, en vanaf welk percentage van de vraagprijs wil je een bod zien?
+5. ~~Mag het bieden op een hele partij erin, en vanaf welk percentage van de vraagprijs wil je een bod zien?~~ Beantwoord 3 oktober: bieden mag, en de site stelt geen bedrag voor.

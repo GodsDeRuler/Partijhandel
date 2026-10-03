@@ -572,7 +572,7 @@ V.product=()=>{
   const pers=(x.st==='niet_op_site'?`<div class="note">${t('aanbodP')}</div>`:'')+(isRest(x)?`<div class="note wn">${t('restantP')}</div>`:'')+(S.user&&x.bl&&x.bl.length?`<div class="note">${t('nietLand')}: ${x.bl.join(', ')}</div>`:'');
   const share=encodeURIComponent(nm(x)+' – '+t('artnr')+' '+x.id+(x.url?' '+x.url:''));
   const bid=S.bid===x.id?`<div class="ok">${t('bodOk')}</div>`:`<div class="bid"><b style="color:var(--navy)">${t('bodT')} (${nf(x.v)} ${t('st')})</b><span style="color:var(--muted)">${t('bodP')}</span>
-    ${S.user?`<form id="bidform" class="row2"><div class="field"><label for="bid-p">${t('bodPrijs')}</label><input id="bid-p" type="number" step="0.01" min="0" value="${(x.p*0.8).toFixed(2)}" style="width:140px"></div><button class="btn bl" type="submit">${t('bodB')}</button></form>`:`<div><button class="btn ghost sm" data-r="login">${t('bodLogin')}</button></div>`}</div>`;
+    ${S.user?`<form id="bidform" class="row2"><div class="field"><label for="bid-p">${t('bodPrijs')}</label><input id="bid-p" type="number" step="0.01" min="0.01" required style="width:140px"></div><button class="btn bl" type="submit">${t('bodB')}</button></form>`:`<div><button class="btn ghost sm" data-r="login">${t('bodLogin')}</button></div>`}</div>`;
   return `<section class="blk"><div class="wrap">
    <p><a href="#" data-r="partijen">← ${t('terug')}</a> · <span style="color:var(--muted)">${esc(catName(x.h))} / ${esc(catName(x.s))}</span></p>
    <div class="pd"><div class="ph"><img src="f/${x.id}.jpg" alt="${esc(nm(x))}"></div>
