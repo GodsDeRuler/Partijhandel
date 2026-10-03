@@ -49,6 +49,7 @@ Wat het voorbeeld laat zien en wat de huidige site niet heeft:
 | Prijs **per omdoos** naast de prijs per stuk, en een totaal (artikelen, omdozen, stuks) op de offertelijst | Minimale afname is 1 omdoos; zo rekent de klant meteen in de goede eenheid |
 | Labels **Nieuw** (laatste 3 weken binnen) en **Restant** (minder dan 1 omdoos) | Nieuw trekt herhaalbezoek; bij een restant ziet de klant direct dat hij moet bellen, net als nu op de site |
 | **Handel alert per categorie** ("mail mij bij nieuwe partijen in Koken & tafelen") | Meer en betere aanmeldingen; past op de interesses in Mailchimp |
+| **Openstaand** in de klantomgeving, met klikbare offertes en orders (regels, status, wat er nog moet gebeuren). Offerte online accepteren wordt direct een order; afhaalmoment doorgeven; pakbon bekijken | Klant ziet zelf wat er openstaat, minder bellen en mailen; akkoord komt meteen in het Salesbureau |
 | **Mijn interesses** in de klantomgeving | Klant houdt zelf bij wat hij wil krijgen; stuurt het persoonlijke aanbod en de mails |
 | **Landfilter met uitleg**: ingelogde klant ziet hoeveel artikelen voor zijn land verborgen zijn, en op de productpagina waar een artikel niet leverbaar is | Verkoopafspraken worden automatisch nageleefd |
 | **Leverkeuze** op de offertelijst: afhalen (gratis) of laten bezorgen, met palletschatting | Transportprijs komt automatisch in de offerte, zie Levering en transport |
