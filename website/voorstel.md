@@ -36,7 +36,7 @@ Na de overstap wordt "openbaar" een vinkje per artikel in het Salesbureau, met e
 | Agenda, Over ons, Contact | Zelfde | Agenda beheerd vanuit het Salesbureau |
 | Winkelwagen, Afrekenen | Vervalt | Doorverwijzing naar de offertelijst |
 | Bedankt | Vervalt | Bevestiging op de pagina zelf |
-| **Ontbreekt nu** | Privacybeleid, Algemene voorwaarden, Cookies | Nodig voor formulieren en aanmeldingen |
+| **Ontbreekt nu** | Privacybeleid, Algemene voorwaarden (cookies staan in het privacybeleid) | Concept staat in het voorbeeld; nodig voor formulieren en aanmeldingen |
 
 ## Nieuw ten opzichte van de huidige site
 
@@ -58,6 +58,21 @@ Wat het voorbeeld laat zien en wat de huidige site niet heeft:
 | **WhatsApp-knop** (bestaat nu ook) en **Deel via WhatsApp** op elke partij | Handelaren sturen partijen door aan hun eigen klanten |
 | **Showroom op afspraak** bij Over ons | Zaterdag op afspraak staat nu alleen bij de openingstijden |
 | **Werkende aanmelding** met KvK, btw, land, soort bedrijf en interesses | De huidige pagina Klant worden is kapot |
+
+Op 3 oktober toegevoegd (Michel: "bouw alles in"):
+
+| Toevoeging | Waarom | Nog nodig |
+|---|---|---|
+| **Privacybeleid en algemene voorwaarden** (concept), met een akkoord-vinkje in alle formulieren | Zonder privacybeleid mag het aanmeldformulier niet live | Jurist laten nakijken; KvK-nummer, betaaltermijn en opslag bij niet afhalen invullen; EN/DE-vertaling |
+| **Partijlijst downloaden** als Excel of PDF, precies wat de bezoeker ziet; prijzen alleen ingelogd. Downloads van klanten komen bij Opvolging | Collega-handels werken met lijsten; Michel ziet wie interesse toont | Niets |
+| **Meer productgegevens**: herkomst, HS-code en houdbaarheid (bij food, verzorging en dier) | Minder vragen, vooral bij export en levensmiddelen | Herkomst bekend bij 532 en HS-code bij 494 artikelen; houdbaarheid vraagt een nieuw veld per partij |
+| **Zoeken op EAN en barcode scannen** met de camera of een foto van de barcode | Winkeliers zoeken op barcode | Werkt op de echte site op de telefoon; in het voorbeeld alleen met een foto als de camera geblokkeerd is |
+| **Zoekvraag bij geen resultaat**: "Dit zoek ik" komt als vraag bij Opvolging | Michel ziet waar vraag naar is en kan gericht inkopen | Niets |
+| **Partijfoto naast de productfoto** | Kopers willen zien hoe de partij er echt bij staat | Foto's van de pallets maken; meerdere foto's per artikel in het Salesbureau |
+| **Uitverkochte partijen houden hun pagina** met "Uitverkocht", vergelijkbare partijen en een Handel alert | Beter voor Google dan doorverwijzen; oude links in mails en zoekresultaten blijven werken | Voorbeeld: knop "Oude link" in de donkere balk |
+| **Nieuw in wat je eerder kocht** op de home en bij Mijn aanbod | Vaste klanten zien direct nieuwe partijen in hun categorieën | Koppeling orders ↔ categorieën (bestaat al in Supabase) |
+| **Showroombezoek online plannen** met datum, tijd en wat de klant wil zien | Minder bellen; magazijn zet de partijen klaar | Tabel afspraken; zaterdagen bevestigt Michel zelf |
+| **Waarom kopen bij Frank van de Wijgert**: ruim 10 jaar, bijna 900 klanten sinds 2018, klanten in 30+ landen, eigen magazijn | Vertrouwen voor nieuwe klanten | Michel bevestigt de cijfers; echte Google-reviews en 2–3 klantreacties met toestemming (geen verzonnen teksten) |
 
 ## Meldingen bij vragen van klanten
 
