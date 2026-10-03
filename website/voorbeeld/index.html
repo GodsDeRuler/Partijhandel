@@ -44,8 +44,10 @@ h1,h2,h3{text-wrap:balance;line-height:1.15;margin:0}
 .top a{color:var(--blue);font-weight:600;text-decoration:none;font-size:15px;cursor:pointer}
 .top a:hover,.top a.on{color:var(--navy)}
 .top .langs{margin-left:auto;display:flex;gap:6px}
-.top .langs button{border:0;background:transparent;font-weight:700;color:var(--blue);cursor:pointer;padding:2px 4px;border-radius:4px}
-.top .langs button.on{background:var(--paper);color:var(--navy)}
+.top .langs button{border:2px solid transparent;background:transparent;cursor:pointer;padding:2px;border-radius:5px;line-height:0;opacity:.7}
+.top .langs button:hover{opacity:1}
+.top .langs button.on{border-color:var(--navy);opacity:1;background:var(--paper)}
+.top .langs svg{width:28px;height:19px;display:block;border-radius:2px}
 .hdr{background:var(--paper);border-bottom:1px solid var(--line)}
 .hdr .wrap{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding-block:14px}
 .hdr .logo{height:44px;width:auto;cursor:pointer;max-width:100%}
@@ -212,8 +214,7 @@ footer p{margin:0;opacity:.9}
     <span class="sp"></span>
     <div class="grp"><span>Bekijk als</span>
       <button id="as-guest" aria-pressed="true">Bezoeker</button>
-      <button id="as-nl" aria-pressed="false">Klant uit NL</button>
-      <button id="as-de" aria-pressed="false">Klant uit DE</button>
+      <button id="as-klant" aria-pressed="false">Ingelogde klant</button>
     </div>
     <div class="grp">
       <button id="go-voorstel" aria-pressed="false">Voorstel</button>
@@ -314,7 +315,9 @@ const nf=n=>n.toLocaleString('nl-NL');
 const nm=x=>x[S.lang]||x.nl;
 const catName=c=>{const o=D.cats.find(k=>k.c===c);return o?(o[S.lang]||o.nl):c};
 const byId=id=>D.items.find(x=>x.id===id);
-const USERS={nl:{naam:'Demo Outlet B.V. (voorbeeld)',land:'NL'},de:{naam:'Demo Handel GmbH (Beispiel)',land:'DE'}};
+const USERS={nl:{naam:'Demo Outlet B.V. (voorbeeld)',land:'NL'},en:{naam:'Demo Trading Ltd (example)',land:'GB'},de:{naam:'Demo Handel GmbH (Beispiel)',land:'DE'}};
+const FLAG={nl:'<svg viewBox="0 0 9 6" aria-hidden="true"><rect width="9" height="6" fill="#21468B"/><rect width="9" height="4" fill="#fff"/><rect width="9" height="2" fill="#AE1C28"/></svg>',de:'<svg viewBox="0 0 5 3" aria-hidden="true"><rect width="5" height="3" fill="#FFCE00"/><rect width="5" height="2" fill="#DD0000"/><rect width="5" height="1" fill="#000"/></svg>',en:'<svg viewBox="0 0 60 30" aria-hidden="true"><clipPath id="uk-t"><path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/></clipPath><rect width="60" height="30" fill="#012169"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 L60,30 M60,0 L0,30" clip-path="url(#uk-t)" stroke="#C8102E" stroke-width="4"/><path d="M30,0 v30 M0,15 h60" stroke="#fff" stroke-width="10"/><path d="M30,0 v30 M0,15 h60" stroke="#C8102E" stroke-width="6"/></svg>'};
+const LNAME={nl:'Nederlands',en:'English',de:'Deutsch'};
 
 // Wat mag deze bezoeker zien? Dezelfde regels die de echte site in Supabase krijgt.
 function visible(x){
@@ -360,7 +363,7 @@ function card(x){
 function topnav(){
   const items=['home','partijen','agenda','over','contact'];
   document.getElementById('topnav').innerHTML=items.map(r=>`<a data-r="${r}" class="${S.route===r?'on':''}">${t(r)}</a>`).join('')+
-   `<div class="langs">${['nl','en','de'].map(l=>`<button data-l="${l}" class="${S.lang===l?'on':''}">${l.toUpperCase()}</button>`).join('')}</div>`;
+   `<div class="langs">${['nl','en','de'].map(l=>`<button data-l="${l}" class="${S.lang===l?'on':''}" title="${LNAME[l]}" aria-label="${LNAME[l]}" aria-pressed="${S.lang===l}">${FLAG[l]}</button>`).join('')}</div>`;
   const n=Object.values(S.quote).reduce((a,b)=>a+b,0);
   document.getElementById('hdrbtns').innerHTML=
    `<button class="btn cy" data-r="offerte">${t('offerte')} <span class="qcount">${Object.keys(S.quote).length}</span></button>`+
@@ -486,7 +489,7 @@ V.login=()=>`<section class="blk"><div class="wrap" style="max-width:560px"><div
   <h2 style="color:var(--navy);text-transform:uppercase;font-weight:800">${t('login')}</h2><p style="margin:0">${t('loginP')}</p>
   <div class="field"><label for="l-e">${t('email')}</label><input id="l-e" type="email" value="inkoop@voorbeeld.nl"></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn cy" data-act="magic">${t('stuurLink')}</button></div>
-  <div class="note">In dit voorbeeld log je in met de knoppen <b>Klant uit NL</b> of <b>Klant uit DE</b> in de donkere balk bovenaan.</div></div></div></section>`;
+  <div class="note">In dit voorbeeld log je in met de knop <b>Ingelogde klant</b> in de donkere balk bovenaan. Het land van de voorbeeldklant volgt de vlag: NL, Engeland of Duitsland.</div></div></div></section>`;
 V.mijn=()=>{
   if(!S.user) return V.login();
   const tabs=['aanbod','offertes','orders','geg'];
@@ -532,8 +535,8 @@ V.voorstel=()=>`<section class="blk"><div class="wrap"><article class="doc" id="
 function render(){
   topnav();
   document.getElementById('main').innerHTML=(V[S.route]||V.home)();
-  document.querySelectorAll('[aria-pressed]').forEach(b=>b.setAttribute('aria-pressed','false'));
-  document.getElementById(S.user?(S.user.land==='DE'?'as-de':'as-nl'):'as-guest').setAttribute('aria-pressed','true');
+  document.querySelectorAll('.demo [aria-pressed]').forEach(b=>b.setAttribute('aria-pressed','false'));
+  document.getElementById(S.user?'as-klant':'as-guest').setAttribute('aria-pressed','true');
   document.getElementById('go-voorstel').setAttribute('aria-pressed',S.route==='voorstel');
   document.getElementById('go-backstage').setAttribute('aria-pressed',!document.getElementById('drawer').hidden);
   const ss=document.getElementById('sortsel'); if(ss) ss.value=S.sort;
@@ -574,7 +577,7 @@ document.addEventListener('click',e=>{
   if(a.tagName==='A') e.preventDefault();
   const d=a.dataset;
   if(d.r){ if(d.r==='klant') S.klantSent=false; go(d.r); return }
-  if(d.l){S.lang=d.l; render(); return}
+  if(d.l){S.lang=d.l; if(S.user) S.user=USERS[d.l]; render(); return}
   if(d.cat!==undefined){S.cat=d.cat||null; S.sub=null; S.q=''; document.getElementById('q').value=''; go('partijen'); return}
   if(d.sub){S.sub=d.sub; render(); return}
   if(d.p){S.prod=d.p; S.route='product'; render(); window.scrollTo({top:0}); return}
@@ -619,8 +622,7 @@ document.getElementById('closedrawer').onclick=()=>{document.getElementById('dra
 document.getElementById('go-voorstel').onclick=()=>go(S.route==='voorstel'?'home':'voorstel');
 document.getElementById('logo').onclick=()=>go('home');
 document.getElementById('as-guest').onclick=()=>{S.user=null;render()};
-document.getElementById('as-nl').onclick=()=>{S.user=USERS.nl;render()};
-document.getElementById('as-de').onclick=()=>{S.user=USERS.de;S.lang=S.lang==='nl'?'de':S.lang;render()};
+document.getElementById('as-klant').onclick=()=>{S.user=USERS[S.lang];render()};
 
 (async()=>{
   try{const r=await fetch('data.json'); D=await r.json();}catch(e){document.getElementById('main').innerHTML='<div class="wrap blk"><p>De voorbeelddata kon niet worden geladen.</p></div>';return}
