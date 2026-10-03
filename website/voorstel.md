@@ -14,11 +14,11 @@ Bron: artikelexport 01-10-2026 (1.151 artikelen) en de beperkingen in de artikel
 
 | Op de nieuwe site | Aantal | Waarom |
 |---|---:|---|
-| **Openbaar** (iedereen ziet artikel, prijs na inloggen) | **636** | Staat nu in de webshop en de naam bevat geen verkoopbeperking. |
-| **Alleen na inloggen**, met landfilter | **77** | Staat nu in de webshop, maar de naam zegt: geen verkoop Benelux (48), geen online/consumentenverkoop (10), beide (12), geen online + geen verkoop NL (4), niet aan Action-landen (2), plus 1 erotiekartikel. Een klant ziet zo'n artikel alleen als zijn land is toegestaan. |
-| **Niet op de site** | **438** | Staat nu niet in de webshop. Blijft alleen per mail (weekmails) en als persoonlijk aanbod in de klantomgeving, als Michel dat wil (zie open vragen). Hieronder ook 24 met een verkoopbeperking en 2 met verkoopprijs 0. |
+| **Openbaar** (iedereen ziet artikel, prijs na inloggen) | **618** | Staat nu in de webshop en de naam bevat geen verkoopbeperking. |
+| **Alleen na inloggen**, met landfilter | **95** | Staat nu in de webshop, maar de naam zegt: geen verkoop Benelux (48), geen verkoop DE/AT/CH (13), geen online/consumentenverkoop (10), geen online + geen verkoop Benelux (12), geen verkoop NL-BE-LU-DE-FR-AT-UAE (5), geen online + geen verkoop NL (4), niet aan Action-landen (2), plus 1 erotiekartikel. Een klant ziet zo'n artikel alleen als zijn land is toegestaan. |
+| **Niet op de site** | **438** | Staat nu niet in de webshop. Blijft alleen per mail (weekmails) en als persoonlijk aanbod in de klantomgeving, als Michel dat wil (zie open vragen). Hieronder ook 25 met een verkoopbeperking en 2 met verkoopprijs 0. |
 
-**Let op, nu al:** minstens 45 van die 77 artikelen met een beperking staan **op dit moment openbaar** op fvdwpartijhandel.nl (bijv. Fresh & Co dekbedovertrekken "Geen verkoop Benelux", Laser Cuisine messen "Geen ONLINE consumenten verkoop"). Of dat mag, hangt af van de afspraak met de leverancier. Dit staat los van de nieuwe site.
+**Let op, nu al:** minstens 63 van die 95 artikelen met een beperking staan **op dit moment openbaar** op fvdwpartijhandel.nl (bijv. Fresh & Co dekbedovertrekken "Geen verkoop Benelux", Laser Cuisine messen "Geen ONLINE consumenten verkoop", borden en mokken "No sale DE-AT-CH" die ook in het Duits openbaar staan). Of dat mag, hangt af van de afspraak met de leverancier. Dit staat los van de nieuwe site.
 
 Na de overstap wordt "openbaar" een vinkje per artikel in het Salesbureau, met een apart veld voor landen waar niet verkocht mag worden. De tekst in de artikelnaam is dan alleen nog een geheugensteun.
 
@@ -37,6 +37,26 @@ Na de overstap wordt "openbaar" een vinkje per artikel in het Salesbureau, met e
 | Winkelwagen, Afrekenen | Vervalt | Doorverwijzing naar de offertelijst |
 | Bedankt | Vervalt | Bevestiging op de pagina zelf |
 | **Ontbreekt nu** | Privacybeleid, Algemene voorwaarden, Cookies | Nodig voor formulieren en aanmeldingen |
+
+## Nieuw ten opzichte van de huidige site
+
+Wat het voorbeeld laat zien en wat de huidige site niet heeft:
+
+| Toevoeging | Waarom |
+|---|---|
+| **Partijlijst**: catalogus als tabel met voorraad, omdoos, pallet, prijs en een knop "+ 1 omdoos" | Handelaren scannen veel partijen tegelijk; dit is de partijlijst uit de mails, maar dan altijd actueel |
+| **Bod op de hele partij** (na inloggen) | Typisch voor partijhandel: wie alles afneemt, mag bieden. Komt als offerte met status Bod in het Salesbureau, met het percentage van de vraagprijs erbij |
+| Prijs **per omdoos** naast de prijs per stuk, en een totaal (artikelen, omdozen, stuks) op de offertelijst | Minimale afname is 1 omdoos; zo rekent de klant meteen in de goede eenheid |
+| Labels **Nieuw** (laatste 3 weken binnen) en **Restant** (minder dan 1 omdoos) | Nieuw trekt herhaalbezoek; bij een restant ziet de klant direct dat hij moet bellen, net als nu op de site |
+| **Handel alert per categorie** ("mail mij bij nieuwe partijen in Koken & tafelen") | Meer en betere aanmeldingen; past op de interesses in Mailchimp |
+| **Mijn interesses** in de klantomgeving | Klant houdt zelf bij wat hij wil krijgen; stuurt het persoonlijke aanbod en de mails |
+| **Landfilter met uitleg**: ingelogde klant ziet hoeveel artikelen voor zijn land verborgen zijn, en op de productpagina waar een artikel niet leverbaar is | Verkoopafspraken worden automatisch nageleefd |
+| **Zo werkt het** in drie stappen op de home | Nieuwe bezoekers snappen meteen dat het om offertes gaat, niet om bestellen |
+| **WhatsApp-knop** (bestaat nu ook) en **Deel via WhatsApp** op elke partij | Handelaren sturen partijen door aan hun eigen klanten |
+| **Showroom op afspraak** bij Over ons | Zaterdag op afspraak staat nu alleen bij de openingstijden |
+| **Werkende aanmelding** met KvK, btw, land, soort bedrijf en interesses | De huidige pagina Klant worden is kapot |
+
+Na te vragen bij Michel: de tekst "klaargezet voor afhalen of transport" in stap 3 is afgeleid (eigen vrachtwagen, vervoerders in het Salesbureau), niet bevestigd.
 
 ## Opbouw
 
@@ -116,7 +136,9 @@ Ongeveer **€ 45 tot € 70 per maand**, plus de bouw. Daartegenover staan de h
 
 ## Open vragen voor Michel
 
+
 1. Mogen de 438 artikelen die nu niet in de webshop staan, in de klantomgeving als persoonlijk aanbod verschijnen (alleen voor ingelogde klanten), of alleen per mail?
 2. Mogen artikelen met "geen online consumentenverkoop" wel achter de inlog voor zakelijke klanten? (Voorstel: ja, want alleen zakelijke klanten loggen in.)
 3. Is de webbouwer Allround Web, en wat is de opzegtermijn?
 4. Mag de voorraad openbaar zichtbaar blijven (nu wel), of alleen na inloggen?
+5. Mag het bieden op een hele partij erin, en vanaf welk percentage van de vraagprijs wil je een bod zien?

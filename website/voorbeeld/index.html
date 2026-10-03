@@ -169,6 +169,26 @@ table.t td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:m
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
 .tabs button{border:1px solid var(--line);background:var(--paper);border-radius:30px;padding:8px 16px;cursor:pointer;font-weight:600;color:var(--navy)}
 .tabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.pill.nw{background:var(--blue);color:#fff}
+.pill.rs{background:#FFE3E3;color:#A1251B;left:auto;right:8px}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;counter-reset:st}
+.step{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-card);padding:20px;display:grid;gap:8px;align-content:start}
+.step::before{counter-increment:st;content:counter(st);font-family:var(--f-label);font-weight:700;font-size:34px;line-height:1;color:var(--cyan)}
+.step b{color:var(--navy);font-size:17px}
+.step p{margin:0;color:var(--muted)}
+.view{display:inline-flex;border:1px solid var(--line);border-radius:30px;overflow:hidden;background:var(--paper)}
+.view button{border:0;background:transparent;padding:8px 14px;cursor:pointer;font-weight:600;color:var(--navy)}
+.view button.on{background:var(--navy);color:#fff}
+table.list td.nm{min-width:220px}
+table.list tr{cursor:pointer}
+table.list tr:hover td{background:var(--ice)}
+.alertcat{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--blue);color:#fff;border-radius:16px;padding:12px 16px;margin-top:22px}
+.alertcat p{margin:0;flex:1;min-width:200px}
+.wa{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:30;background:#25D366;color:#fff;border-radius:40px;padding:12px 18px;font-weight:700;text-decoration:none;box-shadow:0 8px 24px -8px rgba(0,0,0,.35);display:flex;gap:8px;align-items:center}
+.wa svg{width:22px;height:22px}
+.bid{border:2px dashed var(--cyan);border-radius:var(--r-card);padding:14px 16px;display:grid;gap:10px;background:var(--paper)}
+.bid .row2{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.sumrow{display:flex;gap:18px;flex-wrap:wrap;padding:12px 4px 0;color:var(--navy);font-weight:600}
 .thumb{width:44px;height:44px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:8px}
 
 /* footer */
@@ -238,6 +258,7 @@ footer p{margin:0;opacity:.9}
 <footer><div class="wrap" id="foot"></div></footer>
 <div class="copy"><div class="wrap">Copyright fvdwpartijhandel | All Rights Reserved</div></div>
 
+<a class="wa" id="wa" href="https://wa.me/31618306148" target="_blank" rel="noopener" aria-label="WhatsApp"></a>
 <aside class="drawer" id="drawer" hidden aria-label="Achter de schermen">
   <header><b>Achter de schermen</b><button id="closedrawer">Sluiten</button></header>
   <div class="in">
@@ -265,6 +286,14 @@ klantOk:'Bedankt voor je aanmelding. We controleren je gegevens en sturen je een
 loginP:'Vul je e-mailadres in. Je krijgt een inloglink, een wachtwoord is niet nodig.',stuurLink:'Stuur inloglink',
 mAanbod:'Mijn aanbod',mOffertes:'Mijn offertes',mOrders:'Mijn orders',mGeg:'Mijn gegevens',welkom:'Welkom terug',
 aanbodP:'Deze partijen staan niet openbaar op de site. Ze zijn voor jou geselecteerd.',
+nieuwB:'Nieuw',prijsSt:'Prijs/st.',restant:'Restant',restantP:'Minder dan één omdoos op voorraad. Neem contact op voor een prijs voor het restant.',perOm:'per omdoos',
+hoeT:'Zo werkt het',h1:'Kies je partijen',h1p:'Zet artikelen op je offertelijst, per omdoos of per pallet.',h2:'Offerte binnen 48 uur',h2p:'Je krijgt een offerte op maat, met prijzen voor jouw aantallen.',h3:'Akkoord, wij maken het klaar',h3p:'De partij wordt klaargezet in ons magazijn in Tilburg voor afhalen of transport.',
+kaart:'Tegels',lijst:'Partijlijst',plus1:'+ 1 omdoos',
+alertCat:'Mail mij als er nieuwe partijen binnenkomen in',alertCatB:'Ja, mail mij',alertCatOk:'Aangemeld. Je krijgt een mail bij nieuwe partijen in deze categorie.',
+bodT:'Bod op de hele partij',bodP:'Neem de volledige voorraad af en doe een bod per stuk.',bodB:'Bod versturen',bodLogin:'Log in om een bod op de hele partij te doen.',bodOk:'Bod ontvangen. We reageren binnen 48 uur.',bodPrijs:'Bod per stuk (€)',
+deel:'Deel via WhatsApp',nietLand:'Niet leverbaar in',verborgen:'artikelen zijn niet zichtbaar omdat ze niet in jouw land verkocht mogen worden.',
+totArt:'artikelen',totOm:'omdozen',totSt:'stuks',interesses:'Mijn interesses',interessesP:'Op basis hiervan krijg je de Handel alert en je persoonlijke aanbod.',opslaan:'Opslaan',opgeslagen:'Opgeslagen',
+showT:'Kom kijken in onze showroom',showP:'Op zaterdag op afspraak. Bekijk de partijen in het echt voordat je koopt.',showB:'Afspraak maken',
 },
 en:{home:'Home',partijen:'Stocklots',agenda:'Agenda',over:'About us',contact:'Contact',offerte:'Quote list',klant:'Become a customer',login:'Log in',mijn:'My account',logout:'Log out',zoek:'Search stocklots...',
 heroT:'Your B2B partner for stocklots',heroP:'End-of-line stock, overstock and liquidation lots from our own warehouse in Tilburg. Prices for business customers after logging in.',bekijk:'View stocklots',
@@ -283,6 +312,14 @@ klantOk:'Thank you for registering. We will check your details and send you a lo
 loginP:'Enter your email address. You will receive a login link, no password needed.',stuurLink:'Send login link',
 mAanbod:'My offer',mOffertes:'My quotes',mOrders:'My orders',mGeg:'My details',welkom:'Welcome back',
 aanbodP:'These lots are not listed publicly. They were selected for you.',
+nieuwB:'New',prijsSt:'Price/pc',restant:'Remainder',restantP:'Less than one outer box in stock. Contact us for a price for the remainder.',perOm:'per outer box',
+hoeT:'How it works',h1:'Choose your lots',h1p:'Add items to your quote list, per outer box or per pallet.',h2:'Quote within 48 hours',h2p:'You receive a tailored quote with prices for your quantities.',h3:'Agreed, we get it ready',h3p:'The lot is prepared in our warehouse in Tilburg for collection or transport.',
+kaart:'Tiles',lijst:'Stock list',plus1:'+ 1 box',
+alertCat:'Email me when new lots arrive in',alertCatB:'Yes, email me',alertCatOk:'Signed up. You will get an email when new lots arrive in this category.',
+bodT:'Bid on the entire lot',bodP:'Take the complete stock and make a bid per piece.',bodB:'Send bid',bodLogin:'Log in to bid on the entire lot.',bodOk:'Bid received. We will reply within 48 hours.',bodPrijs:'Bid per piece (€)',
+deel:'Share via WhatsApp',nietLand:'Not available in',verborgen:'items are hidden because they may not be sold in your country.',
+totArt:'items',totOm:'outer boxes',totSt:'pieces',interesses:'My interests',interessesP:'We use these for the trade alert and your personal offer.',opslaan:'Save',opgeslagen:'Saved',
+showT:'Visit our showroom',showP:'Saturdays by appointment. See the lots for real before you buy.',showB:'Make an appointment',
 },
 de:{home:'Start',partijen:'Restposten',agenda:'Termine',over:'Über uns',contact:'Kontakt',offerte:'Angebotsliste',klant:'Kunde werden',login:'Anmelden',mijn:'Mein Konto',logout:'Abmelden',zoek:'Restposten suchen...',
 heroT:'Ihr B2B-Partner für Restposten',heroP:'Restposten, Überbestände und Insolvenzware aus unserem eigenen Lager in Tilburg. Preise für Geschäftskunden nach der Anmeldung.',bekijk:'Restposten ansehen',
@@ -301,12 +338,20 @@ klantOk:'Vielen Dank für Ihre Registrierung. Wir prüfen Ihre Daten und senden 
 loginP:'Geben Sie Ihre E-Mail-Adresse ein. Sie erhalten einen Anmeldelink, ein Passwort ist nicht nötig.',stuurLink:'Anmeldelink senden',
 mAanbod:'Mein Angebot',mOffertes:'Meine Angebote',mOrders:'Meine Aufträge',mGeg:'Meine Daten',welkom:'Willkommen zurück',
 aanbodP:'Diese Posten sind nicht öffentlich gelistet. Sie wurden für Sie ausgewählt.',
+nieuwB:'Neu',prijsSt:'Preis/Stk.',restant:'Restmenge',restantP:'Weniger als ein Umkarton auf Lager. Fragen Sie nach einem Preis für die Restmenge.',perOm:'pro Umkarton',
+hoeT:'So funktioniert es',h1:'Posten auswählen',h1p:'Legen Sie Artikel auf Ihre Angebotsliste, pro Umkarton oder pro Palette.',h2:'Angebot innerhalb von 48 Stunden',h2p:'Sie erhalten ein individuelles Angebot mit Preisen für Ihre Mengen.',h3:'Einverstanden, wir bereiten alles vor',h3p:'Der Posten wird in unserem Lager in Tilburg zur Abholung oder zum Transport bereitgestellt.',
+kaart:'Kacheln',lijst:'Postenliste',plus1:'+ 1 Karton',
+alertCat:'Mailen Sie mir neue Posten in',alertCatB:'Ja, bitte mailen',alertCatOk:'Angemeldet. Sie erhalten eine E-Mail bei neuen Posten in dieser Kategorie.',
+bodT:'Gebot auf den ganzen Posten',bodP:'Übernehmen Sie den gesamten Bestand und bieten Sie pro Stück.',bodB:'Gebot senden',bodLogin:'Melden Sie sich an, um auf den ganzen Posten zu bieten.',bodOk:'Gebot erhalten. Wir antworten innerhalb von 48 Stunden.',bodPrijs:'Gebot pro Stück (€)',
+deel:'Über WhatsApp teilen',nietLand:'Nicht lieferbar in',verborgen:'Artikel sind ausgeblendet, weil sie in Ihrem Land nicht verkauft werden dürfen.',
+totArt:'Artikel',totOm:'Umkartons',totSt:'Stück',interesses:'Meine Interessen',interessesP:'Danach richten sich der Handel-Alert und Ihr persönliches Angebot.',opslaan:'Speichern',opgeslagen:'Gespeichert',
+showT:'Besuchen Sie unseren Showroom',showP:'Samstags nach Vereinbarung. Sehen Sie sich die Posten vor dem Kauf an.',showB:'Termin vereinbaren',
 }};
 const AGENDA=[
  {d:'28–29 okt 2026',n:'Goodies Messe',p:'Ankum (DE)'},
  {d:'4–5 nov 2026',n:'SVG Fair',p:'Winterswijk'},
 ];
-const S={lang:'nl',user:null,route:'home',cat:null,sub:null,sort:'nieuw',q:'',prod:null,quote:{},mijnTab:'aanbod',events:[],sent:null,klantSent:false,offerteNr:41};
+const S={lang:'nl',user:null,route:'home',cat:null,sub:null,sort:'nieuw',q:'',prod:null,quote:{},mijnTab:'aanbod',view:'kaart',bid:false,events:[],sent:null,klantSent:false,offerteNr:41};
 let D={items:[],cats:[],totaal_publiek:{},mijn:[]};
 const t=k=>(T[S.lang][k]??T.nl[k]??k);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -315,6 +360,11 @@ const nf=n=>n.toLocaleString('nl-NL');
 const nm=x=>x[S.lang]||x.nl;
 const catName=c=>{const o=D.cats.find(k=>k.c===c);return o?(o[S.lang]||o.nl):c};
 const byId=id=>D.items.find(x=>x.id===id);
+let NEWEST='';
+const isNew=x=>x.d&&NEWEST&&(new Date(NEWEST)-new Date(x.d))/864e5<=21;
+const isRest=x=>{const om=parseInt(x.om);return om>1&&x.v<om};
+const WA='https://wa.me/31618306148';
+const WAICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7a2.8 2.8 0 0 0 1.8-1.3 2.3 2.3 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>';
 const USERS={nl:{naam:'Demo Outlet B.V. (voorbeeld)',land:'NL'},en:{naam:'Demo Trading Ltd (example)',land:'GB'},de:{naam:'Demo Handel GmbH (Beispiel)',land:'DE'}};
 const FLAG={nl:'<svg viewBox="0 0 9 6" aria-hidden="true"><rect width="9" height="6" fill="#21468B"/><rect width="9" height="4" fill="#fff"/><rect width="9" height="2" fill="#AE1C28"/></svg>',de:'<svg viewBox="0 0 5 3" aria-hidden="true"><rect width="5" height="3" fill="#FFCE00"/><rect width="5" height="2" fill="#DD0000"/><rect width="5" height="1" fill="#000"/></svg>',en:'<svg viewBox="0 0 60 30" aria-hidden="true"><clipPath id="uk-t"><path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/></clipPath><rect width="60" height="30" fill="#012169"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 L60,30 M60,0 L0,30" clip-path="url(#uk-t)" stroke="#C8102E" stroke-width="4"/><path d="M30,0 v30 M0,15 h60" stroke="#fff" stroke-width="10"/><path d="M30,0 v30 M0,15 h60" stroke="#C8102E" stroke-width="6"/></svg>'};
 const LNAME={nl:'Nederlands',en:'English',de:'Deutsch'};
@@ -324,14 +374,7 @@ function visible(x){
   if(x.st==='publiek') return true;
   if(!S.user) return false;
   if(x.st==='niet_op_site') return D.mijn.includes(x.id);
-  const benelux=['NL','BE','LU'], action=['NL','BE','DE','FR','PL'], L=S.user.land;
-  for(const b of x.b){
-    if(b.includes('Benelux') && benelux.includes(L)) return false;
-    if(b.includes('Nederland') && L==='NL') return false;
-    if(b.includes('België') && L==='BE') return false;
-    if(b.includes('Action') && action.includes(L)) return false;
-  }
-  return true;
+  return !(x.bl||[]).includes(S.user.land);
 }
 function catalog(){
   let l=D.items.filter(x=>visible(x)&&x.st!=='niet_op_site');
@@ -350,12 +393,14 @@ function log(title,body,table){
 /* ---------- pieces ---------- */
 function priceHtml(x){
   if(!S.user) return `<span class="lock">🔒 ${t('prijsNa')}</span>`;
-  return `<span class="price">${eur(x.p)} <small>${t('perSt')}</small></span>`;
+  const om=parseInt(x.om);
+  return `<span style="display:grid;gap:2px"><span class="price">${eur(x.p)} <small>${t('perSt')}</small></span>${om>1?`<small class="num" style="color:var(--muted)">${eur(x.p*om)} ${t('perOm')}</small>`:''}</span>`;
 }
 function card(x){
-  const pill=x.st==='niet_op_site'?`<span class="pill cy">${t('persoonlijk')}</span>`:x.st==='alleen_inlog'?`<span class="pill wn">${t('alleenInlog')}</span>`:'';
+  const pill=x.st==='niet_op_site'?`<span class="pill cy">${t('persoonlijk')}</span>`:x.st==='alleen_inlog'?`<span class="pill wn">${t('alleenInlog')}</span>`:isNew(x)?`<span class="pill nw">${t('nieuwB')}</span>`:'';
+  const rest=isRest(x)?`<span class="pill rs">${t('restant')}</span>`:'';
   return `<article class="card" data-p="${x.id}" tabindex="0">
-   <div class="ph">${pill}<img loading="lazy" src="f/${x.id}.jpg" alt=""></div>
+   <div class="ph">${pill}${rest}<img loading="lazy" src="f/${x.id}.jpg" alt=""></div>
    <div class="body"><h3>${esc(nm(x))}</h3>${priceHtml(x)}
    <div class="strip"><div><span class="k">${t('voorraad')}</span><span class="v">${nf(x.v)}</span></div>
    <div><span class="k">${t('omdoos')}</span><span class="v">${x.om?x.om+' '+t('st'):'–'}</span></div></div></div></article>`;
@@ -379,7 +424,7 @@ function topnav(){
 /* ---------- views ---------- */
 const V={};
 V.home=()=>{
-  const nieuw=D.items.filter(x=>x.st==='publiek').sort((a,b)=>b.d.localeCompare(a.d)).slice(0,8);
+  const nieuw=D.items.filter(x=>x.st==='publiek').sort((a,b)=>b.d.localeCompare(a.d)).slice(0,10);
   const tot=Object.values(D.totaal_publiek).reduce((a,b)=>a+b,0);
   const hoofd=D.cats.filter(c=>c.n==='hoofd');
   return `<section class="hero"><img src="img/magazijn.jpg" alt=""><div class="wrap">
@@ -394,6 +439,9 @@ V.home=()=>{
     <div class="sh"><div><h2>${t('nieuw')}</h2><p>${t('nieuwP')}</p></div><button class="btn bl sm" data-r="partijen">${t('alles')} →</button></div>
     <div class="grid">${nieuw.map(card).join('')}</div></div></section>
    <section class="blk" style="padding-top:0"><div class="wrap">
+    <div class="sh"><h2>${t('hoeT')}</h2></div>
+    <div class="steps"><div class="step"><b>${t('h1')}</b><p>${t('h1p')}</p></div><div class="step"><b>${t('h2')}</b><p>${t('h2p')}</p></div><div class="step"><b>${t('h3')}</b><p>${t('h3p')}</p></div></div></div></section>
+   <section class="blk" style="padding-top:0"><div class="wrap">
     <div class="sh"><h2>${t('cats')}</h2></div>
     <div class="cats">${hoofd.map(c=>`<button class="cat" data-cat="${c.c}"><b>${esc(c[S.lang])}</b><span class="num">${D.totaal_publiek[c.c]||0}</span></button>`).join('')}</div></div></section>
    <section class="blk" style="padding-top:0"><div class="wrap split">
@@ -404,6 +452,7 @@ V.home=()=>{
 V.partijen=()=>{
   const l=catalog();
   const base=D.items.filter(x=>visible(x)&&x.st!=='niet_op_site');
+  const hidden=S.user?D.items.filter(x=>x.st==='alleen_inlog'&&!visible(x)).length:0;
   const hoofd=D.cats.filter(c=>c.n==='hoofd');
   const side=`<button class="${!S.cat?'on':''}" data-cat="">${t('alleCat')} <span class="n">${base.length}</span></button>`+
    hoofd.map(c=>{const n=base.filter(x=>x.h===c.c).length; if(!n) return '';
@@ -414,15 +463,28 @@ V.partijen=()=>{
    <div class="sh"><div><h2>${S.cat?esc(catName(S.sub||S.cat)):t('partijen')}</h2><p class="num">${l.length} ${t('resultaten')}${S.q?` · “${esc(S.q)}”`:''}</p></div></div>
    <div class="cat-layout"><nav class="side" aria-label="${t('cats')}">${side}</nav>
    <div style="min-width:0"><div class="toolbar"><div class="note">${t('minAf')}</div><span style="flex:1"></span>
+    <div class="view" role="group"><button data-view="kaart" class="${S.view==='kaart'?'on':''}">${t('kaart')}</button><button data-view="lijst" class="${S.view==='lijst'?'on':''}">${t('lijst')}</button></div>
     <label class="lbl" for="sortsel">${t('sort')}</label><select id="sortsel"><option value="nieuw">${t('sNieuw')}</option><option value="voorraad">${t('sVoorraad')}</option><option value="naam">${t('sNaam')}</option></select></div>
-   <div class="grid">${l.map(card).join('')||`<p>–</p>`}</div></div></div></div></section>`;
+   ${hidden?`<div class="note wn" style="margin-bottom:14px">${hidden} ${t('verborgen')}</div>`:''}
+   ${S.view==='lijst'?listTable(l):`<div class="grid">${l.map(card).join('')||`<p>–</p>`}</div>`}
+   ${S.cat?`<div class="alertcat"><p>${t('alertCat')} <b>${esc(catName(S.sub||S.cat))}</b></p><button class="btn cy sm" data-act="alertcat">${t('alertCatB')}</button></div>`:''}
+   </div></div></div></section>`;
 };
+function listTable(l){
+  if(!l.length) return '<p>–</p>';
+  return `<div class="box tw" style="padding:8px"><table class="t list"><thead><tr><th></th><th>${S.lang==='nl'?'Artikel':S.lang==='de'?'Artikel':'Item'}</th><th>${t('artnr')}</th><th>${t('voorraad')}</th><th>${t('omdoos')}</th><th>${t('pallet')}</th><th>${S.user?t('prijsSt'):''}</th><th></th></tr></thead><tbody>
+  ${l.map(x=>`<tr data-p="${x.id}"><td><img class="thumb" loading="lazy" src="f/${x.id}.jpg" alt=""></td><td class="nm">${esc(nm(x))}${isNew(x)?` <span class="st a">${t('nieuwB')}</span>`:''}${isRest(x)?` <span class="st o">${t('restant')}</span>`:''}</td><td>${x.id}</td><td>${nf(x.v)}</td><td>${x.om||'–'}</td><td>${x.pa?nf(+x.pa):'–'}</td><td>${S.user?eur(x.p):'🔒'}</td>
+  <td><button class="btn ${S.quote[x.id]?'ghost':'cy'} sm" data-plus="${x.id}">${S.quote[x.id]?S.quote[x.id]+' ✓':t('plus1')}</button></td></tr>`).join('')}</tbody></table></div>`;
+}
 V.product=()=>{
   const x=byId(S.prod); if(!x) return V.partijen();
   const rel=D.items.filter(y=>y.s===x.s&&y.id!==x.id&&visible(y)&&y.st!=='niet_op_site').slice(0,4);
   const om=parseInt(x.om)||1;
   const restr=x.st==='alleen_inlog'?`<div class="note wn">${S.lang==='nl'?'Alleen zichtbaar voor ingelogde klanten in landen waar dit artikel verkocht mag worden.':S.lang==='en'?'Only visible to logged-in customers in countries where this item may be sold.':'Nur für angemeldete Kunden in Ländern sichtbar, in denen dieser Artikel verkauft werden darf.'}</div>`:'';
-  const pers=x.st==='niet_op_site'?`<div class="note">${t('aanbodP')}</div>`:'';
+  const pers=(x.st==='niet_op_site'?`<div class="note">${t('aanbodP')}</div>`:'')+(isRest(x)?`<div class="note wn">${t('restantP')}</div>`:'')+(S.user&&x.bl&&x.bl.length?`<div class="note">${t('nietLand')}: ${x.bl.join(', ')}</div>`:'');
+  const share=encodeURIComponent(nm(x)+' – '+t('artnr')+' '+x.id+(x.url?' '+x.url:''));
+  const bid=S.bid===x.id?`<div class="ok">${t('bodOk')}</div>`:`<div class="bid"><b style="color:var(--navy)">${t('bodT')} (${nf(x.v)} ${t('st')})</b><span style="color:var(--muted)">${t('bodP')}</span>
+    ${S.user?`<form id="bidform" class="row2"><div class="field"><label for="bid-p">${t('bodPrijs')}</label><input id="bid-p" type="number" step="0.01" min="0" value="${(x.p*0.8).toFixed(2)}" style="width:140px"></div><button class="btn bl" type="submit">${t('bodB')}</button></form>`:`<div><button class="btn ghost sm" data-r="login">${t('bodLogin')}</button></div>`}</div>`;
   return `<section class="blk"><div class="wrap">
    <p><a href="#" data-r="partijen">← ${t('terug')}</a> · <span style="color:var(--muted)">${esc(catName(x.h))} / ${esc(catName(x.s))}</span></p>
    <div class="pd"><div class="ph"><img src="f/${x.id}.jpg" alt="${esc(nm(x))}"></div>
@@ -441,7 +503,8 @@ V.product=()=>{
      <div class="qty"><button data-q="-1" aria-label="min">−</button><input id="qtyin" type="number" min="1" value="${S.quote[x.id]||1}" aria-label="${t('aantalOm')}"><button data-q="1" aria-label="plus">+</button></div>
      <span class="num" id="qtyst" style="color:var(--muted)">× ${om} = ${nf((S.quote[x.id]||1)*om)} ${t('st')}</span>
      <button class="btn cy" data-add="${x.id}">${S.quote[x.id]?'✓ '+t('toegevoegd'):t('opLijst')}</button></div>
-    <p style="margin:0;color:var(--muted)">${t('vraag')} +31 (0)13 57 11 75 5 · WhatsApp +31 6 18 30 61 48</p>
+    ${bid}
+    <p style="margin:0;color:var(--muted)">${t('vraag')} +31 (0)13 57 11 75 5 · WhatsApp +31 6 18 30 61 48 · <a href="https://wa.me/?text=${share}" target="_blank" rel="noopener">${t('deel')}</a></p>
    </div></div>
    ${rel.length?`<div class="sh" style="margin-top:40px"><h2>${t('ook')}</h2></div><div class="grid">${rel.map(card).join('')}</div>`:''}
   </div></section>`;
@@ -463,7 +526,8 @@ V.offerte=()=>{
   return `<section class="blk"><div class="wrap" style="max-width:900px">
    <div class="sh"><div><h2>${t('offerte')}</h2><p>${t('minAf')}</p></div></div>
    ${ids.length?`<div class="box"><div class="tw"><table class="t"><thead><tr><th></th><th>${S.lang==='nl'?'Artikel':'Item'}</th><th>${t('aantalOm')}</th>${S.user?'<th>Excl. btw</th>':''}<th></th></tr></thead><tbody>${rows}</tbody>
-   ${S.user?`<tfoot><tr><td></td><td><b>Totaal</b></td><td></td><td class="num"><b>${eur(tot)}</b></td><td></td></tr></tfoot>`:''}</table></div></div>
+   ${S.user?`<tfoot><tr><td></td><td><b>Totaal</b></td><td></td><td class="num"><b>${eur(tot)}</b></td><td></td></tr></tfoot>`:''}</table></div>
+   <div class="sumrow num"><span>${ids.length} ${t('totArt')}</span><span>${nf(ids.reduce((a,id)=>a+S.quote[id],0))} ${t('totOm')}</span><span>${nf(ids.reduce((a,id)=>a+S.quote[id]*(parseInt(byId(id).om)||1),0))} ${t('totSt')}</span></div></div>
    <form id="offerteform" class="box" style="margin-top:16px;display:grid;gap:14px">${guestForm}<div><button class="btn cy" type="submit">${t('verstuur')}</button></div></form>`
    :`<div class="box"><p>${t('leeg')}</p><button class="btn bl" data-r="partijen">${t('bekijk')}</button></div>`}
   </div></section>`;
@@ -501,7 +565,9 @@ V.mijn=()=>{
   if(S.mijnTab==='orders'){body=`<div class="box tw"><table class="t"><thead><tr><th>Order</th><th>Datum</th><th>Status</th><th>Excl. btw</th></tr></thead><tbody>
     <tr><td>202600712</td><td>12-09-2026</td><td><span class="st g">Geleverd</span></td><td>${eur(3215.5)}</td></tr>
     <tr><td>202600644</td><td>21-08-2026</td><td><span class="st o">Te factureren</span></td><td>${eur(980)}</td></tr></tbody></table></div><p class="src">Voorbeeldregels. Statussen zijn die uit MyBusiness en het Salesbureau (In bewerking, Gereed, Geleverd, Te factureren, Afgesloten).</p>`}
-  if(S.mijnTab==='geg'){body=`<div class="box"><div class="form"><div class="field"><label>${t('bedrijf')}</label><input value="${esc(S.user.naam)}" readonly></div><div class="field"><label>${t('land')}</label><input value="${S.user.land}" readonly></div><div class="field"><label>${t('kvk')}</label><input value="12345678" readonly></div><div class="field"><label>${t('btw')}</label><input value="${S.user.land}000000000B01" readonly></div></div><p class="src">Komt uit de tabel klanten. Wijzigingen gaan als verzoek naar Michel.</p></div>`}
+  if(S.mijnTab==='geg'){body=`<div class="box"><div class="form"><div class="field"><label>${t('bedrijf')}</label><input value="${esc(S.user.naam)}" readonly></div><div class="field"><label>${t('land')}</label><input value="${S.user.land}" readonly></div><div class="field"><label>${t('kvk')}</label><input value="12345678" readonly></div><div class="field"><label>${t('btw')}</label><input value="${S.user.land}000000000B01" readonly></div></div><p class="src">Komt uit de tabel klanten. Wijzigingen gaan als verzoek naar Michel.</p></div>
+   <form class="box" id="intform" style="margin-top:16px;display:grid;gap:12px"><b style="color:var(--navy)">${t('interesses')}</b><span class="src">${t('interessesP')}</span>
+   <div class="checks">${D.cats.filter(c=>c.n==='hoofd').map((c,i)=>`<label><input type="checkbox" value="${c.c}" ${i%3===0?'checked':''}>${esc(c[S.lang])}</label>`).join('')}</div><div><button class="btn bl sm" type="submit">${t('opslaan')}</button></div></form>`}
   return `<section class="blk"><div class="wrap"><div class="sh"><div><h2>${t('welkom')}</h2><p>${esc(S.user.naam)} · ${S.user.land}</p></div><button class="btn ghost sm" data-act="logout">${t('logout')}</button></div>
    <div class="tabs">${tabs.map(k=>`<button class="${S.mijnTab===k?'on':''}" data-tab="${k}">${lbl[k]}</button>`).join('')}</div>${body}</div></section>`;
 };
@@ -512,7 +578,10 @@ V.over=()=>`<section class="blk"><div class="wrap split" style="align-items:cent
   <div style="display:grid;gap:14px"><h2 style="color:var(--navy);font-size:30px;font-weight:900;text-transform:uppercase">${t('over')}</h2>
   <p style="margin:0;max-width:60ch">Ruim 10 jaar is Frank van de Wijgert partijhandel actief in de verkoop van restpartijen. Onze klanten zijn van winkelketens en marktkramen tot groothandelaren. Na aankoop van de partijen worden de goederen in onze eigen magazijnen geteld en gesorteerd. Hierna worden de goederen ter verkoop aangeboden.</p>
   <div><button class="btn bl" data-r="contact">${t('contact')}</button></div></div>
-  <img src="img/pand.jpg" alt="Bedrijfspand Rheastraat Tilburg" style="border-radius:25px;width:100%;max-width:100%"></div></section>`;
+  <img src="img/pand.jpg" alt="Bedrijfspand Rheastraat Tilburg" style="border-radius:25px;width:100%;max-width:100%"></div></section>
+  <section class="blk" style="padding-top:0"><div class="wrap split" style="align-items:center">
+  <img src="img/showroom.jpg" alt="Showroom" style="border-radius:25px;width:100%;max-width:100%;max-height:460px;object-fit:cover">
+  <div class="panel i"><h3>${t('showT')}</h3><p>${t('showP')}</p><button class="btn bl" data-act="beurs">${t('showB')}</button></div></div></section>`;
 V.contact=()=>`<section class="blk"><div class="wrap split">
   <div class="box" style="display:grid;gap:10px"><h2 style="color:var(--navy);font-weight:800;text-transform:uppercase">${t('contact')}</h2>
    <p style="margin:0">Rheastraat 19, 5047 TL Tilburg<br>+31 (0)13 57 11 75 5<br>info@fvdwpartijhandel.nl<br>WhatsApp +31 6 18 30 61 48</p>
@@ -542,6 +611,7 @@ function render(){
   const ss=document.getElementById('sortsel'); if(ss) ss.value=S.sort;
   if(S.route==='voorstel') loadDoc();
   renderDrawer();
+  document.getElementById('wa').innerHTML=WAICON+'<span>WhatsApp</span>';
 }
 let docMd=null;
 async function loadDoc(){
@@ -553,7 +623,7 @@ async function loadDoc(){
 }
 const SRC={
  home:'Net binnen en de tellers per categorie komen uit de view <b>publiek_artikelen</b> (alleen artikelen met vinkje openbaar en voorraad > 0). Geen prijzen, inkoop of leverancier in die view.',
- partijen:'Catalogus: view <b>publiek_artikelen</b> met de categorieën uit <b>artikel_categorieen</b>. Ingelogd komen daar de artikelen bij die alleen voor klanten zijn, gefilterd op het land van de klant.',
+ partijen:'Catalogus (tegels of partijlijst): view <b>publiek_artikelen</b> met de categorieën uit <b>artikel_categorieen</b>. Ingelogd komen daar de artikelen bij die alleen voor klanten zijn, gefilterd op het land van de klant.',
  product:'Productpagina: zelfde adres als nu (<b>/product/&lt;naam&gt;/</b>). Prijs alleen via een serverfunctie die controleert of de ingelogde gebruiker een goedgekeurde klant is.',
  offerte:'Versturen maakt een rij in <b>offertes</b> (status Aanvraag, bron website) met <b>offerte_regels</b> in omdozen. Michel ziet die direct onder Offertes in het Salesbureau.',
  klant:'Aanmelden maakt een prospect in <b>klanten</b>, met KvK, btw en interesses. Pas na goedkeuren in het Salesbureau gaat er een inloglink naar de klant.',
@@ -572,7 +642,7 @@ function go(r){S.route=r; if(r!=='product') S.prod=null; if(r!=='offerte') S.sen
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
-  const a=e.target.closest('[data-r],[data-l],[data-cat],[data-sub],[data-p],[data-add],[data-del],[data-q],[data-tab],[data-act]');
+  const a=e.target.closest('[data-r],[data-l],[data-cat],[data-sub],[data-plus],[data-view],[data-p],[data-add],[data-del],[data-q],[data-tab],[data-act]');
   if(!a) return;
   if(a.tagName==='A') e.preventDefault();
   const d=a.dataset;
@@ -580,6 +650,8 @@ document.addEventListener('click',e=>{
   if(d.l){S.lang=d.l; if(S.user) S.user=USERS[d.l]; render(); return}
   if(d.cat!==undefined){S.cat=d.cat||null; S.sub=null; S.q=''; document.getElementById('q').value=''; go('partijen'); return}
   if(d.sub){S.sub=d.sub; render(); return}
+  if(d.plus){S.quote[d.plus]=(S.quote[d.plus]||0)+1; render(); return}
+  if(d.view){S.view=d.view; render(); return}
   if(d.p){S.prod=d.p; S.route='product'; render(); window.scrollTo({top:0}); return}
   if(d.q){const i=document.getElementById('qtyin'); i.value=Math.max(1,(+i.value||1)+(+d.q)); i.dispatchEvent(new Event('input')); return}
   if(d.add){const n=Math.max(1,+document.getElementById('qtyin').value||1); S.quote[d.add]=n; render(); return}
@@ -588,6 +660,7 @@ document.addEventListener('click',e=>{
   if(d.act==='logout'){S.user=null; go('home'); return}
   if(d.act==='magic'){log('Inloglink verstuurd naar inkoop@voorbeeld.nl','Supabase Auth stuurt een eenmalige link.\nAlleen als het adres bij een goedgekeurde klant hoort.','auth'); openDrawer(); return}
   if(d.act==='alert'){log('Aanmelding Handel alert','Komt in de Mailchimp-lijst met taal '+S.lang.toUpperCase()+'\nen als prospect in klanten (bron: website).','mailchimp + klanten'); openDrawer(); return}
+  if(d.act==='alertcat'){log('Handel alert per categorie',`Mailchimp: interesse ${catName(S.sub||S.cat)} (${S.sub||S.cat})\n${S.user?'klant: '+S.user.naam+'\nklanten.interesses bijgewerkt':'nieuw adres → bevestigingsmail (dubbele opt-in)'}`,'mailchimp + klanten'); a.closest('.alertcat').innerHTML='<p>'+t('alertCatOk')+'</p>'; openDrawer(); return}
   if(d.act==='beurs'){log('Afspraakverzoek beurs','Komt bij Opvolging in het Salesbureau.','opvolging'); openDrawer(); return}
 });
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('.card')){S.prod=e.target.dataset.p;S.route='product';render()}});
@@ -614,6 +687,10 @@ document.addEventListener('submit',e=>{
     log('Nieuwe aanmelding: wacht op goedkeuring',`klanten: ${v('k-b')}\n  type: prospect   bron: website\n  kvk: ${v('k-k')}   btw: ${v('k-btw')}\n  land: ${v('k-l')}   taal: ${S.lang.toUpperCase()}\n  interesses: ${ints}\nSalesbureau: knop "Goedkeuren" stuurt de inloglink.`,'klanten');
     S.klantSent=true; render(); openDrawer(); return}
   if(f.id==='aanbiedform'){log('Partij aangeboden',`opvolging: inkoopkans\n  van: ${document.getElementById('a-b').value}\n  ${document.getElementById('a-o').value}`,'opvolging'); f.innerHTML='<div class="ok">'+(S.lang==='nl'?'Bedankt, we reageren binnen 48 uur.':'Thank you, we will reply within 48 hours.')+'</div>'; openDrawer(); return}
+  if(f.id==='bidform'){const x=byId(S.prod),bod=+document.getElementById('bid-p').value||0;
+    log('Bod op de hele partij',`offertes: status Bod   bron: website\n  klant: ${S.user.naam}\n  ${x.id} ${x.nl}\n  ${nf(x.v)} st. × ${eur(bod)} = ${eur(bod*x.v)}\n  vraagprijs ${eur(x.p)} (bod ${Math.round(bod/x.p*100)}%)`,'offertes');
+    S.bid=x.id; render(); openDrawer(); return}
+  if(f.id==='intform'){const ints=[...f.querySelectorAll('input:checked')].map(c=>c.value).join(', ');log('Interesses bijgewerkt',`klanten.interesses: ${ints}\nMailchimp-interesses gelijk gezet`,'klanten + mailchimp');f.querySelector('button').textContent=t('opgeslagen');openDrawer();return}
   if(f.id==='contactform'){log('Contactformulier','opvolging + mail naar info@fvdwpartijhandel.nl','opvolging'); f.innerHTML='<div class="ok">'+(S.lang==='nl'?'Bedankt, we nemen binnen 48 uur contact op.':'Thank you.')+'</div>'; openDrawer(); return}
 });
 function openDrawer(){document.getElementById('drawer').hidden=false; document.getElementById('go-backstage').setAttribute('aria-pressed','true')}
@@ -625,7 +702,7 @@ document.getElementById('as-guest').onclick=()=>{S.user=null;render()};
 document.getElementById('as-klant').onclick=()=>{S.user=USERS[S.lang];render()};
 
 (async()=>{
-  try{const r=await fetch('data.json'); D=await r.json();}catch(e){document.getElementById('main').innerHTML='<div class="wrap blk"><p>De voorbeelddata kon niet worden geladen.</p></div>';return}
+  try{const r=await fetch('data.json'); D=await r.json(); NEWEST=D.items.reduce((m,x)=>x.d>m?x.d:m,'');}catch(e){document.getElementById('main').innerHTML='<div class="wrap blk"><p>De voorbeelddata kon niet worden geladen.</p></div>';return}
   const h=(location.hash||'').slice(1); if(V[h]&&h!=='product') S.route=h;
   render();
 })();
