@@ -4139,8 +4139,8 @@ async function vDashboard(main) {
 /* Het Salesbureau verstuurt zelf nooit mail. Hier maak je klaar (doelgroep, mail, checklist) en geef je akkoord; verzenden gebeurt in Mailchimp. */
 const MK_CSTATUS = { concept: "Concept", klaar: "Klaar voor akkoord", akkoord: "Akkoord, nog te verzenden", verzonden: "Verzonden", geannuleerd: "Geannuleerd" };
 const MK_CKLEUR = { concept: "", klaar: "warn", akkoord: "acc", verzonden: "good", geannuleerd: "bad" };
-const MK_SOORTEN = [["weekmail", "Weekmail"], ["partijlijst", "Partijlijst voor collega-handels"], ["aanbod", "Aanbod"], ["reactivatie", "Reactivatie"], ["introductie", "Introductie nieuwe klant"], ["persoonlijk", "Persoonlijke mail"], ["handel-alert", "Handel-alert"], ["nieuwsbrief", "Nieuwsbrief"], ["overig", "Overig"]];
-const MK_SOORT = Object.fromEntries(MK_SOORTEN);
+const MK_SOORTEN = [["weekmail", "Weekmail"], ["reactivatie", "Reactivatie (klanten die stil vielen)"], ["introductie", "Introductie (nieuwe klanten)"], ["overig", "Overig"]];
+const MK_SOORT = { ...Object.fromEntries(MK_SOORTEN), partijlijst: "Partijlijst", aanbod: "Aanbod", persoonlijk: "Persoonlijke mail", "handel-alert": "Handel-alert", nieuwsbrief: "Nieuwsbrief" };
 const MK_UITLEG = {
   "geen e-mailadres": "Er is geen e-mailadres bekend. Zonder adres is mailen niet mogelijk en we maken geen bellijsten.",
   "afgemeld": "Heeft zich afgemeld. Nooit meer mailen.",
@@ -4458,13 +4458,12 @@ async function openCampagne(id) {
 async function drawCampagneNieuw() {
   const [inst, dg] = [await mkInst(), await sql(`select id, naam from doelgroepen order by naam`)];
   drawer("Nieuwe campagne", "", `<section class="panel"><form id="cf" class="f">${fld("cf-naam", "Naam (alleen voor jezelf)", "", "text", "required placeholder=\"Bijvoorbeeld: Weekmail 1, recente kopers\"")}
-    <div class="line">${sel("cf-soort", "Soort", MK_SOORTEN, "weekmail")}${sel("cf-taal", "Taal", ["NL", "EN", "DE"], "NL")}${sel("cf-dg", "Doelgroep: wie krijgt deze mail", [["", "Nog kiezen"], ...dg.map(d => [d.id, d.naam])], "")}</div>
-    <div class="line">${fld("cf-datum", "Geplande verzenddatum (optioneel)", "", "date")}</div>
+    ${sel("cf-dg", "Doelgroep: wie krijgt deze mail", [["", "Nog kiezen"], ...dg.map(d => [d.id, d.naam])], "")}
     <div><button class="btn primary" type="submit">Campagne aanmaken</button></div><div class="note" id="cf-msg">Daarna vul je onderwerp in, leg je de ontvangers vast, loop je de controles langs en geef je akkoord. Verstuurd wordt er niets: dat doe je zelf in Mailchimp.</div></form></section>`);
   $("#cf").addEventListener("submit", async e => {
     e.preventDefault(); const m = $("#cf-msg"); m.textContent = "Aanmaken…";
     try {
-      const r = await sql(`insert into campagnes (naam, soort, taal, doelgroep_id, geplande_datum, afzender, antwoordadres, status) values (${lit(gv("cf-naam"))}, ${lit(gv("cf-soort"))}, ${lit(gv("cf-taal"))}, ${gv("cf-dg") ? num(gv("cf-dg")) : "null"}, ${lit(gv("cf-datum"))}, ${lit(inst.afzender)}, ${lit(inst.antwoord)}, 'concept') returning id`);
+      const r = await sql(`insert into campagnes (naam, soort, doelgroep_id, afzender, antwoordadres, status) values (${lit(gv("cf-naam"))}, 'weekmail', ${gv("cf-dg") ? num(gv("cf-dg")) : "null"}, ${lit(inst.afzender)}, ${lit(inst.antwoord)}, 'concept') returning id`);
       if (tab === "campagnes") vCampagnesLijst(); else if (tab === "marketing") render();
       openCampagne(r[0].id);
     } catch (er) { m.textContent = explain(er); }
@@ -4480,7 +4479,7 @@ function mkControles(st) {
   auto("Onderwerp ingevuld", !!(c.onderwerp || "").trim(), "Vul het onderwerp in.");
   auto("Voorvertoning (preheader) ingevuld", !!(c.preheader || "").trim(), "De regel die in de inbox naast het onderwerp staat.");
   auto("Verzenddatum gepland", !!c.geplande_datum, "Kies een datum.");
-  auto("Afzender en antwoordadres ingevuld", !!((c.afzender || "").trim() && (c.antwoordadres || "").trim()), "Vul beide in, of stel ze in bij Marketing > Overzicht.");
+  auto("Afzendernaam en antwoordadres ingesteld", !!((inst.afzender || "").trim() && (inst.antwoord || "").trim()), "Vul ze in bij Marketing > Overzicht.");
   MK_GLOBAAL.forEach(([k, t]) => items.push({ t, ok: inst[k] === "ja", auto: false, global: true, hulp: "Vink af bij Marketing > Overzicht." }));
   MK_CHECKS.forEach(([k, t]) => items.push({ t, ok: chk[k] === true, auto: false, k }));
   return items;
@@ -4509,10 +4508,9 @@ function drawCampagne(st) {
       <div class="note" id="mc-msg" aria-live="polite"></div></section>`}
     ${s === "geannuleerd" ? `<section class="panel"><div class="mk-act"><button class="btn" id="mc-heropen">Heropen als concept</button></div><div class="note" id="mc-msg" aria-live="polite"></div></section>` : ""}
     <section class="panel"><div class="hd"><h3>De mail</h3>${vast ? "" : `<button class="btn small" type="button" id="aim-go" ${sampleApi ? "" : "disabled"}>AI: onderwerp voorstellen</button>`}</div><div id="aim-out"></div><form id="cf" class="f">${fld("cf-naam", "Naam (alleen voor jezelf)", c.naam, "text", "required")}
-      <div class="line">${sel("cf-soort", "Soort", MK_SOORTEN, c.soort)}${sel("cf-taal", "Taal", ["NL", "EN", "DE"], c.taal)}</div>
-      ${fld("cf-ond", "Onderwerp", c.onderwerp)}${fld("cf-pre", "Voorvertoning: de regel naast het onderwerp in de inbox", c.preheader)}${txa("cf-doel", "Wat wil je met deze mail bereiken? (voor jezelf en voor de AI-voorstellen)", c.doel, 2)}
-      <div class="line">${fld("cf-afz", "Afzendernaam", c.afzender)}${fld("cf-ant", "Antwoordadres", c.antwoordadres, "email")}${fld("cf-datum", "Geplande verzenddatum (optioneel)", c.geplande_datum ? String(c.geplande_datum).slice(0, 10) : "", "date")}</div>
-      ${fld("cf-mc", "Link naar de campagne in Mailchimp (optioneel, voor snel terugvinden)", c.mailchimp_url, "url")}${txa("cf-not", "Notities", c.notities, 2)}
+      <div class="line">${sel("cf-soort", "Soort mail", MK_SOORTEN.some(x => x[0] === c.soort) ? MK_SOORTEN : [...MK_SOORTEN, [c.soort, MK_SOORT[c.soort] || c.soort]], c.soort)}${sel("cf-taal", "Taal", [["", "Meerdere talen (per ontvanger)"], "NL", "EN", "DE"], c.taal || "")}</div>
+      ${fld("cf-ond", "Onderwerp", c.onderwerp)}${fld("cf-pre", "Voorvertoning: de regel naast het onderwerp in de inbox", c.preheader)}
+      ${fld("cf-datum", "Geplande verzenddatum", c.geplande_datum ? String(c.geplande_datum).slice(0, 10) : "", "date")}${txa("cf-doel", "Waar gaat de mail over? (helpt de AI-voorstellen, mag leeg)", c.doel, 2)}
       <div><button class="btn primary" type="submit">Opslaan</button></div><div class="note" id="cf-msg">${s === "akkoord" ? "Let op: opslaan trekt het akkoord in, omdat de mail dan is gewijzigd." : ""}</div></form></section>
     <section class="panel"><div class="hd"><h3>Doelgroep en ontvangers</h3>${dg ? `<button class="btn small" id="mc-dgo">Bekijk doelgroep</button>` : ""}</div>
       <div class="line" style="display:flex;flex-wrap:wrap;gap:8px;align-items:end">${vast ? "" : sel("mc-dg", "Doelgroep", [["", "Nog kiezen"], ...doelgroepen.map(d => [d.id, d.naam])], c.doelgroep_id || "")}${vast || !c.doelgroep_id ? "" : `<button class="btn" id="mc-vast">${num(rc.n) ? "Ontvangers opnieuw vastleggen" : "Ontvangers vastleggen"}</button>`}</div>
@@ -4559,8 +4557,7 @@ function mkCampagneBind(st, { dagen, dg, vast }) {
   $("#cf").addEventListener("submit", async e => {
     e.preventDefault(); const m = $("#cf-msg"); m.textContent = "Opslaan…";
     try {
-      await sql(`update campagnes set naam = ${lit(gv("cf-naam"))}, soort = ${lit(gv("cf-soort"))}, taal = ${lit(gv("cf-taal"))}, onderwerp = ${lit(gv("cf-ond"))}, preheader = ${lit(gv("cf-pre"))}, doel = ${lit(gv("cf-doel"))},
-        afzender = ${lit(gv("cf-afz"))}, antwoordadres = ${lit(gv("cf-ant"))}, geplande_datum = ${lit(gv("cf-datum"))}, mailchimp_url = ${lit(gv("cf-mc"))}, notities = ${lit(gv("cf-not"))},
+      await sql(`update campagnes set naam = ${lit(gv("cf-naam"))}, soort = ${lit(gv("cf-soort"))}, taal = ${lit(gv("cf-taal"))}, onderwerp = ${lit(gv("cf-ond"))}, preheader = ${lit(gv("cf-pre"))}, doel = ${lit(gv("cf-doel"))}, geplande_datum = ${lit(gv("cf-datum"))},
         status = case when status = 'akkoord' then 'klaar' else status end, akkoord_door = case when status = 'akkoord' then null else akkoord_door end, akkoord_op = case when status = 'akkoord' then null else akkoord_op end where id = ${num(id)}`);
       await herlaad();
     } catch (er) { m.textContent = explain(er); }
@@ -4897,7 +4894,7 @@ function aiMailBind(st, dg) {
   go.addEventListener("click", async () => {
     const { c, arts, inst } = st, out = $("#aim-out");
     go.disabled = true; out.innerHTML = `<p class="empty">Claude schrijft voorstellen…</p>`;
-    const taal = TAAL[gv("cf-taal") || c.taal] || "Nederlands";
+    const tl = gv("cf-taal") || c.taal, taal = TAAL[tl] || "Nederlands (de mail gaat per ontvanger in het Nederlands, Engels of Duits; schrijf de opties in het Nederlands)";
     const prompt = `${AI_BEDRIJF}
 Bedenk onderwerpregels en voorvertoningstekst (preheader) voor één e-mailcampagne.
 
@@ -4906,7 +4903,7 @@ Doel van de mail: ${aiKort(gv("cf-doel") || c.doel, 300) || "niet opgegeven"}.
 Doelgroep: ${dg ? `${dg.naam} (${mkFilterTekst(dg.filters)})` : "nog niet gekozen"}.
 Artikelen in de mail: ${arts.length ? arts.slice(0, 12).map(a => `${aiKort(a.naam, 60)}`).join(" | ") : "nog niet vastgelegd"}.
 Eerdere onderwerp: ${aiKort(gv("cf-ond") || c.onderwerp, 120) || "geen"}.
-Afzender: ${aiKort(gv("cf-afz") || c.afzender || inst.afzender, 80) || "Frank van de Wijgert Partijhandel"}.
+Afzender: ${aiKort(inst.afzender, 80) || "Frank van de Wijgert Partijhandel"}.
 
 Regels:
 - Geef 4 verschillende opties: onderwerp van maximaal 60 tekens, preheader van maximaal 90 tekens die het onderwerp aanvult en niet herhaalt.
