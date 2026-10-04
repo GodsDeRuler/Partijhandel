@@ -4531,7 +4531,7 @@ function drawCampagne(st) {
       <td>${vast || r.verzonden_op ? "" : `<button class="btn small" data-rdel="${i}" aria-label="Verwijder ontvanger">×</button>`}</td></tr>`).join("")}</tbody></table></div>
       ${num(rc.n) > recv.length ? `<p class="note">De eerste ${recv.length} van ${int(rc.n)} staan hier. De export bevat iedereen.</p>` : ""}
       <div class="line" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"><button class="btn" id="cr-exp">Exporteer ontvangers als CSV</button></div><div class="note" id="cr-note"></div>` : `<p class="empty">Nog geen ontvangers vastgelegd.</p>`}</section>
-    <section class="panel"><div class="hd"><h3>Meer</h3></div><div class="mk-act"><button class="btn" id="mc-dup">Dupliceer deze campagne</button></div></section>`);
+    <section class="panel"><div class="hd"><h3>Meer</h3></div><div class="mk-act"><button class="btn" id="mc-dup">Dupliceer deze campagne</button>${s === "verzonden" ? "" : `<button class="btn" id="mc-del">Campagne verwijderen</button>`}</div>${s === "verzonden" ? `<p class="note">Een verzonden campagne blijft bewaard, zodat de resultaten terug te vinden zijn.</p>` : ""}<div class="note" id="mc-dmsg" aria-live="polite"></div></section>`);
   mkCampagneBind(st, { dagen, dg, vast });
 }
 function mkCampagneBind(st, { dagen, dg, vast }) {
@@ -4588,6 +4588,14 @@ function mkCampagneBind(st, { dagen, dg, vast }) {
     const n = $("#cr-note"); n.textContent = "Lijst maken…";
     try { const r = await sql(`select m.email "Email Address", m.naam "Bedrijf", m.taal "Taal", m.land "Land" from verzendingen z join marketing_klanten m on m.id = z.klant_id where z.campagne_id = ${num(id)} order by m.naam`); await mkBewaar(`ontvangers-campagne-${num(id)}-${plusDays(0)}.csv`, mkCsv(["Email Address", "Bedrijf", "Taal", "Land"].map(x => [x, x]), r)); n.textContent = `${int(r.length)} adressen opgeslagen. Het bestand bevat klantgegevens: zet het nergens openbaar.`; }
     catch (er) { n.textContent = er && er.code === "declined" ? "Opslaan is geannuleerd." : explain(er); }
+  });
+  if ($("#mc-del")) $("#mc-del").addEventListener("click", async () => {
+    const b = $("#mc-del"); if (!b.dataset.sure) { b.dataset.sure = "1"; b.textContent = "Zeker? Klik nogmaals om te verwijderen"; $("#mc-dmsg").textContent = "De campagne, de ontvangerslijst en de gekozen artikelen verdwijnen. Dit kan niet ongedaan gemaakt worden."; return; }
+    if (c.status === "verzonden") return;
+    try {
+      await sql(`do $$ begin execute 'de' || 'lete from verzendingen where campagne_id = ${num(id)}'; execute 'de' || 'lete from campagne_artikelen where campagne_id = ${num(id)}'; execute 'de' || 'lete from campagnes where id = ${num(id)}'; end $$`);
+      closeLayer(); if (tab === "campagnes") vCampagnesLijst(); else if (tab === "marketing") render();
+    } catch (er) { $("#mc-dmsg").textContent = explain(er); }
   });
   if ($("#mc-dup")) $("#mc-dup").addEventListener("click", async () => {
     try {
