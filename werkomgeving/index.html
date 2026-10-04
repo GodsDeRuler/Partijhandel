@@ -2042,13 +2042,16 @@ let kaartLagen = null, plaatsenLijst = null;
 const kaartData = () => kaartLagen || (kaartLagen = JSON.parse(document.getElementById("kaartdata").textContent));
 const plaatsen = () => plaatsenLijst || (plaatsenLijst = JSON.parse(document.getElementById("plaatsen").textContent).map(([n, la, lo]) => ({ n, x: mx(lo), y: my(la), k: normT(n) })));
 const kaartSvgLagen = () => { const d = kaartData(); return `<g transform="scale(.01)"><path class="km-land km-l-rest" d="${d.landRest}"/><path class="km-land km-l-50" d="${d.land50eu}"/><path class="km-land km-l-10" d="${d.land10}"/><path class="km-stad km-d2" d="${d.stad}"/><path class="km-meer km-d1" d="${d.meren}"/><path class="km-rivier km-d2" d="${d.rivieren}"/><path class="km-prov km-d1" d="${d.prov}"/><path class="km-grens km-d1" d="${d.landgrens}"/></g>`; };
-const km = { loc: null, rows: null, metric: "omzet", vb: null, g: null };
+const km = { loc: null, rows: null, metric: "omzet", vb: null, g: null, namen: (() => { try { return localStorage.getItem("km_namen") || "weinig"; } catch { return "weinig"; } })() };
 async function kaartPaneel(host) {
   host.innerHTML = `<div class="hd"><h3>Waar je klanten zitten</h3><div class="kmtools"><select id="km-m" aria-label="Omzet"><option value="omzet">Omzet totaal (sinds 2018)</option><option value="omzet_12m">Omzet laatste 12 maanden</option></select>
+    <select id="km-n" aria-label="Plaatsnamen"><option value="geen">Geen namen</option><option value="weinig">Weinig namen</option><option value="veel">Veel namen</option></select>
     <span class="kmzoom"><button class="btn small" data-z="eu">Europa</button><button class="btn small" data-z="nl">Nederland</button><button class="btn small" data-z="wereld">Wereld</button><button class="btn small" data-z="in" aria-label="Inzoomen">+</button><button class="btn small" data-z="uit" aria-label="Uitzoomen">−</button></span></div></div>
     <div id="km-body"><p class="empty">Laden…</p></div>`;
   if (!document.getElementById("kaartdata")) await new Promise(r => document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", r, { once: true }) : setTimeout(r, 50));
   $("#km-m").value = km.metric;
+  $("#km-n").value = km.namen;
+  $("#km-n").addEventListener("change", () => { km.namen = $("#km-n").value; try { localStorage.setItem("km_namen", km.namen); } catch {} kaartLabelsPlan(); });
   $("#km-m").addEventListener("change", () => { km.metric = $("#km-m").value; drawKaart(); });
   const body = $("#km-body");
   try {
@@ -2150,20 +2153,25 @@ const nette = t => { const x = String(t || "").trim(); return x && (x === x.toUp
 function kaartLabels() {
   const g = document.getElementById("km-labels"), svg = $("#km-svg"); if (!g || !svg || !km.vb) return;
   const v = km.vb, W = svg.clientWidth || 800, upp = v.w / W, H = W * MR, FS = 11, RAND = 20;
+  // Aantal namen per zoomniveau: bij "weinig" alleen de grootste klantplaatsen en de belangrijkste steden, bij "veel" zoveel als er past.
+  const lvl = v.w > 300 ? 0 : v.w > 100 ? 1 : v.w > 30 ? 2 : 3, ruim = km.namen === "veel";
+  if (km.namen === "geen") { g.innerHTML = ""; return; }
+  const CAPK = ruim ? 400 : [6, 14, 28, 45][lvl], CAP = ruim ? 160 : [6, 12, 22, 40][lvl];
   const sx = x => (x - v.x) / upp, sy = y => (y - v.y) / upp;
   const doos = [], uit = [], botst = b => doos.some(o => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]);
   const tw = (t, vet) => t.length * (vet ? 6.6 : 5.9) + 3;
-  const klantNamen = [];
+  const klantNamen = []; let klantGeplaatst = 0;
   (km.cl || []).forEach(c => { const r = c.v > 0 ? 3 + 24 * Math.sqrt(c.v / (km.max || 1)) : 2, x = sx(c.x), y = sy(c.y); if (x > -50 && x < W + 50 && y > -50 && y < H + 50) doos.push([x - r, y - r, x + r, y + r]); });
   (km.cl || []).forEach(c => {
     const top = c.pl.slice().sort((a, b) => b.v - a.v)[0], t = nette(top && top.plaats); if (!t) return;
     const r = c.v > 0 ? 3 + 24 * Math.sqrt(c.v / (km.max || 1)) : 2, x = sx(c.x), y = sy(c.y); if (x < -20 || x > W + 20 || y < -20 || y > H + 20) return;
     if (klantNamen.some(([k, kx, ky]) => k === normT(t) && Math.abs(kx - c.x) < 80 * upp && Math.abs(ky - c.y) < 80 * upp)) return;
     const w = tw(t, true), opties = [[x + r + 3, y + 4], [x - r - 3 - w, y + 4], [x - w / 2, y - r - 4]];
-    for (const [lx, ly] of opties) { const b = [lx - 1, ly - 10, lx + w, ly + 3]; if (!botst(b)) { doos.push(b); uit.push(`<text class="k" x="${(lx * upp + v.x).toFixed(2)}" y="${(ly * upp + v.y).toFixed(2)}" font-size="${(FS * upp).toFixed(3)}" stroke-width="${(3 * upp).toFixed(3)}">${esc(t)}</text>`); klantNamen.push([normT(t), c.x, c.y]); return; }
+    if (klantGeplaatst >= CAPK) return;
+    for (const [lx, ly] of opties) { const b = [lx - 1, ly - 10, lx + w, ly + 3]; if (!botst(b)) { doos.push(b); uit.push(`<text class="k" x="${(lx * upp + v.x).toFixed(2)}" y="${(ly * upp + v.y).toFixed(2)}" font-size="${(FS * upp).toFixed(3)}" stroke-width="${(3 * upp).toFixed(3)}">${esc(t)}</text>`); klantNamen.push([normT(t), c.x, c.y]); klantGeplaatst++; return; }
     }
   });
-  let geplaatst = 0, bekeken = 0; const CAP = 160;
+  let geplaatst = 0, bekeken = 0;
   for (const p of plaatsen()) {
     if (geplaatst >= CAP || bekeken > 6000) break;
     if (p.x < v.x - RAND * upp || p.x > v.x + v.w || p.y < v.y || p.y > v.y + v.h) continue;
