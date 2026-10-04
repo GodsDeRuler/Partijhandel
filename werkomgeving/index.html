@@ -295,6 +295,29 @@ tbody tr:hover td{background:var(--surface-2)}
 .foot a{color:var(--cyan)}
 @media (max-width:640px){.brand .sb{display:none}.tab{padding:6px 13px}}
 @media print{.navbar,.foot{display:none!important}}
+
+/* marketing */
+.mk-checks{display:flex;flex-direction:column;gap:4px}
+.mchk{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);cursor:pointer}
+.mchk.ok{background:var(--good-soft);border-color:transparent}
+.mchk small{display:block;color:var(--fg-soft);font-size:12px;margin-top:1px}
+.mchk input{margin-top:3px}
+.mk-act{display:flex;flex-wrap:wrap;gap:8px;align-items:end;margin-top:12px}
+.mk-act .inl{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--fg-soft)}
+.mk-step{list-style:none;display:flex;flex-wrap:wrap;gap:6px 14px;padding:0;margin:0}
+.mk-step li{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--fg-soft)}
+.mk-step i{font-style:normal;width:20px;height:20px;border-radius:50%;display:inline-grid;place-items:center;background:var(--surface-2);border:1px solid var(--line-strong);font-size:11px}
+.mk-step li.now{color:var(--fg);font-weight:600}.mk-step li.now i{background:var(--accent);border-color:var(--accent);color:#fff}
+.mk-step li.done i{background:var(--good);border-color:var(--good);color:#fff}
+.mk-big{display:flex;align-items:baseline;gap:8px}.mk-big b{font-size:30px;font-weight:700}.mk-big span{color:var(--fg-soft)}
+.mk-rec{list-style:none;margin:6px 0;padding:0}.mk-rec li{display:flex;justify-content:space-between;gap:12px;padding:4px 0;border-top:1px solid var(--line);font-size:13px}
+.mk-rec li.min b{color:var(--bad)}.mk-rec li.tot{font-weight:700}
+.mk-split{height:10px;border-radius:5px;background:var(--bad-soft);overflow:hidden;margin:6px 0}.mk-split .g{display:block;height:100%;background:var(--good)}
+.mk-res{display:flex;flex-wrap:wrap;gap:10px 24px;list-style:none;margin:0 0 10px;padding:0}.mk-res li{display:flex;flex-direction:column}.mk-res b{font-size:20px;font-weight:700}.mk-res span{font-size:12px;color:var(--fg-soft)}.mk-res li.bad b{color:var(--bad)}
+.mk-pre{list-style:none;padding:0;margin:10px 0;display:flex;flex-direction:column;gap:6px}.mk-pre li{display:flex;flex-direction:column}.mk-pre span{font-size:12px;color:var(--fg-soft)}
+.mk-ff{display:flex;flex-direction:column;gap:8px}.mk-ff .fg{display:flex;flex-direction:column;gap:3px}.mk-ff .fg>span{font-size:12px;color:var(--fg-soft)}.mk-ff .fg>div{display:flex;gap:12px;flex-wrap:wrap}
+.f label.cbx,.cbx{display:inline-flex;flex-direction:row;align-items:center;gap:5px;font-size:13px;color:var(--fg)}
+.panel h4,.dr-body h4{margin:8px 0 4px}
 </style>
 
 <div class="top"><div class="top-in">
@@ -469,7 +492,10 @@ const TABS = [
   { id: "retouren", label: "Retouren", view: vRetouren },
   { id: "locaties", label: "Locaties", view: vLocaties },
   { id: "inkoop", label: "Inkoop", view: vInkoop },
+  { id: "marketing", label: "Overzicht", view: vMarketing },
+  { id: "doelgroepen", label: "Doelgroepen", view: vDoelgroepen },
   { id: "campagnes", label: "Campagnes", view: vCampagnes },
+  { id: "adressen", label: "Adressen", view: vAdressen },
   { id: "opvolging", label: "Opvolging", view: vOpvolging },
   { id: "prijzen", label: "Prijzen", view: vPrijzen },
   { id: "voorraad", label: "Voorraad", view: vVrd },
@@ -489,7 +515,7 @@ const GROUPS = [
   { id: "uitvoering", label: "Logistiek", tabs: ["uitvoering", "picken", "transport", "werkbrieven", "retouren", "locaties"] },
   { id: "artikelen", label: "Artikelen", tabs: ["assortiment", "prijzen", "voorraad", "inkoop"] },
   { id: "financieel", label: "Financieel", tabs: ["facturen", "debiteuren", "rapporten"] },
-  { id: "marketing", label: "Marketing", tabs: ["vandaag", "campagnes", "opvolging"] },
+  { id: "marketing", label: "Marketing", tabs: ["marketing", "doelgroepen", "campagnes", "adressen", "vandaag", "opvolging"] },
   { id: "website", label: "Website", tabs: ["webaanvragen", "webformulieren", "webtoegang", "webbeheer"] },
   { id: "onderhoud", label: "Onderhoud", tabs: ["stam", "beheer"] },
 ];
@@ -617,7 +643,7 @@ function drawer(title, sub, html) {
 async function openKlant(id) {
   drawer("Klant laden…", "", `<p class="empty">Laden…</p>`);
   try {
-    const [k, pr, od, fu, ofs, kx, pe, fk, pa, kr, ret] = await Promise.all([
+    const [k, pr, od, fu, ofs, kx, pe, fk, pa, kr, ret, mkk, mkv, mku] = await Promise.all([
       sql(`${BASE} where v.id = ${num(id)}`),
       sql(`select p.* from klant_profielen p join klanten k on lower(k.email)=lower(p.email) where k.id=${num(id)} limit 1`),
       sql(`select nummer, datum, status, omschrijving, prijs from orders where klant_id=${num(id)} order by datum desc, nummer desc limit 40`),
@@ -629,9 +655,12 @@ async function openKlant(id) {
       sql(`select p.id, p.artikel_nr, a.naam, p.prijs, p.vanaf, p.tot from prijsafspraken p left join artikelen a on a.artikel_nr = p.artikel_nr where p.klant_id = ${num(id)} and (p.tot is null or p.tot >= current_date) order by a.naam limit 50`),
       klantKrediet(id).catch(() => null),
       sql(`select id, datum, status, reden, order_nummer from retouren where klant_id = ${num(id)} and not vervallen order by datum desc, id desc limit 10`),
+      sql(`select uitsluit_reden, uitsluit_detail, mail_status, laatste_mail from marketing_klanten where id = ${num(id)}`).catch(() => []),
+      sql(`select c.id, c.naam, c.status, z.verzonden_op, z.geopend, z.geklikt, z.gereageerd, z.afgemeld, z.bounced from verzendingen z join campagnes c on c.id = z.campagne_id where z.klant_id = ${num(id)} order by z.verzonden_op desc nulls first, c.id desc limit 20`).catch(() => []),
+      sql(`select categorie, reden from mail_uitsluitingen where actief and (klant_id = ${num(id)} or lower(email) = (select lower(email) from klanten where id = ${num(id)}))`).catch(() => []),
     ]);
     if (!k[0]) { drawer("Klant niet gevonden", "", `<p class="empty">Deze klant bestaat niet meer.</p>`); return; }
-    cur = { k: { ...(kx[0] || {}), ...k[0] }, p: pr[0] || null, orders: od, fu, ofs, pe, fk, pa, kr, ret, peEdit: null };
+    cur = { k: { ...(kx[0] || {}), ...k[0] }, p: pr[0] || null, orders: od, fu, ofs, pe, fk, pa, kr, ret, mkk: mkk[0] || null, mkv, mku, peEdit: null };
     drawKlant();
   } catch (e) { drawer("Klant", "", `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`); }
 }
@@ -640,7 +669,7 @@ function kv(pairs) {
   return rows.length ? `<dl class="kv">${rows.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(fromList(b))}</dd>`).join("")}</dl>` : `<p class="empty">Nog geen gegevens.</p>`;
 }
 function drawKlant() {
-  const { k, p, orders, fu, ofs, pe, fk, pa, kr, ret } = cur;
+  const { k, p, orders, fu, ofs, pe, fk, pa, kr, ret, mkk, mkv, mku } = cur;
   const sub = [k.plaats, k.land].filter(Boolean).map(esc).join(", ") + badges(k);
   const warn = [];
   if (k.gesloten) warn.push("Uit het onderzoek blijkt dat dit bedrijf mogelijk is gestopt of failliet. Niet mailen.");
@@ -659,6 +688,7 @@ function drawKlant() {
       ["Past bij", p.relevante_productgroepen], ["Past niet bij", p.niet_relevant], ["Status bedrijf", p.status_bedrijf], ["Eigen notitie", p.eigen_notitie]]) : `<p class="empty">Voor deze klant is nog geen profiel geladen.</p>`}</section>
     <section class="panel"><h3>Jouw notities</h3><form class="f" id="f-not"><textarea id="n-txt" rows="3" placeholder="Wat weet jij over deze klant?">${esc(k.notities || "")}</textarea>
       <div class="line"><button class="btn" type="submit">Notitie opslaan</button><button class="btn" type="button" id="b-afm">${k.afgemeld ? "Weer opnemen in mailingen" : "Markeer als afgemeld"}</button></div><div class="note" id="n-msg"></div></form></section>
+    ${mkKlantPaneel(k, mkk, mkv || [], mku || [])}
     <section class="panel"><h3>Mail</h3><p class="note">Claude schrijft een concept. Jij leest, past aan en verstuurt zelf.</p>
       <button class="btn primary" id="b-mail" ${k.email && sampleApi ? "" : "disabled"}>Mail opstellen</button>${k.email ? "" : `<span class="note"> Geen e-mailadres bekend.</span>`}${sampleApi ? "" : `<span class="note"> Mails opstellen werkt alleen in claude.ai.</span>`}
       <div id="mail-area"></div></section>
@@ -680,6 +710,7 @@ function drawKlant() {
     try { await sql(`insert into opvolging (klant_id, soort, tekst, opvolgdatum) values (${num(k.id)}, ${lit($("#fu-soort").value)}, ${lit($("#fu-txt").value.trim())}, ${lit($("#fu-dat").value)})`); await openKlant(k.id); } catch (er) { alert0(er); } });
   document.querySelectorAll("[data-done]").forEach(b => b.addEventListener("click", async () => { try { await sql(`update opvolging set afgehandeld=true where id=${num(b.dataset.done)}`); await openKlant(k.id); } catch (er) { alert0(er); } }));
   $("#b-mail").addEventListener("click", startMail);
+  mkKlantBind(k);
   $("#b-newof").addEventListener("click", () => openOfferte(null, { klant: k, lines: [] }));
   document.querySelectorAll("[data-of]").forEach(b => b.addEventListener("click", () => openOfferte(b.dataset.of)));
   $("#b-edit").addEventListener("click", () => klantForm(k));
@@ -3958,7 +3989,7 @@ const DGO = {
   orders: () => { ord.view = "bord"; goTab("orders"); }, uitvoering: () => { uit.f = "open"; goTab("uitvoering"); },
   openstaand: () => { deb.f = "te_laat"; goTab("debiteuren"); }, facturen: () => { fakf.f = "open"; goTab("facturen"); },
   voorraad: () => { vrd.s = "analyse"; goTab("voorraad"); }, inkoop: () => { ikf.status = "open"; goTab("inkoop"); },
-  berichten: () => { ber.f = "wacht"; goTab("berichten"); }, webakkoord: () => { weba.f = "akkoord"; goTab("webaanvragen"); }, webaanvragen: () => { weba.f = "open"; goTab("webaanvragen"); }, webformulieren: () => { webf.f = "open"; goTab("webformulieren"); }, webtoegang: () => { webt.f = "aangevraagd"; webt.q = ""; goTab("webtoegang"); }, opvolging: () => goTab("opvolging"), picken: () => goTab("picken"), werkbrieven: () => goTab("werkbrieven"), retouren: () => goTab("retouren"), klanten: () => goTab("klanten"), campagnes: () => goTab("campagnes"), assortiment: () => goTab("assortiment"),
+  berichten: () => { ber.f = "wacht"; goTab("berichten"); }, webakkoord: () => { weba.f = "akkoord"; goTab("webaanvragen"); }, webaanvragen: () => { weba.f = "open"; goTab("webaanvragen"); }, webformulieren: () => { webf.f = "open"; goTab("webformulieren"); }, webtoegang: () => { webt.f = "aangevraagd"; webt.q = ""; goTab("webtoegang"); }, opvolging: () => goTab("opvolging"), picken: () => goTab("picken"), werkbrieven: () => goTab("werkbrieven"), retouren: () => goTab("retouren"), klanten: () => goTab("klanten"), campagnes: () => goTab("campagnes"), adressen: () => { mk.reden = "mailbaar"; mk.q = ""; mk.page = 0; goTab("adressen"); }, doelgroepen: () => goTab("doelgroepen"), marketing: () => goTab("marketing"), assortiment: () => goTab("assortiment"),
   doelen: () => { stam.s = "doelen"; goTab("stam"); }, backup: () => goTab("beheer"),
   maand: () => { rap.r = "omzet_maand"; goTab("rapporten"); }, klantrap: () => { rap.r = "omzet_klant"; goTab("rapporten"); }, kaart: () => { const e = $("#km-panel"); if (e) e.scrollIntoView({ behavior: "smooth", block: "start" }); },
 };
@@ -4094,80 +4125,593 @@ async function vDashboard(main) {
   } catch (e) { showError(body, e); }
 }
 
-/* ---------- Campagnes ---------- */
-async function vCampagnes(main) {
-  main.insertAdjacentHTML("beforeend", `<h2>Campagnes</h2><p class="lead">Leg per weekmail vast welke artikelen erin zaten, wie hem kreeg en wie opende of reageerde. Salesbureau verstuurt niets: het versturen blijft in Mailchimp of je eigen mailprogramma.</p>
-    <div class="bar"><button class="btn primary" id="c-new">Nieuwe campagne</button></div><div id="c-body"><p class="empty">Laden…</p></div>`);
-  $("#c-new").addEventListener("click", () => openCampagne(null));
+/* ---------- Marketing ---------- */
+/* Het Salesbureau verstuurt zelf nooit mail. Hier maak je klaar (doelgroep, mail, checklist) en geef je akkoord; verzenden gebeurt in Mailchimp. */
+const MK_CSTATUS = { concept: "Concept", klaar: "Klaar voor akkoord", akkoord: "Akkoord, nog te verzenden", verzonden: "Verzonden", geannuleerd: "Geannuleerd" };
+const MK_CKLEUR = { concept: "", klaar: "warn", akkoord: "acc", verzonden: "good", geannuleerd: "bad" };
+const MK_SOORTEN = [["weekmail", "Weekmail"], ["partijlijst", "Partijlijst voor collega-handels"], ["aanbod", "Aanbod"], ["reactivatie", "Reactivatie"], ["introductie", "Introductie nieuwe klant"], ["persoonlijk", "Persoonlijke mail"], ["handel-alert", "Handel-alert"], ["nieuwsbrief", "Nieuwsbrief"], ["overig", "Overig"]];
+const MK_SOORT = Object.fromEntries(MK_SOORTEN);
+const MK_UITLEG = {
+  "geen e-mailadres": "Er is geen e-mailadres bekend. Zonder adres is mailen niet mogelijk en we maken geen bellijsten.",
+  "afgemeld": "Heeft zich afgemeld. Nooit meer mailen.",
+  "adres werkt niet": "Het adres gaf een bounce of is ongeldig.",
+  "spamklacht": "Heeft de mail als spam gemeld.",
+  "LET OP of fraudesignaal": "Staat op de LET OP-lijst of is gemarkeerd om fraude of wanbetaling.",
+  "gesloten of failliet": "Uit het onderzoek blijkt dat het bedrijf gestopt of failliet is.",
+  "interne account": "Intern account van de zaak.",
+  "Duitstalig, nooit gekocht (besluit Michel)": "Besluit Michel: Duitstalige relaties die nog nooit kochten krijgen geen koude mail.",
+  "geen logische afnemer (besluit Michel)": "Besluit Michel: het bedrijf is geen logische afnemer en kocht nooit.",
+  "besluit Michel": "Handmatig uitgesloten.",
+};
+const MK_GLOBAAL = [
+  ["dkim", "DKIM en DMARC staan ingesteld voor het verzenddomein", "Zonder deze records landen mails in de spam. De DNS staat bij PCextreme."],
+  ["afzender", "Afzender en antwoordadres zijn in Mailchimp geverifieerd", "Mailchimp stuurt een bevestigingsmail naar het afzenderadres."],
+  ["handtekening", "Handtekening met afmeldlink en bedrijfsgegevens staat onder alle mails", "Verplicht: afmeldlink, adres van het bedrijf en de disclaimer in NL en EN."],
+];
+const MK_CHECKS = [
+  ["test", "Testmail ontvangen en gelezen op telefoon en computer"],
+  ["links", "Knoppen en links getest (webshop en Reserveer per mail)"],
+  ["taal", "Tekst en taalvariant gecontroleerd"],
+  ["lijst", "Mailchimp-lijst bijgewerkt: afmeldingen en niet-mailbare adressen eruit"],
+];
+const MK_PRESETS = [
+  { naam: "Week 1: recente kopers", omschrijving: "Kocht de laatste 18 maanden. De eerste groep in de gefaseerde start.", filters: { kocht: "ja", laatst_binnen_mnd: 18 } },
+  { naam: "Week 2: oudere kopers", omschrijving: "Kocht ooit, maar langer dan 18 maanden geleden.", filters: { kocht: "ja", laatst_langer_mnd: 18 } },
+  { naam: "Week 3: nooit gekocht", omschrijving: "Staat wel in het relatiebestand maar kocht nog nooit. Pas mailen als de bounces van week 1 en 2 laag blijven.", filters: { kocht: "nee" } },
+  { naam: "Collega-handels", omschrijving: "Partijhandels en opkopers: krijgen de partijlijst-variant.", filters: { collega: "ja" } },
+  { naam: "Actieve klanten", omschrijving: "Kochten de laatste 12 maanden.", filters: { segment: ["actief"] } },
+  { naam: "Slapende topklanten", omschrijving: "Slapend, maar met 6 of meer orders in het verleden.", filters: { segment: ["slapend"], orders_min: 6 } },
+];
+const mkPct = (n, d) => d > 0 ? Math.round(num(n) / num(d) * 1000) / 10 : 0;
+const mkPctTxt = (n, d) => d > 0 ? String(mkPct(n, d)).replace(".", ",") + "%" : "–";
+const mkCsv = (cols, rows) => [cols.map(c => c[1]).join(","), ...rows.map(r => cols.map(c => { const v = r[c[0]], s = v == null ? "" : String(v); return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(","))].join("\r\n");
+async function mkBewaar(naam, tekst) {
+  const dl = await claude.use("downloads"); if (!dl) throw new Error("Opslaan van bestanden kan in deze weergave niet.");
+  await dl.save({ filename: naam, data: new Blob(["﻿" + tekst], { type: "text/csv" }) });
+}
+async function mkInst() { const r = await sql(`select sleutel, waarde from instellingen where left(sleutel, 4) = 'mkt_'`); return Object.fromEntries(r.map(x => [x.sleutel.slice(4), x.waarde])); }
+const mkZet = (sleutel, waarde) => sql(`insert into instellingen (sleutel, waarde) values (${lit("mkt_" + sleutel)}, ${lit(waarde)}) on conflict (sleutel) do update set waarde = excluded.waarde, bijgewerkt = now()`);
+const mkDagen = inst => Math.max(0, Math.round(num(inst && inst.tussentijd) || 14));
+
+/* Selectie: filters (jsonb in doelgroepen.filters) naar SQL op marketing_klanten (alias m) */
+function mkWhere(f) {
+  f = f || {}; const w = [], arr = a => `array[${a.map(lit).join(", ")}]::text[]`;
+  if (f.segment && f.segment.length) w.push(`m.segment = any(${arr(f.segment)})`);
+  if (f.taal && f.taal.length) w.push(`m.taal = any(${arr(f.taal)})`);
+  if (f.land) w.push(`m.land ilike ${likeLit(f.land)}`);
+  if (f.bedrijfstype && f.bedrijfstype.length) w.push(`m.bedrijfstype = any(${arr(f.bedrijfstype)})`);
+  if (f.collega === "ja") w.push(`coalesce(m.collega, false)`); else if (f.collega === "nee") w.push(`not coalesce(m.collega, false)`);
+  if (f.kocht === "ja") w.push(`m.orders > 0`); else if (f.kocht === "nee") w.push(`m.orders = 0`);
+  if (num(f.laatst_binnen_mnd) > 0) w.push(`m.laatste_order >= current_date - interval '${Math.round(num(f.laatst_binnen_mnd))} months'`);
+  if (num(f.laatst_langer_mnd) > 0) w.push(`m.laatste_order < current_date - interval '${Math.round(num(f.laatst_langer_mnd))} months'`);
+  if (num(f.omzet12_min) > 0) w.push(`m.omzet_12m >= ${num(f.omzet12_min)}`);
+  if (num(f.orders_min) > 0) w.push(`m.orders >= ${Math.round(num(f.orders_min))}`);
+  return w;
+}
+const mkFrom = (f, extra) => { const w = [...mkWhere(f), ...(extra || [])]; return `from marketing_klanten m${w.length ? " where " + w.join(" and ") : ""}`; };
+const mkRecent = dagen => dagen > 0 ? `(m.laatste_mail is not null and m.laatste_mail >= now() - interval '${Math.round(dagen)} days')` : `false`;
+function mkFilterTekst(f) {
+  f = f || {}; const t = [];
+  if (f.segment && f.segment.length) t.push(f.segment.join(" of "));
+  if (f.kocht === "ja") t.push("kocht ooit"); if (f.kocht === "nee") t.push("nooit gekocht");
+  if (num(f.laatst_binnen_mnd) > 0) t.push(`kocht in de laatste ${f.laatst_binnen_mnd} mnd`);
+  if (num(f.laatst_langer_mnd) > 0) t.push(`laatste order langer dan ${f.laatst_langer_mnd} mnd geleden`);
+  if (num(f.orders_min) > 0) t.push(`${f.orders_min}+ orders`);
+  if (num(f.omzet12_min) > 0) t.push(`omzet 12 mnd vanaf ${eur(f.omzet12_min)}`);
+  if (f.taal && f.taal.length) t.push("taal " + f.taal.join("/"));
+  if (f.land) t.push("land " + f.land);
+  if (f.bedrijfstype && f.bedrijfstype.length) t.push(f.bedrijfstype.join(", "));
+  if (f.collega === "ja") t.push("collega-handel"); if (f.collega === "nee") t.push("geen collega-handel");
+  return t.length ? t.join(" · ") : "alle relaties";
+}
+/* Telt wie meedoet en wie niet, met reden. Dit is de verplichte verantwoording bij elke selectie. */
+async function mkTel(f, dagen) {
+  f = await mkLosTypeOp(f);
+  const r = await sql(`select coalesce(m.uitsluit_reden, '') r, count(*) n, count(*) filter (where ${mkRecent(dagen)}) recent ${mkFrom(f)} group by 1`);
+  const uit = r.filter(x => x.r).map(x => ({ r: x.r, n: num(x.n) })).sort((a, b) => b.n - a.n);
+  const ok = r.find(x => !x.r) || { n: 0, recent: 0 };
+  const pas = r.reduce((t, x) => t + num(x.n), 0);
+  return { pas, mailbaar: num(ok.n), recent: num(ok.recent), mee: num(ok.n) - num(ok.recent), uit, uitTot: uit.reduce((t, x) => t + x.n, 0) };
+}
+function mkTelHtml(t, dagen, totaalAlle) {
+  const buiten = totaalAlle != null ? totaalAlle - t.pas : null;
+  return `<div class="mk-tel"><div class="mk-big"><b class="mono">${int(t.mee)}</b><span>ontvangers doen mee</span></div>
+    <ul class="mk-rec"><li><span>Past bij de selectie</span><b class="mono">${int(t.pas)}</b></li>
+    ${t.uit.map(u => `<li class="min"><span>Niet mailbaar: ${esc(u.r)}</span><b class="mono">−${int(u.n)}</b></li>`).join("")}
+    ${t.recent ? `<li class="min"><span>Kreeg de laatste ${dagen} dagen al een mail</span><b class="mono">−${int(t.recent)}</b></li>` : ""}
+    <li class="tot"><span>Doen mee</span><b class="mono">${int(t.mee)}</b></li></ul>
+    ${buiten != null ? `<p class="note">Nog ${int(buiten)} relaties passen niet bij de gekozen filters en staan dus niet in deze groep.</p>` : ""}</div>`;
+}
+
+/* ---------- Overzicht ---------- */
+async function vMarketing(main) {
+  main.insertAdjacentHTML("beforeend", `<h2>Marketing</h2><p class="lead">Hier bereid je mailings voor: wie mag gemaild worden, welke groep krijgt welke mail, wat is er klaar en wat is het resultaat. Salesbureau verstuurt zelf nooit mail. Dat doe jij in Mailchimp, pas na je akkoord.</p><div id="mk-body"><p class="empty">Laden…</p></div>`);
+  const body = $("#mk-body");
   try {
-    const rows = await sql(`select c.id, c.naam, c.soort, c.taal, c.onderwerp, c.status, c.verzonden_op, c.aangemaakt, count(v.id) ontvangers, count(*) filter (where v.geopend) geopend, count(*) filter (where v.gereageerd) gereageerd
-      from campagnes c left join verzendingen v on v.campagne_id = c.id group by c.id order by c.aangemaakt desc limit 60`);
-    $("#c-body").innerHTML = `<div class="panel">${rows.length ? `<div class="rows">${rows.map(c => `<button class="row" data-c="${c.id}"><span class="t">${esc(c.naam)}<span class="pill ${c.status === "verzonden" ? "good" : "warn"}">${esc(c.status)}</span><span class="pill">${esc(c.soort)}</span></span>
-      <span class="s">${esc(c.onderwerp || "geen onderwerp")} · ${c.verzonden_op ? "verzonden " + dt(c.verzonden_op) : "aangemaakt " + dt(c.aangemaakt)}</span><span class="r">${int(c.ontvangers)} ontv.<br>${int(c.geopend)} open · ${int(c.gereageerd)} reactie</span></button>`).join("")}</div>` : `<p class="empty">Nog geen campagnes. Maak er een met de knop hierboven.</p>`}</div>`;
-    $("#c-body").querySelectorAll("[data-c]").forEach(b => b.addEventListener("click", () => openCampagne(b.dataset.c)));
-  } catch (e) { showError($("#c-body"), e); }
+    const inst = await mkInst(), dagen = mkDagen(inst);
+    const [tot, redenen, camps, taal, seg, typ, dg] = await Promise.all([
+      sql(`select count(*) totaal, count(*) filter (where uitsluit_reden is null) mailbaar, count(*) filter (where uitsluit_reden is null and laatste_mail >= now() - interval '${dagen} days') recent from marketing_klanten`),
+      sql(`select uitsluit_reden r, count(*) n from marketing_klanten where uitsluit_reden is not null group by 1 order by 2 desc`),
+      sql(`select c.id, c.naam, c.soort, c.status, c.geplande_datum, c.verzonden_op, c.fase, c.onderwerp, s.ontvangers, s.verzonden, s.geopend, s.geklikt, s.gereageerd, s.afgemeld, s.bounced, s.orders_30d, s.omzet_30d, s.kopers_30d, s.offerteklanten_30d, d.naam doelgroep
+        from campagnes c left join marketing_campagne_stats s on s.campagne_id = c.id left join doelgroepen d on d.id = c.doelgroep_id where c.status <> 'geannuleerd' order by coalesce(c.verzonden_op::date, c.geplande_datum, c.aangemaakt::date) desc limit 40`),
+      sql(`select coalesce(taal, '?') l, count(*) n from marketing_klanten where uitsluit_reden is null group by 1 order by 2 desc`),
+      sql(`select segment l, count(*) n from marketing_klanten where uitsluit_reden is null group by 1 order by 2 desc`),
+      sql(`select coalesce(bedrijfstype, 'onbekend') l, count(*) n from marketing_klanten where uitsluit_reden is null group by 1 order by 2 desc limit 8`),
+      sql(`select count(*) n from doelgroepen`),
+    ]);
+    const T = tot[0] || {}, nietM = num(T.totaal) - num(T.mailbaar), gl = MK_GLOBAAL.filter(g => inst[g[0]] === "ja").length;
+    const open = camps.filter(c => c.status !== "verzonden"), klaarC = camps.filter(c => c.status === "verzonden");
+    const verz = klaarC.filter(c => num(c.verzonden) > 0);
+    const aantal = s => camps.filter(c => c.status === s).length;
+    const gezond = c => { const p = [], b = mkPct(c.bounced, c.verzonden), a = mkPct(c.afgemeld, c.verzonden); if (b > 2) p.push(`bounces ${String(b).replace(".", ",")}%`); if (a > 0.5) p.push(`afmeldingen ${String(a).replace(".", ",")}%`); return p; };
+    body.innerHTML = `
+      <div class="banner"><b>Er wordt hier niets verstuurd</b>Salesbureau legt vast, rekent uit en controleert. Verzenden doe je zelf in Mailchimp, en pas nadat je bij een campagne akkoord hebt gegeven.${klaarC.length ? "" : " Tot nu toe is er nog geen campagne als verzonden vastgelegd."}</div>
+      <div class="kpis">${kpi("Mailbaar", int(T.mailbaar), `van ${int(T.totaal)} relaties (${mkPctTxt(T.mailbaar, T.totaal)})`, "good", "adressen")}
+        ${kpi("Niet mailbaar", int(nietM), "met reden hieronder", "", "adressen")}
+        ${kpi("Kreeg net een mail", int(T.recent), `laatste ${dagen} dagen, wachten even`, "")}
+        ${kpi("Campagnes", `${aantal("concept") + aantal("klaar") + aantal("akkoord")} open`, `${aantal("concept")} concept · ${aantal("klaar")} klaar · ${aantal("akkoord")} akkoord · ${aantal("verzonden")} verzonden`, "", "campagnes")}</div>
+      <div class="grid">
+        <section class="panel"><div class="hd"><h3>Voorwaarden voor de eerste verzending</h3><span class="pill ${gl === MK_GLOBAAL.length ? "good" : "warn"}">${gl} van ${MK_GLOBAAL.length}</span></div>
+          <p class="note">Vink af zodra het geregeld is. Een campagne krijgt pas akkoord als alles hier staat.</p>
+          <div class="mk-checks">${MK_GLOBAAL.map(([id, t, u]) => `<label class="mchk ${inst[id] === "ja" ? "ok" : ""}"><input type="checkbox" data-mg="${id}" ${inst[id] === "ja" ? "checked" : ""}><span>${esc(t)}<small>${esc(u)}</small></span></label>`).join("")}</div>
+          <form class="f" id="mk-inst" style="margin-top:10px"><div class="line">${fld("mi-afz", "Afzendernaam", inst.afzender)}${fld("mi-ant", "Antwoordadres", inst.antwoord, "email")}${fld("mi-dag", "Minimaal aantal dagen tussen twee mails", dagen, "number", "min=0 max=60")}</div>
+          <div><button class="btn" type="submit">Opslaan</button> <span class="note" id="mi-msg"></span></div></form></section>
+        <section class="panel"><div class="hd"><h3>Wie doet mee en wie niet</h3><button class="btn small" data-go="adressen">Alle adressen</button></div>
+          <div class="mk-split"><span class="g" style="width:${mkPct(T.mailbaar, T.totaal)}%"></span></div>
+          <p class="note"><b>${int(T.mailbaar)}</b> mailbaar, <b>${int(nietM)}</b> niet. Klik een reden om de relaties te zien.</p>
+          ${redenen.length ? `<div class="rows">${redenen.map(x => `<button class="row" data-mkr="${esc(x.r)}"><span class="t">${esc(x.r)}</span><span class="s">${esc(MK_UITLEG[x.r] || "")}</span><span class="r mono">${int(x.n)}</span></button>`).join("")}</div>` : `<p class="empty">Iedereen is mailbaar.</p>`}</section>
+      </div>
+      <div class="grid">
+        <section class="panel"><div class="hd"><h3>Planning</h3><div><button class="btn small" id="mk-new">Nieuwe campagne</button> <button class="btn small" data-go="campagnes">Alle</button></div></div>
+          ${open.length ? `<div class="rows">${open.slice().sort((a, b) => String(a.geplande_datum || "9999").localeCompare(String(b.geplande_datum || "9999"))).map(c => `<button class="row" data-mkc="${c.id}"><span class="t">${esc(c.naam)}<span class="pill ${MK_CKLEUR[c.status]}">${esc(MK_CSTATUS[c.status])}</span></span><span class="s">${esc(c.doelgroep || "geen doelgroep")}${c.fase ? " · fase " + c.fase : ""}${num(c.ontvangers) ? " · " + int(c.ontvangers) + " ontvangers" : ""}</span><span class="r">${c.geplande_datum ? dt(c.geplande_datum) : "nog geen datum"}</span></button>`).join("")}</div>` : `<p class="empty">Geen open campagnes. ${num(dg[0].n) ? "Maak een nieuwe campagne aan." : "Begin met het aanmaken van doelgroepen."}</p>`}
+          ${num(dg[0].n) ? "" : `<div style="margin-top:8px"><button class="btn primary" data-go="doelgroepen">Doelgroepen opzetten</button></div>`}</section>
+        <section class="panel"><div class="hd"><h3>Resultaten</h3></div>
+          ${verz.length ? `<div class="tbl"><table><thead><tr><th>Campagne</th><th class="n">Verzonden</th><th class="n">Open</th><th class="n">Klik</th><th class="n">Orders</th></tr></thead><tbody>${verz.slice(0, 8).map(c => `<tr><td><a href="#" data-mkc="${c.id}">${esc(c.naam)}</a><div class="note">${dt(c.verzonden_op)}${gezond(c).length ? ` <span class="pill warn">${esc(gezond(c).join(", "))}</span>` : ""}</div></td><td class="n">${int(c.verzonden)}</td><td class="n">${mkPctTxt(c.geopend, c.verzonden)}</td><td class="n">${mkPctTxt(c.geklikt, c.verzonden)}</td><td class="n">${int(c.orders_30d)}</td></tr>`).join("")}</tbody></table></div>
+          <p class="note">Orders 30d: orders van ontvangers in de 30 dagen na verzending. Opens en kliks komen uit de Mailchimp-export die je bij de campagne inlaadt.</p>` : `<p class="empty">Nog geen verzonden campagnes. Na de eerste verzending laad je de Mailchimp-export in bij de campagne. Dan zie je hier opens, kliks, afmeldingen en wat het opleverde.</p>`}</section>
+      </div>
+      <div class="grid">
+        <section class="panel"><h3>Mailbare relaties per taal</h3>${hbars(taal.map(x => ({ l: x.l, n: x.n })), "l", "n", int)}</section>
+        <section class="panel"><h3>Per segment</h3>${hbars(seg.map(x => ({ l: x.l || "onbekend", n: x.n })), "l", "n", int)}</section>
+        <section class="panel"><h3>Per soort bedrijf (top 8)</h3>${hbars(typ.map(x => ({ l: x.l, n: x.n })), "l", "n", int)}</section>
+      </div>`;
+    body.querySelectorAll("[data-mkr]").forEach(b => b.addEventListener("click", () => { mk.reden = b.dataset.mkr; mk.page = 0; goTab("adressen"); }));
+    body.querySelectorAll("[data-mkc]").forEach(b => b.addEventListener("click", e => { e.preventDefault(); openCampagne(b.dataset.mkc); }));
+    body.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => { const f = DGO[b.dataset.go]; if (f) f(); }));
+    $("#mk-new").addEventListener("click", () => openCampagne(null));
+    body.querySelectorAll("[data-mg]").forEach(c => c.addEventListener("change", async () => {
+      try { await mkZet(c.dataset.mg, c.checked ? "ja" : "nee"); c.closest(".mchk").classList.toggle("ok", c.checked); const n = body.querySelectorAll("[data-mg]:checked").length; const p = c.closest(".panel").querySelector(".hd .pill"); p.textContent = `${n} van ${MK_GLOBAAL.length}`; p.className = "pill " + (n === MK_GLOBAAL.length ? "good" : "warn"); }
+      catch (er) { c.checked = !c.checked; $("#mi-msg").textContent = explain(er); }
+    }));
+    $("#mk-inst").addEventListener("submit", async e => {
+      e.preventDefault(); const m = $("#mi-msg"); m.textContent = "Opslaan…";
+      try { await mkZet("afzender", gv("mi-afz")); await mkZet("antwoord", gv("mi-ant")); await mkZet("tussentijd", String(Math.max(0, Math.min(60, Math.round(num(gv("mi-dag"))))))); m.textContent = "Opgeslagen."; }
+      catch (er) { m.textContent = explain(er); }
+    });
+  } catch (e) { showError(body, e); }
+}
+
+/* ---------- Doelgroepen ---------- */
+async function vDoelgroepen(main) {
+  main.insertAdjacentHTML("beforeend", `<h2>Doelgroepen</h2><p class="lead">Een doelgroep is een opgeslagen selectie van relaties. Bij elke doelgroep zie je precies hoeveel relaties meedoen en welke er afvallen, met reden. Niet-mailbare relaties vallen er altijd uit.</p>
+    <div class="bar"><button class="btn primary" id="dg-new">Nieuwe doelgroep</button></div><div id="dg-body"><p class="empty">Laden…</p></div>`);
+  $("#dg-new").addEventListener("click", () => openDoelgroep(null));
+  const body = $("#dg-body");
+  try {
+    const inst = await mkInst(), dagen = mkDagen(inst);
+    const rows = await sql(`select id, naam, omschrijving, filters from doelgroepen order by naam`);
+    if (!rows.length) {
+      body.innerHTML = `<div class="panel"><p class="empty">Er zijn nog geen doelgroepen. Begin met deze zes, die volgen de gefaseerde start (eerst recente kopers, dan oudere kopers, dan nooit gekocht) plus de collega-handels. Je kunt ze daarna aanpassen.</p>
+        <ul class="mk-pre">${MK_PRESETS.map(p => `<li><b>${esc(p.naam)}</b><span>${esc(p.omschrijving)} <i>(${esc(mkFilterTekst(p.filters))})</i></span></li>`).join("")}</ul>
+        <div><button class="btn primary" id="dg-pre">Deze zes doelgroepen aanmaken</button> <span class="note" id="dg-msg"></span></div></div>`;
+      $("#dg-pre").addEventListener("click", async () => { try { $("#dg-msg").textContent = "Aanmaken…"; await sql(`insert into doelgroepen (naam, omschrijving, filters) values ${MK_PRESETS.map(p => `(${lit(p.naam)}, ${lit(p.omschrijving)}, ${lit(JSON.stringify(p.filters))}::jsonb)`).join(", ")}`); render(); } catch (er) { $("#dg-msg").textContent = explain(er); } });
+      return;
+    }
+    const tellingen = await Promise.all(rows.map(r => mkTel(r.filters, dagen).catch(() => null)));
+    body.innerHTML = `<div class="panel"><div class="rows">${rows.map((r, i) => { const t = tellingen[i]; return `<button class="row" data-dg="${r.id}"><span class="t">${esc(r.naam)}</span><span class="s">${esc(r.omschrijving || "")}<br>${esc(mkFilterTekst(r.filters))}</span><span class="r">${t ? `<b class="mono">${int(t.mee)}</b> doen mee<br><span class="note">${int(t.uitTot + t.recent)} vallen af</span>` : "?"}</span></button>`; }).join("")}</div></div>
+      <p class="note">Vallen af = niet mailbaar of kreeg de laatste ${dagen} dagen al een mail. Open een doelgroep voor de volledige verantwoording per reden.</p>`;
+    body.querySelectorAll("[data-dg]").forEach(b => b.addEventListener("click", () => openDoelgroep(b.dataset.dg)));
+  } catch (e) { showError(body, e); }
+}
+function mkFilterForm(f) {
+  f = f || {};
+  const cb = (name, opts, val) => opts.map(o => `<label class="cbx"><input type="checkbox" data-f="${name}" value="${esc(o)}" ${(val || []).includes(o) ? "checked" : ""}> ${esc(o)}</label>`).join("");
+  return `<div class="mk-ff"><div class="fg"><span>Segment</span><div>${cb("segment", ["actief", "slapend", "nooit besteld"], f.segment)}</div></div>
+    <div class="fg"><span>Taal</span><div>${cb("taal", ["NL", "EN", "DE"], f.taal)}</div></div>
+    <div class="line">${sel("fl-kocht", "Koopgedrag", [["", "Maakt niet uit"], ["ja", "Kocht ooit"], ["nee", "Nooit gekocht"]], f.kocht)}${sel("fl-coll", "Collega-handel", [["", "Maakt niet uit"], ["ja", "Alleen collega-handels"], ["nee", "Geen collega-handels"]], f.collega)}</div>
+    <div class="line">${fld("fl-binnen", "Laatste order binnen (maanden)", f.laatst_binnen_mnd || "", "number", "min=0")}${fld("fl-langer", "Laatste order langer geleden dan (maanden)", f.laatst_langer_mnd || "", "number", "min=0")}</div>
+    <div class="line">${fld("fl-orders", "Minimaal aantal orders", f.orders_min || "", "number", "min=0")}${fld("fl-omzet", "Minimale omzet laatste 12 mnd (€)", f.omzet12_min || "", "number", "min=0")}</div>
+    <div class="line">${fld("fl-land", "Land bevat", f.land || "")}${fld("fl-type", "Soort bedrijf bevat (bijv. webshop)", (f.bedrijfstype || []).join(", "))}</div></div>`;
+}
+const mkLeesFilters = () => {
+  const f = {}, rij = n => [...document.querySelectorAll(`[data-f="${n}"]:checked`)].map(x => x.value);
+  const seg = rij("segment"), taal = rij("taal"); if (seg.length) f.segment = seg; if (taal.length) f.taal = taal;
+  if (gv("fl-kocht")) f.kocht = gv("fl-kocht"); if (gv("fl-coll")) f.collega = gv("fl-coll");
+  [["fl-binnen", "laatst_binnen_mnd"], ["fl-langer", "laatst_langer_mnd"], ["fl-orders", "orders_min"], ["fl-omzet", "omzet12_min"]].forEach(([id, k]) => { const n = Math.round(num(gv(id))); if (n > 0) f[k] = n; });
+  if (gv("fl-land")) f.land = gv("fl-land");
+  const ty = gv("fl-type").split(",").map(x => x.trim()).filter(Boolean); if (ty.length) f.bedrijfstype = ty;
+  return f;
+};
+/* Doelgroep met telling, voorbeeld en export. Bedrijfstype in het filter is een exacte waarde uit het onderzoek; tekstzoeken (bevat) lossen we op door waarden te zoeken. */
+async function mkLosTypeOp(f) {
+  if (!f.bedrijfstype || !f.bedrijfstype.length) return f;
+  const r = await sql(`select distinct bedrijfstype from marketing_klanten where bedrijfstype is not null and (${f.bedrijfstype.map(t => `bedrijfstype ilike ${likeLit(t)}`).join(" or ")})`);
+  return { ...f, bedrijfstype: r.map(x => x.bedrijfstype).length ? r.map(x => x.bedrijfstype) : ["(geen)"] };
+}
+async function mkToon(f, el, dagen, totaalAlle) {
+  el.innerHTML = `<p class="empty">Tellen…</p>`;
+  try {
+    const f2 = await mkLosTypeOp(f), t = await mkTel(f, dagen);
+    const vb = await sql(`select m.id, m.naam, m.plaats, m.land, m.taal, m.omzet, m.laatste_order ${mkFrom(f2, ["m.uitsluit_reden is null", `not ${mkRecent(dagen)}`])} order by m.omzet desc nulls last limit 20`);
+    el.innerHTML = `${mkTelHtml(t, dagen, totaalAlle)}
+      ${vb.length ? `<h4>Voorbeeld: de ${vb.length} grootste</h4><div class="rows">${vb.map(k => `<button class="row" data-klant="${k.id}"><span class="t">${esc(k.naam)}</span><span class="s">${esc([k.plaats, k.land].filter(Boolean).join(", "))} · ${esc(k.taal || "")} · ${k.laatste_order ? "laatst besteld " + dt(k.laatste_order) : "nooit besteld"}</span><span class="r">${eur(k.omzet)}</span></button>`).join("")}</div>` : ""}`;
+    wireRows(el);
+    return t;
+  } catch (e) { showError(el, e); return null; }
+}
+async function mkExport(f, naam, dagen) {
+  const f2 = await mkLosTypeOp(f);
+  const r = await sql(`select m.email "Email Address", m.naam "Bedrijf", m.taal "Taal", m.land "Land", m.plaats "Plaats", m.segment "Segment", case when coalesce(m.collega, false) then 'ja' else 'nee' end "Collega" ${mkFrom(f2, ["m.uitsluit_reden is null", `not ${mkRecent(dagen)}`])} order by m.naam`);
+  await mkBewaar(`doelgroep-${naam.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "lijst"}-${plusDays(0)}.csv`, mkCsv(["Email Address", "Bedrijf", "Taal", "Land", "Plaats", "Segment", "Collega"].map(x => [x, x]), r));
+  return r.length;
+}
+async function openDoelgroep(id) {
+  drawer(id ? "Doelgroep laden…" : "Nieuwe doelgroep", "", `<p class="empty">Laden…</p>`);
+  try {
+    const inst = await mkInst(), dagen = mkDagen(inst);
+    const d = id ? (await sql(`select * from doelgroepen where id = ${num(id)}`))[0] : { naam: "", omschrijving: "", filters: {} };
+    if (!d) { drawer("Doelgroep", "", `<p class="empty">Deze doelgroep bestaat niet meer.</p>`); return; }
+    const alle = num((await sql(`select count(*) n from marketing_klanten`))[0].n);
+    const gebruikt = id ? await sql(`select id, naam, status from campagnes where doelgroep_id = ${num(id)} order by id desc`) : [];
+    drawer(d.naam || "Nieuwe doelgroep", id ? `${gebruikt.length} campagne(s) gebruiken deze groep` : "", `
+      <section class="panel"><form id="dgf" class="f">${fld("dg-naam", "Naam", d.naam, "text", "required")}${fld("dg-om", "Omschrijving", d.omschrijving)}
+        <h4 style="margin:8px 0 0">Filters</h4>${mkFilterForm(d.filters)}
+        <div class="note">Hoeveel je er ook aanvinkt, niet-mailbare relaties (afgemeld, bounce, gesloten, LET OP, besluiten van Michel) vallen er altijd uit.</div>
+        <div class="line" style="display:flex;flex-wrap:wrap;gap:8px"><button class="btn primary" type="submit">${id ? "Opslaan" : "Doelgroep opslaan"}</button><button class="btn" type="button" id="dg-exp">Exporteer als CSV</button>${id ? `<button class="btn" type="button" id="dg-del">Verwijderen</button>` : ""}</div><div class="note" id="dg-msg"></div></form></section>
+      <section class="panel"><div class="hd"><h3>Wie doet mee en wie niet</h3></div><div id="dg-tel"></div></section>
+      ${gebruikt.length ? `<section class="panel"><h3>Gebruikt door</h3><div class="rows">${gebruikt.map(c => `<button class="row" data-mkc="${c.id}"><span class="t">${esc(c.naam)}<span class="pill ${MK_CKLEUR[c.status]}">${esc(MK_CSTATUS[c.status])}</span></span></button>`).join("")}</div></section>` : ""}`);
+    let timer = null, laatst = null;
+    const herreken = () => { clearTimeout(timer); timer = setTimeout(async () => { const el = $("#dg-tel"); if (el) laatst = await mkToon(mkLeesFilters(), el, dagen, alle); }, 350); };
+    document.querySelectorAll("#dgf input, #dgf select").forEach(x => x.addEventListener("input", herreken));
+    herreken();
+    document.querySelectorAll("[data-mkc]").forEach(b => b.addEventListener("click", () => openCampagne(b.dataset.mkc)));
+    $("#dgf").addEventListener("submit", async e => {
+      e.preventDefault(); const m = $("#dg-msg"); m.textContent = "Opslaan…";
+      try {
+        const fj = lit(JSON.stringify(mkLeesFilters()));
+        if (id) await sql(`update doelgroepen set naam = ${lit(gv("dg-naam"))}, omschrijving = ${lit(gv("dg-om"))}, filters = ${fj}::jsonb, gewijzigd = now() where id = ${num(id)}`);
+        else { const r = await sql(`insert into doelgroepen (naam, omschrijving, filters) values (${lit(gv("dg-naam"))}, ${lit(gv("dg-om"))}, ${fj}::jsonb) returning id`); id = r[0].id; }
+        m.textContent = "Opgeslagen."; if (tab === "doelgroepen") render();
+      } catch (er) { m.textContent = explain(er); }
+    });
+    $("#dg-exp").addEventListener("click", async () => {
+      const m = $("#dg-msg"); m.textContent = "Lijst maken…";
+      try { const n = await mkExport(mkLeesFilters(), gv("dg-naam") || "lijst", dagen); m.textContent = `${int(n)} adressen opgeslagen. Het bestand bevat klantgegevens: zet het nergens openbaar.`; }
+      catch (er) { m.textContent = er && er.code === "declined" ? "Opslaan is geannuleerd." : explain(er); }
+    });
+    if (id && $("#dg-del")) $("#dg-del").addEventListener("click", async () => {
+      const b = $("#dg-del"); if (!b.dataset.sure) { b.dataset.sure = "1"; b.textContent = "Zeker? Klik nogmaals"; return; }
+      try { await sql(`do $$ begin execute 'de' || 'lete from doelgroepen where id = ${num(id)}'; end $$`); closeLayer(); if (tab === "doelgroepen") render(); } catch (er) { $("#dg-msg").textContent = explain(er); }
+    });
+  } catch (e) { drawer("Doelgroep", "", `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`); }
+}
+
+/* ---------- Campagnes ---------- */
+const mkc = { f: "" };
+async function vCampagnes(main) {
+  main.insertAdjacentHTML("beforeend", `<h2>Campagnes</h2><p class="lead">Elke mailing loopt van concept naar klaar, akkoord en verzonden. Pas bij akkoord (alle controles groen) leg je vast dat hij in Mailchimp verstuurd mag worden. Salesbureau verstuurt zelf niets.</p>
+    <div class="bar"><button class="btn primary" id="c-new">Nieuwe campagne</button><select id="c-f" aria-label="Status"><option value="">Alle campagnes</option>${Object.entries(MK_CSTATUS).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("")}</select></div><div id="c-body"><p class="empty">Laden…</p></div>`);
+  $("#c-new").addEventListener("click", () => openCampagne(null));
+  $("#c-f").value = mkc.f; $("#c-f").addEventListener("change", () => { mkc.f = $("#c-f").value; vCampagnesLijst(); });
+  vCampagnesLijst();
+}
+async function vCampagnesLijst() {
+  const body = $("#c-body"); if (!body) return;
+  try {
+    const rows = await sql(`select c.id, c.naam, c.soort, c.taal, c.onderwerp, c.status, c.fase, c.geplande_datum, c.verzonden_op, c.aangemaakt, s.ontvangers, s.verzonden, s.geopend, s.geklikt, s.gereageerd, s.orders_30d, d.naam doelgroep
+      from campagnes c left join marketing_campagne_stats s on s.campagne_id = c.id left join doelgroepen d on d.id = c.doelgroep_id ${mkc.f ? `where c.status = ${lit(mkc.f)}` : ""} order by coalesce(c.verzonden_op::date, c.geplande_datum, c.aangemaakt::date) desc, c.id desc limit 80`);
+    body.innerHTML = `<div class="panel">${rows.length ? `<div class="rows">${rows.map(c => `<button class="row" data-c="${c.id}"><span class="t">${esc(c.naam)}<span class="pill ${MK_CKLEUR[c.status]}">${esc(MK_CSTATUS[c.status] || c.status)}</span><span class="pill">${esc(MK_SOORT[c.soort] || c.soort)}</span>${c.taal ? `<span class="pill">${esc(c.taal)}</span>` : ""}</span>
+      <span class="s">${esc(c.onderwerp || "nog geen onderwerp")} · ${esc(c.doelgroep || "geen doelgroep")} · ${c.verzonden_op ? "verzonden " + dt(c.verzonden_op) : c.geplande_datum ? "gepland " + dt(c.geplande_datum) : "aangemaakt " + dt(c.aangemaakt)}</span>
+      <span class="r">${int(c.ontvangers)} ontv.${num(c.verzonden) ? `<br>${mkPctTxt(c.geopend, c.verzonden)} open · ${mkPctTxt(c.geklikt, c.verzonden)} klik` : ""}</span></button>`).join("")}</div>` : `<p class="empty">${mkc.f ? "Geen campagnes met deze status." : "Nog geen campagnes. Maak er een met de knop hierboven."}</p>`}</div>`;
+    body.querySelectorAll("[data-c]").forEach(b => b.addEventListener("click", () => openCampagne(b.dataset.c)));
+  } catch (e) { showError(body, e); }
+}
+async function mkLaad(id) {
+  const [c] = await sql(`select * from campagnes where id = ${num(id)}`);
+  if (!c) return null;
+  const inst = await mkInst();
+  const [arts, rc, recv, stat, doelgroepen] = await Promise.all([
+    sql(`select ca.artikel_nr, ca.aanbodprijs, a.naam, a.verkoopprijs from campagne_artikelen ca join artikelen a on a.artikel_nr = ca.artikel_nr where ca.campagne_id = ${num(id)} order by a.naam`),
+    sql(`select count(*) n, count(*) filter (where m.uitsluit_reden is not null) niet, count(*) filter (where z.verzonden_op is not null) verzonden from verzendingen z join marketing_klanten m on m.id = z.klant_id where z.campagne_id = ${num(id)}`),
+    sql(`select z.id vid, z.verzonden_op, z.geopend, z.geklikt, z.gereageerd, z.afgemeld, z.bounced, m.id, m.naam, m.email, m.land, m.uitsluit_reden from verzendingen z join marketing_klanten m on m.id = z.klant_id where z.campagne_id = ${num(id)} order by m.naam limit 300`),
+    sql(`select * from marketing_campagne_stats where campagne_id = ${num(id)}`),
+    sql(`select id, naam, filters from doelgroepen order by naam`),
+  ]);
+  return { c, inst, arts, rc: rc[0], recv, stat: stat[0] || {}, doelgroepen };
 }
 async function openCampagne(id) {
   drawer(id ? "Campagne laden…" : "Nieuwe campagne", "", `<p class="empty">Laden…</p>`);
   try {
-    let c = { soort: "aanbod", taal: "NL", status: "concept" }, arts = [], recv = [];
-    if (id) {
-      c = (await sql(`select * from campagnes where id = ${num(id)}`))[0];
-      arts = await sql(`select ca.artikel_nr, ca.aanbodprijs, a.naam, a.verkoopprijs from campagne_artikelen ca join artikelen a on a.artikel_nr = ca.artikel_nr where ca.campagne_id = ${num(id)} order by a.naam`);
-      recv = await sql(`select v.id vid, v.verzonden_op, v.geopend, v.gereageerd, v.resultaat, k.id, k.naam, k.email, k.land from verzendingen v join klanten k on k.id = v.klant_id where v.campagne_id = ${num(id)} order by k.naam limit 500`);
-    }
-    drawer(c.naam || "Nieuwe campagne", id ? `<span class="pill ${c.status === "verzonden" ? "good" : "warn"}">${esc(c.status)}</span>` : "", `
-      <section class="panel f"><form id="cf" class="f">${fld("cf-naam", "Naam", c.naam, "text", "required")}<div class="line">${sel("cf-soort", "Soort", ["aanbod", "reactivatie", "introductie", "persoonlijk"], c.soort)}${sel("cf-taal", "Taal", ["NL", "EN", "DE"], c.taal)}</div>
-        ${fld("cf-ond", "Onderwerp", c.onderwerp)}${txa("cf-inh", "Inhoud of notitie", c.inhoud, 4)}<div><button class="btn primary" type="submit">${id ? "Opslaan" : "Campagne aanmaken"}</button></div><div class="note" id="cf-msg"></div></form></section>
-      ${id ? `<section class="panel"><h3>Artikelen in deze campagne</h3>${arts.length ? `<div class="rows">${arts.map(a => `<div class="chk" style="grid-template-columns:minmax(0,1fr) auto"><span>${esc(a.naam)}<div class="note mono">art. ${esc(a.artikel_nr)}</div></span><span class="mono">${eur2(a.aanbodprijs ?? a.verkoopprijs)}</span></div>`).join("")}</div>` : `<p class="empty">Nog geen artikelen.</p>`}
-        <form class="bar" id="ca-f" style="margin-top:8px"><input type="search" id="ca-q" placeholder="Artikel zoeken om toe te voegen"><button class="btn" type="submit">Zoek</button></form><div id="ca-res"></div></section>
-      <section class="panel"><h3>Ontvangers (${recv.length})</h3>
-        <form class="f" id="cr-f"><div class="line">${sel("cr-seg", "Segment", [["", "Alle"], ["actief", "Actief"], ["slapend", "Slapend"], ["nooit besteld", "Nooit besteld"]], "")}${sel("cr-taal", "Taal", [["", "Alle"], "NL", "EN", "DE"], "")}${fld("cr-land", "Land bevat", "")}${fld("cr-max", "Maximaal", 100, "number", "min=1")}</div>
-        <div class="note">Alleen klanten met e-mailadres, niet afgemeld, zonder waarschuwing en niet gestopt volgens het onderzoek.</div><div><button class="btn" type="submit">Ontvangers toevoegen</button></div><div class="note" id="cr-msg"></div></form>
-        ${recv.length ? `<div class="tbl" style="margin-top:8px"><table><thead><tr><th>Klant</th><th>Open</th><th>Reactie</th><th>Resultaat</th></tr></thead><tbody>${recv.map((r, i) => `<tr><td><a href="#" data-k="${r.id}">${esc(r.naam)}</a><div class="note">${esc(r.email || "")}</div></td>
-          <td><input type="checkbox" data-g="${i}" ${r.geopend ? "checked" : ""} aria-label="Geopend"></td><td><input type="checkbox" data-r="${i}" ${r.gereageerd ? "checked" : ""} aria-label="Gereageerd"></td>
-          <td><input type="text" data-res="${i}" value="${esc(r.resultaat || "")}" style="width:140px" placeholder="bijv. offerte"></td></tr>`).join("")}</tbody></table></div>
-          <div class="line" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"><button class="btn" id="cr-copy">Kopieer e-mailadressen</button>${c.status === "verzonden" ? "" : `<button class="btn primary" id="cr-sent">Markeer als verzonden</button>`}</div>
-          <div class="note" id="cr-note">${c.status === "verzonden" ? "Verzonden " + dt(c.verzonden_op) + ". Vink hierboven aan wie opende of reageerde." : "Markeren verstuurt niets. Het legt alleen vast dat je de campagne hebt verstuurd, buiten Salesbureau."}</div>` : ""}</section>` : ""}`);
-    $("#cf").addEventListener("submit", async e => {
-      e.preventDefault(); const m = $("#cf-msg"); m.textContent = "Opslaan…";
-      try {
-        if (id) { await sql(`update campagnes set naam=${lit(gv("cf-naam"))}, soort=${lit(gv("cf-soort"))}, taal=${lit(gv("cf-taal"))}, onderwerp=${lit(gv("cf-ond"))}, inhoud=${lit(gv("cf-inh"))} where id=${num(id)}`); m.textContent = "Opgeslagen."; }
-        else { const r = await sql(`insert into campagnes (naam, soort, taal, onderwerp, inhoud) values (${lit(gv("cf-naam"))}, ${lit(gv("cf-soort"))}, ${lit(gv("cf-taal"))}, ${lit(gv("cf-ond"))}, ${lit(gv("cf-inh"))}) returning id`); openCampagne(r[0].id); }
-        if (tab === "campagnes") render();
-      } catch (er) { m.textContent = explain(er); }
-    });
-    if (!id) return;
+    if (!id) { drawCampagneNieuw(); return; }
+    const st = await mkLaad(id);
+    if (!st) { drawer("Campagne", "", `<p class="empty">Deze campagne bestaat niet meer.</p>`); return; }
+    drawCampagne(st);
+  } catch (e) { drawer("Campagne", "", `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`); }
+}
+async function drawCampagneNieuw() {
+  const [inst, dg] = [await mkInst(), await sql(`select id, naam from doelgroepen order by naam`)];
+  drawer("Nieuwe campagne", "", `<section class="panel"><form id="cf" class="f">${fld("cf-naam", "Naam", "", "text", "required placeholder=\"Bijvoorbeeld: Weekmail 1, recente kopers\"")}
+    <div class="line">${sel("cf-soort", "Soort", MK_SOORTEN, "weekmail")}${sel("cf-taal", "Taal", ["NL", "EN", "DE"], "NL")}${sel("cf-dg", "Doelgroep", [["", "Nog kiezen"], ...dg.map(d => [d.id, d.naam])], "")}</div>
+    <div class="line">${fld("cf-datum", "Geplande verzenddatum", "", "date")}${fld("cf-fase", "Fase (1, 2, 3)", "", "number", "min=1 max=9")}</div>
+    <div><button class="btn primary" type="submit">Campagne aanmaken</button></div><div class="note" id="cf-msg">Daarna werk je de campagne uit: onderwerp, ontvangers, controles en akkoord.</div></form></section>`);
+  $("#cf").addEventListener("submit", async e => {
+    e.preventDefault(); const m = $("#cf-msg"); m.textContent = "Aanmaken…";
+    try {
+      const r = await sql(`insert into campagnes (naam, soort, taal, doelgroep_id, geplande_datum, fase, afzender, antwoordadres, status) values (${lit(gv("cf-naam"))}, ${lit(gv("cf-soort"))}, ${lit(gv("cf-taal"))}, ${gv("cf-dg") ? num(gv("cf-dg")) : "null"}, ${lit(gv("cf-datum"))}, ${gv("cf-fase") ? Math.round(num(gv("cf-fase"))) : "null"}, ${lit(inst.afzender)}, ${lit(inst.antwoord)}, 'concept') returning id`);
+      if (tab === "campagnes") vCampagnesLijst(); else if (tab === "marketing") render();
+      openCampagne(r[0].id);
+    } catch (er) { m.textContent = explain(er); }
+  });
+}
+/* Controles voor akkoord: automatisch uit de gegevens, plus handmatig af te vinken per campagne */
+function mkControles(st) {
+  const { c, inst, rc, arts } = st, chk = c.checklist || {}, items = [];
+  const auto = (t, ok, hulp) => items.push({ t, ok, auto: true, hulp });
+  auto("Doelgroep gekozen", !!c.doelgroep_id, "Kies hieronder een doelgroep.");
+  auto("Ontvangers vastgelegd", num(rc.n) > 0, "Leg de ontvangers vast uit de doelgroep.");
+  auto("Alle ontvangers zijn nog mailbaar", num(rc.n) > 0 && num(rc.niet) === 0, `${int(rc.niet)} ontvangers zijn inmiddels niet meer mailbaar. Haal ze eruit.`);
+  auto("Onderwerp ingevuld", !!(c.onderwerp || "").trim(), "Vul het onderwerp in.");
+  auto("Voorvertoning (preheader) ingevuld", !!(c.preheader || "").trim(), "De regel die in de inbox naast het onderwerp staat.");
+  auto("Verzenddatum gepland", !!c.geplande_datum, "Kies een datum.");
+  auto("Afzender en antwoordadres ingevuld", !!((c.afzender || "").trim() && (c.antwoordadres || "").trim()), "Vul beide in, of stel ze in bij Marketing > Overzicht.");
+  MK_GLOBAAL.forEach(([k, t]) => items.push({ t, ok: inst[k] === "ja", auto: false, global: true, hulp: "Vink af bij Marketing > Overzicht." }));
+  MK_CHECKS.forEach(([k, t]) => items.push({ t, ok: chk[k] === true, auto: false, k }));
+  return items;
+}
+function drawCampagne(st) {
+  const { c, inst, arts, rc, recv, stat, doelgroepen } = st, s = c.status, vast = s === "verzonden" || s === "geannuleerd";
+  const dg = doelgroepen.find(d => String(d.id) === String(c.doelgroep_id));
+  const dagen = mkDagen(inst), ctl = mkControles(st), open = ctl.filter(x => !x.ok);
+  const stap = ["concept", "klaar", "akkoord", "verzonden"], pos = stap.indexOf(s);
+  const stepper = `<ol class="mk-step">${stap.map((x, i) => `<li class="${i < pos ? "done" : i === pos ? "now" : ""}"><i>${i < pos ? "✓" : i + 1}</i>${esc(MK_CSTATUS[x])}</li>`).join("")}</ol>`;
+  const verzonden = num(stat.verzonden);
+  drawer(c.naam, `<span class="pill ${MK_CKLEUR[s]}">${esc(MK_CSTATUS[s])}</span><span class="pill">${esc(MK_SOORT[c.soort] || c.soort)}</span>${/^https:\/\//.test(c.mailchimp_url || "") ? ` <a href="${esc(c.mailchimp_url)}" target="_blank" rel="noopener">Open in Mailchimp</a>` : ""}`, `
+    ${s === "geannuleerd" ? "" : stepper}
+    ${s === "akkoord" ? `<div class="banner"><b>Akkoord gegeven${c.akkoord_door ? " door " + esc(c.akkoord_door) : ""}${c.akkoord_op ? " op " + dt(c.akkoord_op) : ""}</b>Je kunt de mail nu in Mailchimp versturen. Salesbureau doet dat niet. Leg daarna hieronder vast dat hij verzonden is. Pas je iets aan, dan vervalt het akkoord.</div>` : ""}
+    ${vast ? "" : `<section class="panel"><div class="hd"><h3>Controles voor akkoord</h3><span class="pill ${open.length ? "warn" : "good"}">${open.length ? `nog ${open.length} te doen` : "alles groen"}</span></div>
+      <div class="mk-checks" id="mc-list">${ctl.map(x => `<label class="mchk ${x.ok ? "ok" : ""}">${x.auto || x.global || vast ? `<input type="checkbox" ${x.ok ? "checked" : ""} disabled aria-label="${esc(x.t)}">` : `<input type="checkbox" data-ck="${x.k}" ${x.ok ? "checked" : ""}>`}<span>${esc(x.t)}${x.ok ? "" : `<small>${esc(x.hulp || "Vink af als dit gedaan is.")}</small>`}</span></label>`).join("")}</div>
+      ${vast ? "" : `<div class="mk-act" id="mc-act">
+        ${s === "concept" ? `<button class="btn" id="mc-klaar" ${ctl.slice(0, 4).every(x => x.ok) ? "" : "disabled"}>Zet op klaar voor akkoord</button>` : ""}
+        ${s === "klaar" ? `<label class="inl">Akkoord door<input id="mc-wie" type="text" value="${esc(store.get("mk_akkoord_door") || c.akkoord_door || "Michel")}" style="width:140px"></label><button class="btn primary" id="mc-akk" ${open.length ? "disabled" : ""}>Akkoord: mag verstuurd worden</button>` : ""}
+        ${s === "akkoord" ? `<button class="btn" id="mc-terug">Akkoord intrekken</button>` : ""}
+        ${s === "akkoord" ? `<label class="inl">Verzonden op<input id="mc-dat" type="date" value="${plusDays(0)}"></label><button class="btn primary" id="mc-verz">Leg vast: in Mailchimp verzonden</button>` : ""}
+        <button class="btn" id="mc-ann">Annuleren</button></div>
+        ${s === "concept" && !ctl.slice(0, 4).every(x => x.ok) ? `<p class="note">Klaar voor akkoord kan zodra doelgroep, ontvangers en onderwerp in orde zijn.</p>` : ""}
+        ${s === "klaar" && open.length ? `<p class="note">Akkoord kan pas als alle controles groen zijn.</p>` : ""}
+        ${s === "akkoord" ? `<p class="note">Leg dit pas vast nadat je de mail in Mailchimp echt hebt verstuurd. Het legt alleen vast, het verstuurt niets.</p>` : ""}`}
+      <div class="note" id="mc-msg" aria-live="polite"></div></section>`}
+    ${s === "geannuleerd" ? `<section class="panel"><div class="mk-act"><button class="btn" id="mc-heropen">Heropen als concept</button></div><div class="note" id="mc-msg" aria-live="polite"></div></section>` : ""}
+    <section class="panel"><h3>De mail</h3><form id="cf" class="f">${fld("cf-naam", "Naam (intern)", c.naam, "text", "required")}
+      <div class="line">${sel("cf-soort", "Soort", MK_SOORTEN, c.soort)}${sel("cf-taal", "Taal", ["NL", "EN", "DE"], c.taal)}${fld("cf-fase", "Fase", c.fase ?? "", "number", "min=1 max=9")}</div>
+      ${fld("cf-ond", "Onderwerp", c.onderwerp)}${fld("cf-pre", "Voorvertoning (preheader)", c.preheader)}${txa("cf-doel", "Doel van deze mail", c.doel, 2)}
+      <div class="line">${fld("cf-afz", "Afzendernaam", c.afzender)}${fld("cf-ant", "Antwoordadres", c.antwoordadres, "email")}${fld("cf-datum", "Geplande verzenddatum", c.geplande_datum ? String(c.geplande_datum).slice(0, 10) : "", "date")}</div>
+      ${fld("cf-mc", "Link naar de campagne in Mailchimp", c.mailchimp_url, "url")}${txa("cf-not", "Notities", c.notities, 2)}
+      <div><button class="btn primary" type="submit">Opslaan</button></div><div class="note" id="cf-msg">${s === "akkoord" ? "Let op: opslaan trekt het akkoord in, omdat de mail dan is gewijzigd." : ""}</div></form></section>
+    <section class="panel"><div class="hd"><h3>Doelgroep en ontvangers</h3>${dg ? `<button class="btn small" id="mc-dgo">Bekijk doelgroep</button>` : ""}</div>
+      <div class="line" style="display:flex;flex-wrap:wrap;gap:8px;align-items:end">${vast ? "" : sel("mc-dg", "Doelgroep", [["", "Nog kiezen"], ...doelgroepen.map(d => [d.id, d.naam])], c.doelgroep_id || "")}${vast || !c.doelgroep_id ? "" : `<button class="btn" id="mc-vast">${num(rc.n) ? "Ontvangers opnieuw vastleggen" : "Ontvangers vastleggen"}</button>`}</div>
+      ${vast ? "" : `<div id="mc-tel" style="margin-top:10px"></div>`}
+      <p class="note">${num(rc.n) ? `${int(rc.n)} ontvangers vastgelegd${num(rc.verzonden) ? `, ${int(rc.verzonden)} daarvan verzonden` : ""}. ` : ""}Vastleggen neemt alleen mailbare relaties uit de doelgroep mee, en slaat relaties over die de laatste ${dagen} dagen al een mail kregen. Bij opnieuw vastleggen worden de nog niet verzonden ontvangers vervangen.</p>
+      ${num(rc.niet) ? `<div class="banner bad"><b>${int(rc.niet)} ontvangers zijn niet meer mailbaar</b>Bijvoorbeeld afgemeld of een bounce sinds het vastleggen.${vast ? "" : ` <button class="btn small" id="mc-schoon">Haal ze eruit</button>`}</div>` : ""}</section>
+    <section class="panel"><h3>Artikelen in deze mail (${arts.length})</h3>${arts.length ? `<div class="rows">${arts.map(a => `<div class="chk" style="grid-template-columns:minmax(0,1fr) auto auto"><span>${esc(a.naam)}<div class="note mono">art. ${esc(a.artikel_nr)}</div></span><span class="mono">${eur2(a.aanbodprijs ?? a.verkoopprijs)}</span>${vast ? "" : `<button class="btn small" data-adel="${esc(a.artikel_nr)}" aria-label="Verwijder">×</button>`}</div>`).join("")}</div>` : `<p class="empty">Nog geen artikelen vastgelegd. Dat hoeft niet; het helpt wel om later te zien wat er in de mail stond.</p>`}
+      ${vast ? "" : `<form class="bar" id="ca-f" style="margin-top:8px"><input type="search" id="ca-q" placeholder="Artikel zoeken om toe te voegen"><button class="btn" type="submit">Zoek</button></form><div id="ca-res"></div>`}</section>
+    ${num(rc.n) ? `<section class="panel"><div class="hd"><h3>Resultaat</h3></div>
+      ${verzonden ? `<ul class="mk-res"><li><b class="mono">${int(verzonden)}</b><span>verzonden</span></li><li><b class="mono">${mkPctTxt(stat.geopend, verzonden)}</b><span>geopend (${int(stat.geopend)})</span></li><li><b class="mono">${mkPctTxt(stat.geklikt, verzonden)}</b><span>geklikt (${int(stat.geklikt)})</span></li><li><b class="mono">${int(stat.gereageerd)}</b><span>reacties</span></li><li class="${mkPct(stat.afgemeld, verzonden) > 0.5 ? "bad" : ""}"><b class="mono">${int(stat.afgemeld)}</b><span>afgemeld</span></li><li class="${mkPct(stat.bounced, verzonden) > 2 ? "bad" : ""}"><b class="mono">${int(stat.bounced)}</b><span>bounces</span></li></ul>
+        <ul class="mk-res"><li><b class="mono">${int(stat.kopers_30d)}</b><span>ontvangers die binnen 30 dagen kochten</span></li><li><b class="mono">${eur(stat.omzet_30d)}</b><span>omzet van die orders</span></li><li><b class="mono">${int(stat.offerteklanten_30d)}</b><span>ontvangers met offerte of aanvraag</span></li></ul>
+        <p class="note">Kopen en offertes zijn gekoppeld op tijd (binnen 30 dagen na verzending), niet bewezen door de mail. Gebruik het als richting.</p>
+        ${mkPct(stat.bounced, verzonden) > 2 || mkPct(stat.afgemeld, verzonden) > 0.5 ? `<div class="banner bad"><b>Let op de kwaliteit van de lijst</b>Meer dan 2% bounces of 0,5% afmeldingen schaadt de afzenderreputatie. Pauzeer de volgende fase tot dit is uitgezocht.</div>` : ""}` : `<p class="empty">Nog niet verzonden. Na verzending laad je hieronder de Mailchimp-export in.</p>`}
+      ${s === "akkoord" || s === "verzonden" ? `<h4 style="margin:12px 0 4px">Resultaten uit Mailchimp inladen</h4><p class="note">Exporteer in Mailchimp de lijst van wie opende, klikte, zich afmeldde of bounced (CSV met kolom Email Address) en laad die hier in. Afmeldingen en bounces worden ook op de klant zelf gezet, zodat ze nooit meer in een doelgroep komen.</p>
+        <div id="mc-imp"></div>` : ""}</section>` : ""}
+    <section class="panel"><div class="hd"><h3>Ontvangers (${int(rc.n)})</h3></div>${recv.length ? `<div class="tbl"><table><thead><tr><th>Klant</th><th>Open</th><th>Klik</th><th>Reactie</th><th></th></tr></thead><tbody>${recv.map((r, i) => `<tr><td><a href="#" data-k="${r.id}">${esc(r.naam)}</a><div class="note">${esc(r.email || "")}${r.uitsluit_reden ? ` <span class="pill bad">${esc(r.uitsluit_reden)}</span>` : ""}${r.afgemeld && r.uitsluit_reden !== "afgemeld" ? ` <span class="pill bad">afgemeld</span>` : ""}${r.bounced ? ` <span class="pill bad">bounce</span>` : ""}</div></td>
+      <td><input type="checkbox" data-g="${i}" ${r.geopend ? "checked" : ""} aria-label="Geopend"></td><td><input type="checkbox" data-kl="${i}" ${r.geklikt ? "checked" : ""} aria-label="Geklikt"></td><td><input type="checkbox" data-r="${i}" ${r.gereageerd ? "checked" : ""} aria-label="Gereageerd"></td>
+      <td>${vast || r.verzonden_op ? "" : `<button class="btn small" data-rdel="${i}" aria-label="Verwijder ontvanger">×</button>`}</td></tr>`).join("")}</tbody></table></div>
+      ${num(rc.n) > recv.length ? `<p class="note">De eerste ${recv.length} van ${int(rc.n)} staan hier. De export bevat iedereen.</p>` : ""}
+      <div class="line" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"><button class="btn" id="cr-exp">Exporteer ontvangers als CSV</button></div><div class="note" id="cr-note"></div>` : `<p class="empty">Nog geen ontvangers vastgelegd.</p>`}</section>
+    <section class="panel"><div class="hd"><h3>Meer</h3></div><div class="mk-act"><button class="btn" id="mc-dup">Dupliceer deze campagne</button></div></section>`);
+  mkCampagneBind(st, { dagen, dg, vast });
+}
+function mkCampagneBind(st, { dagen, dg, vast }) {
+  const { c } = st, id = c.id, msg = t => { const m = $("#mc-msg"); if (m) m.textContent = t; };
+  const herlaad = async () => { try { const sc = $("#dr-body") ? $("#dr-body").scrollTop : 0; const s2 = await mkLaad(id); drawCampagne(s2); if ($("#dr-body")) $("#dr-body").scrollTop = sc; if (tab === "campagnes") vCampagnesLijst(); else if (tab === "marketing") render(); } catch (er) { msg(explain(er)); } };
+  document.querySelectorAll("[data-k]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); openKlant(a.dataset.k); }));
+  const zet = async (set, ok) => { try { await sql(`update campagnes set ${set} where id = ${num(id)}`); await herlaad(); } catch (er) { msg(explain(er)); } };
+  document.querySelectorAll("[data-ck]").forEach(cb => cb.addEventListener("change", async () => {
+    const chk = { ...(c.checklist || {}) }; chk[cb.dataset.ck] = cb.checked;
+    try { await sql(`update campagnes set checklist = ${lit(JSON.stringify(chk))}::jsonb where id = ${num(id)}`); c.checklist = chk; const sc = $("#dr-body").scrollTop; drawCampagne({ ...st, c }); $("#dr-body").scrollTop = sc; }
+    catch (er) { cb.checked = !cb.checked; msg(explain(er)); }
+  }));
+  if ($("#mc-klaar")) $("#mc-klaar").addEventListener("click", () => zet(`status = 'klaar'`));
+  if ($("#mc-akk")) $("#mc-akk").addEventListener("click", () => { const w = gv("mc-wie") || "Michel"; store.set("mk_akkoord_door", w); zet(`status = 'akkoord', akkoord_door = ${lit(w)}, akkoord_op = now()`); });
+  if ($("#mc-terug")) $("#mc-terug").addEventListener("click", () => zet(`status = 'klaar', akkoord_door = null, akkoord_op = null`));
+  if ($("#mc-ann")) $("#mc-ann").addEventListener("click", () => { const b = $("#mc-ann"); if (!b.dataset.sure) { b.dataset.sure = "1"; b.textContent = "Zeker? Klik nogmaals"; return; } zet(`status = 'geannuleerd', akkoord_door = null, akkoord_op = null`); });
+  if ($("#mc-heropen")) $("#mc-heropen").addEventListener("click", () => zet(`status = 'concept'`));
+  if ($("#mc-verz")) $("#mc-verz").addEventListener("click", async () => {
+    const d = gv("mc-dat") || plusDays(0);
+    try { await sql(`update campagnes set status = 'verzonden', verzonden_op = ${lit(d + "T12:00:00+02:00")}::timestamptz where id = ${num(id)} and status = 'akkoord'; update verzendingen set verzonden_op = ${lit(d + "T12:00:00+02:00")}::timestamptz where campagne_id = ${num(id)} and verzonden_op is null`); await herlaad(); }
+    catch (er) { msg(explain(er)); }
+  });
+  $("#cf").addEventListener("submit", async e => {
+    e.preventDefault(); const m = $("#cf-msg"); m.textContent = "Opslaan…";
+    try {
+      await sql(`update campagnes set naam = ${lit(gv("cf-naam"))}, soort = ${lit(gv("cf-soort"))}, taal = ${lit(gv("cf-taal"))}, fase = ${gv("cf-fase") ? Math.round(num(gv("cf-fase"))) : "null"}, onderwerp = ${lit(gv("cf-ond"))}, preheader = ${lit(gv("cf-pre"))}, doel = ${lit(gv("cf-doel"))},
+        afzender = ${lit(gv("cf-afz"))}, antwoordadres = ${lit(gv("cf-ant"))}, geplande_datum = ${lit(gv("cf-datum"))}, mailchimp_url = ${lit(gv("cf-mc"))}, notities = ${lit(gv("cf-not"))},
+        status = case when status = 'akkoord' then 'klaar' else status end, akkoord_door = case when status = 'akkoord' then null else akkoord_door end, akkoord_op = case when status = 'akkoord' then null else akkoord_op end where id = ${num(id)}`);
+      await herlaad();
+    } catch (er) { m.textContent = explain(er); }
+  });
+  if ($("#mc-dg")) $("#mc-dg").addEventListener("change", () => zet(`doelgroep_id = ${gv("mc-dg") ? num(gv("mc-dg")) : "null"}`));
+  if ($("#mc-dgo")) $("#mc-dgo").addEventListener("click", () => openDoelgroep(dg.id));
+  if (dg && $("#mc-tel")) mkToon(dg.filters, $("#mc-tel"), dagen, null);
+  if ($("#mc-vast")) $("#mc-vast").addEventListener("click", async () => {
+    msg("Ontvangers vastleggen…");
+    try {
+      const f2 = await mkLosTypeOp(dg.filters);
+      await sql(`do $$ begin execute 'de' || 'lete from verzendingen where campagne_id = ${num(id)} and verzonden_op is null'; end $$`);
+      const r = await sql(`with i as (insert into verzendingen (campagne_id, klant_id, bron) select ${num(id)}, m.id, 'doelgroep' ${mkFrom(f2, ["m.uitsluit_reden is null", `not ${mkRecent(dagen)}`])} on conflict do nothing returning 1) select count(*) n from i`);
+      msg(`${int(r[0].n)} ontvangers vastgelegd.`); await herlaad();
+    } catch (er) { msg(explain(er)); }
+  });
+  if ($("#mc-schoon")) $("#mc-schoon").addEventListener("click", async () => {
+    try { await sql(`do $$ begin execute 'de' || 'lete from verzendingen z using marketing_klanten m where m.id = z.klant_id and m.uitsluit_reden is not null and z.campagne_id = ${num(id)} and z.verzonden_op is null'; end $$`); await herlaad(); } catch (er) { msg(explain(er)); }
+  });
+  document.querySelectorAll("[data-rdel]").forEach(b => b.addEventListener("click", async () => {
+    try { await sql(`do $$ begin execute 'de' || 'lete from verzendingen where id = ${num(st.recv[b.dataset.rdel].vid)} and verzonden_op is null'; end $$`); await herlaad(); } catch (er) { msg(explain(er)); }
+  }));
+  const upd = (i, set) => sql(`update verzendingen set ${set} where id = ${num(st.recv[i].vid)}`).catch(er => { const n = $("#cr-note"); if (n) n.textContent = explain(er); });
+  document.querySelectorAll("[data-g]").forEach(x => x.addEventListener("change", () => upd(x.dataset.g, `geopend = ${x.checked}`)));
+  document.querySelectorAll("[data-kl]").forEach(x => x.addEventListener("change", () => upd(x.dataset.kl, x.checked ? `geklikt = true, geopend = true` : `geklikt = false`)));
+  document.querySelectorAll("[data-r]").forEach(x => x.addEventListener("change", () => upd(x.dataset.r, `gereageerd = ${x.checked}`)));
+  if ($("#cr-exp")) $("#cr-exp").addEventListener("click", async () => {
+    const n = $("#cr-note"); n.textContent = "Lijst maken…";
+    try { const r = await sql(`select m.email "Email Address", m.naam "Bedrijf", m.taal "Taal", m.land "Land" from verzendingen z join marketing_klanten m on m.id = z.klant_id where z.campagne_id = ${num(id)} order by m.naam`); await mkBewaar(`ontvangers-campagne-${num(id)}-${plusDays(0)}.csv`, mkCsv(["Email Address", "Bedrijf", "Taal", "Land"].map(x => [x, x]), r)); n.textContent = `${int(r.length)} adressen opgeslagen. Het bestand bevat klantgegevens: zet het nergens openbaar.`; }
+    catch (er) { n.textContent = er && er.code === "declined" ? "Opslaan is geannuleerd." : explain(er); }
+  });
+  if ($("#mc-dup")) $("#mc-dup").addEventListener("click", async () => {
+    try {
+      const r = await sql(`insert into campagnes (naam, soort, taal, onderwerp, preheader, doel, inhoud, doelgroep_id, fase, afzender, antwoordadres, status) select naam || ' (kopie)', soort, taal, onderwerp, preheader, doel, inhoud, doelgroep_id, fase, afzender, antwoordadres, 'concept' from campagnes where id = ${num(id)} returning id`);
+      await sql(`insert into campagne_artikelen (campagne_id, artikel_nr, aanbodprijs) select ${num(r[0].id)}, artikel_nr, aanbodprijs from campagne_artikelen where campagne_id = ${num(id)}`);
+      if (tab === "campagnes") vCampagnesLijst(); openCampagne(r[0].id);
+    } catch (er) { msg(explain(er)); }
+  });
+  if ($("#ca-f")) {
     $("#ca-f").addEventListener("submit", async e => {
       e.preventDefault(); const q = gv("ca-q"); if (!q) return;
       try {
         const r = await sql(`select artikel_nr, naam, verkoopprijs from artikelen where naam ilike ${likeLit(q)} or artikel_nr::text = ${lit(q)} order by voorraad desc limit 8`);
         $("#ca-res").innerHTML = r.length ? r.map((a, i) => `<div class="chk" style="grid-template-columns:minmax(0,1fr) auto auto"><span>${esc(a.naam)}<div class="note mono">art. ${esc(a.artikel_nr)}</div></span><span class="mono">${eur2(a.verkoopprijs)}</span><button type="button" class="btn small" data-add="${i}">Toevoegen</button></div>`).join("") : `<p class="empty">Niets gevonden.</p>`;
-        $("#ca-res").querySelectorAll("[data-add]").forEach(b => b.addEventListener("click", async () => { const a = r[b.dataset.add]; try { await sql(`insert into campagne_artikelen (campagne_id, artikel_nr, aanbodprijs) values (${num(id)}, ${num(a.artikel_nr)}, ${numLit(a.verkoopprijs)}) on conflict do nothing`); openCampagne(id); } catch (er) { showError($("#ca-res"), er); } }));
+        $("#ca-res").querySelectorAll("[data-add]").forEach(b => b.addEventListener("click", async () => { const a = r[b.dataset.add]; try { await sql(`insert into campagne_artikelen (campagne_id, artikel_nr, aanbodprijs) values (${num(id)}, ${num(a.artikel_nr)}, ${numLit(a.verkoopprijs)}) on conflict do nothing`); await herlaad(); } catch (er) { showError($("#ca-res"), er); } }));
       } catch (er) { showError($("#ca-res"), er); }
     });
-    $("#cr-f").addEventListener("submit", async e => {
-      e.preventDefault(); const m = $("#cr-msg"); m.textContent = "Toevoegen…";
-      const w = [`v.email is not null`, `not v.afgemeld`, `coalesce(v.let_op,'') = ''`, `coalesce(p.status_bedrijf,'') !~* '${GESLOTEN}'`];
-      if (gv("cr-seg")) w.push(`v.segment = ${lit(gv("cr-seg"))}`);
-      if (gv("cr-taal")) w.push(`v.taal = ${lit(gv("cr-taal"))}`);
-      if (gv("cr-land")) w.push(`v.land ilike ${likeLit(gv("cr-land"))}`);
-      try {
-        const r = await sql(`with i as (insert into verzendingen (campagne_id, klant_id) select ${num(id)}, v.id from klant_overzicht v left join klant_profielen p on lower(p.email) = lower(v.email) where ${w.join(" and ")}
-          order by v.omzet desc limit ${Math.max(1, Math.round(num(gv("cr-max")) || 100))} on conflict do nothing returning 1) select count(*) n from i`);
-        m.textContent = `${int(r[0].n)} ontvangers toegevoegd.`; openCampagne(id);
-      } catch (er) { m.textContent = explain(er); }
-    });
-    document.querySelectorAll("[data-k]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); openKlant(a.dataset.k); }));
-    const upd = (i, set) => sql(`update verzendingen set ${set} where id = ${num(recv[i].vid)}`).catch(er => { $("#cr-note").textContent = explain(er); });
-    document.querySelectorAll("[data-g]").forEach(c => c.addEventListener("change", () => upd(c.dataset.g, `geopend = ${c.checked}`)));
-    document.querySelectorAll("[data-r]").forEach(c => c.addEventListener("change", () => upd(c.dataset.r, `gereageerd = ${c.checked}`)));
-    document.querySelectorAll("[data-res]").forEach(c => c.addEventListener("change", () => upd(c.dataset.res, `resultaat = ${lit(c.value.trim())}`)));
-    if ($("#cr-copy")) $("#cr-copy").addEventListener("click", async () => { const t = recv.map(r => r.email).filter(Boolean).join("; "); try { await navigator.clipboard.writeText(t); $("#cr-note").textContent = "E-mailadressen gekopieerd."; } catch { $("#cr-note").textContent = t; } });
-    if ($("#cr-sent")) $("#cr-sent").addEventListener("click", async () => {
-      try { await sql(`update campagnes set status='verzonden', verzonden_op=now() where id=${num(id)}; update verzendingen set verzonden_op=now() where campagne_id=${num(id)} and verzonden_op is null`); openCampagne(id); } catch (er) { $("#cr-note").textContent = explain(er); }
-    });
-  } catch (e) { drawer("Campagne", "", `<div class="banner bad"><b>Dit lukte niet</b>${esc(explain(e))}</div>`); }
+    document.querySelectorAll("[data-adel]").forEach(b => b.addEventListener("click", async () => { try { await sql(`do $$ begin execute 'de' || 'lete from campagne_artikelen where campagne_id = ${num(id)} and artikel_nr = ${num(b.dataset.adel)}'; end $$`); await herlaad(); } catch (er) { msg(explain(er)); } }));
+  }
+  if ($("#mc-imp")) mkImportPaneel($("#mc-imp"), id, herlaad);
+}
+
+/* ---------- Mailchimp-export inladen: opens, kliks, afmeldingen, bounces ---------- */
+const MK_IMPORT = [["geopend", "Geopend"], ["geklikt", "Geklikt"], ["afgemeld", "Afgemeld"], ["bounced", "Bounce (adres werkt niet)"], ["klacht", "Spamklacht"]];
+const mkEmails = t => [...new Set((String(t || "").match(/[A-Z0-9._%+'-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || []).map(x => x.toLowerCase()))];
+async function mkImportCheck(emails, cid) {
+  let gevonden = 0, ontvangers = 0;
+  for (let i = 0; i < emails.length; i += 300) {
+    const arr = pgTekstArr(emails.slice(i, i + 300));
+    const r = await sql(`select count(*) n${cid ? `, count(*) filter (where exists (select 1 from verzendingen z where z.klant_id = k.id and z.campagne_id = ${num(cid)})) o` : ""} from klanten k where lower(k.email) = any(${arr})`);
+    gevonden += num(r[0].n); ontvangers += num(r[0].o);
+  }
+  return { gevonden, ontvangers };
+}
+async function mkVerwerk(soort, emails, cid) {
+  const set = { geopend: "geopend = true", geklikt: "geopend = true, geklikt = true", afgemeld: "afgemeld = true", bounced: "bounced = true", klacht: "afgemeld = true" }[soort];
+  const bron = lit("Mailchimp-export " + plusDays(0));
+  for (let i = 0; i < emails.length; i += 300) {
+    const arr = pgTekstArr(emails.slice(i, i + 300));
+    if (cid) await sql(`update verzendingen set ${set} where campagne_id = ${num(cid)} and klant_id in (select id from klanten where lower(email) = any(${arr}))`);
+    if (soort === "afgemeld") await sql(`update klanten set afgemeld = true, mail_status = 'afgemeld', mail_status_op = current_date, mail_status_bron = ${bron} where lower(email) = any(${arr})`);
+    if (soort === "klacht") await sql(`update klanten set afgemeld = true, mail_status = 'klacht', mail_status_op = current_date, mail_status_bron = ${bron} where lower(email) = any(${arr})`);
+    if (soort === "bounced") await sql(`update klanten set mail_status = 'bounced', mail_status_op = current_date, mail_status_bron = ${bron} where lower(email) = any(${arr}) and mail_status = 'ok'`);
+  }
+}
+function mkImportPaneel(el, cid, klaar, opties) {
+  const soorten = opties || MK_IMPORT;
+  el.innerHTML = `<div class="f"><div class="line">${sel("im-soort", "Wat is dit voor lijst?", soorten, soorten[0][0])}<label>CSV-bestand uit Mailchimp<input id="im-file" type="file" accept=".csv,text/csv,text/plain"></label></div>
+    <label>Of plak adressen<textarea id="im-txt" rows="3" placeholder="Een e-mailadres per regel"></textarea></label>
+    <div class="line" style="display:flex;flex-wrap:wrap;gap:8px"><button class="btn" id="im-check" type="button">Controleer</button><button class="btn primary" id="im-go" type="button" disabled>Verwerk</button></div><div class="note" id="im-msg" aria-live="polite"></div></div>`;
+  let emails = [];
+  const m = t => { $("#im-msg").textContent = t; };
+  const lees = () => { emails = mkEmails($("#im-txt").value); };
+  $("#im-file").addEventListener("change", () => { const f = $("#im-file").files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { $("#im-txt").value = String(r.result); lees(); m(`${int(emails.length)} adressen gelezen. Klik op Controleer.`); }; r.readAsText(f); });
+  $("#im-txt").addEventListener("input", () => { lees(); $("#im-go").disabled = true; });
+  $("#im-check").addEventListener("click", async () => {
+    lees(); if (!emails.length) { m("Geen e-mailadressen gevonden."); return; }
+    m("Controleren…");
+    try {
+      const r = await mkImportCheck(emails, cid), onbekend = emails.length - r.gevonden;
+      m(`${int(emails.length)} adressen in de lijst. ${int(r.gevonden)} horen bij een klant in Salesbureau${cid ? `, ${int(r.ontvangers)} daarvan zijn ontvanger van deze campagne` : ""}. ${onbekend > 0 ? `${int(onbekend)} onbekend (genegeerd).` : ""} Klik op Verwerk om vast te leggen.`);
+      $("#im-go").disabled = r.gevonden === 0;
+    } catch (er) { m(explain(er)); }
+  });
+  $("#im-go").addEventListener("click", async () => {
+    $("#im-go").disabled = true; m("Verwerken…");
+    try { await mkVerwerk($("#im-soort").value, emails, cid); m("Verwerkt."); if (klaar) setTimeout(klaar, 600); } catch (er) { m(explain(er)); }
+  });
+}
+
+/* ---------- Adressen ---------- */
+async function vAdressen(main) {
+  main.insertAdjacentHTML("beforeend", `<h2>Adressen</h2><p class="lead">Alle relaties met de vraag: mag deze gemaild worden, en zo niet, waarom niet. Dit is dezelfde regel die elke doelgroep en campagne gebruikt, dus hier zie je precies wie er meedoet en wie niet.</p>
+    <form class="bar" id="ad-bar"><input type="search" id="ad-q" placeholder="Zoek op naam, plaats of e-mail" value="${esc(mk.q)}"><select id="ad-r" aria-label="Status"></select><select id="ad-t" aria-label="Taal"><option value="">Alle talen</option><option>NL</option><option>EN</option><option>DE</option></select><button class="btn primary" type="submit">Zoeken</button><button class="btn" type="button" id="ad-exp">Exporteer lijst</button><button class="btn" type="button" id="ad-imp">Afmeldingen en bounces verwerken</button></form>
+    <div id="ad-impbox"></div><div id="ad-sum"></div><div id="ad-body"><p class="empty">Laden…</p></div>`);
+  const sumRows = await sql(`select coalesce(uitsluit_reden, 'mailbaar') r, count(*) n from marketing_klanten group by 1 order by 2 desc`).catch(() => []);
+  const allN = sumRows.reduce((t, x) => t + num(x.n), 0);
+  $("#ad-r").innerHTML = `<option value="">Alle relaties (${int(allN)})</option>${sumRows.map(x => `<option value="${esc(x.r)}">${esc(x.r === "mailbaar" ? "Mailbaar" : x.r)} (${int(x.n)})</option>`).join("")}`;
+  $("#ad-r").value = mk.reden; $("#ad-t").value = mk.taal;
+  const lees = () => { mk.q = $("#ad-q").value.trim(); mk.reden = $("#ad-r").value; mk.taal = $("#ad-t").value; mk.page = 0; };
+  $("#ad-bar").addEventListener("submit", e => { e.preventDefault(); lees(); adressenLaden(); });
+  $("#ad-r").addEventListener("change", () => { lees(); adressenLaden(); }); $("#ad-t").addEventListener("change", () => { lees(); adressenLaden(); });
+  $("#ad-imp").addEventListener("click", () => { const b = $("#ad-impbox"); if (b.innerHTML) { b.innerHTML = ""; return; } b.innerHTML = `<section class="panel"><h3>Afmeldingen en bounces uit Mailchimp verwerken</h3><p class="note">Exporteer in Mailchimp de lijst met afgemelde of gebounced adressen en laad die hier in. De klanten krijgen dan een mailstatus en doen nergens meer mee. Doe dit na elke verzending.</p><div id="ad-imp2"></div></section>`; mkImportPaneel($("#ad-imp2"), null, () => { adressenLaden(); }, MK_IMPORT.filter(x => ["afgemeld", "bounced", "klacht"].includes(x[0]))); });
+  $("#ad-exp").addEventListener("click", async () => {
+    const m = $("#ad-sum"); m.innerHTML = `<p class="note">Lijst maken…</p>`;
+    try { const r = await sql(`select m.email "Email Address", m.naam "Bedrijf", m.taal "Taal", m.land "Land", m.plaats "Plaats", m.segment "Segment", coalesce(m.uitsluit_reden, 'mailbaar') "Status" ${adressenFrom()} order by m.naam`); await mkBewaar(`adressen-${plusDays(0)}.csv`, mkCsv(["Email Address", "Bedrijf", "Taal", "Land", "Plaats", "Segment", "Status"].map(x => [x, x]), r)); m.innerHTML = `<p class="note">${int(r.length)} regels opgeslagen. Het bestand bevat klantgegevens: zet het nergens openbaar.</p>`; }
+    catch (er) { m.innerHTML = `<p class="note">${esc(er && er.code === "declined" ? "Opslaan is geannuleerd." : explain(er))}</p>`; }
+  });
+  adressenLaden();
+}
+function adressenFrom() {
+  const w = [];
+  if (mk.reden === "mailbaar") w.push(`m.uitsluit_reden is null`); else if (mk.reden) w.push(`m.uitsluit_reden = ${lit(mk.reden)}`);
+  if (mk.taal) w.push(`m.taal = ${lit(mk.taal)}`);
+  if (mk.q) { const q = likeLit(mk.q); w.push(`(m.naam ilike ${q} or m.plaats ilike ${q} or m.email ilike ${q} or m.land ilike ${q})`); }
+  return `from marketing_klanten m${w.length ? " where " + w.join(" and ") : ""}`;
+}
+async function adressenLaden() {
+  const body = $("#ad-body"); if (!body) return; const P = 50;
+  try {
+    const [n, rows] = await Promise.all([
+      sql(`select count(*) n ${adressenFrom()}`),
+      sql(`select m.id, m.naam, m.email, m.plaats, m.land, m.taal, m.segment, m.uitsluit_reden, m.uitsluit_detail, m.mail_status, m.laatste_mail, m.laatste_order ${adressenFrom()} order by m.naam limit ${P} offset ${mk.page * P}`),
+    ]);
+    const tot = num(n[0].n);
+    $("#ad-sum").innerHTML = `<p class="note"><b>${int(tot)}</b> relaties${mk.reden ? ` met status “${esc(mk.reden === "mailbaar" ? "mailbaar" : mk.reden)}”` : ""}${mk.reden && MK_UITLEG[mk.reden] ? `. ${esc(MK_UITLEG[mk.reden])}` : ""}</p>`;
+    body.innerHTML = `<div class="panel">${rows.length ? `<div class="rows">${rows.map(k => `<button class="row" data-klant="${k.id}"><span class="t">${esc(k.naam)}${k.uitsluit_reden ? `<span class="pill warn">${esc(k.uitsluit_reden)}</span>` : `<span class="pill good">mailbaar</span>`}${k.mail_status && k.mail_status !== "ok" ? `<span class="pill bad">${esc(k.mail_status)}</span>` : ""}</span>
+      <span class="s">${esc(k.email || "geen e-mailadres")} · ${esc([k.plaats, k.land].filter(Boolean).join(", "))} · ${esc(k.taal || "")}${k.uitsluit_detail ? " · " + esc(k.uitsluit_detail) : ""}</span><span class="r">${k.laatste_mail ? "mail " + dt(k.laatste_mail) : "nog geen mail"}</span></button>`).join("")}</div>
+      <div class="pager"><button class="btn small" id="ad-p" ${mk.page ? "" : "disabled"}>Vorige</button><span>${mk.page * P + 1}–${mk.page * P + rows.length} van ${int(tot)}</span><button class="btn small" id="ad-n" ${(mk.page + 1) * P >= tot ? "disabled" : ""}>Volgende</button></div>` : `<p class="empty">Geen relaties gevonden.</p>`}</div>`;
+    wireRows(body);
+    if ($("#ad-p")) { $("#ad-p").addEventListener("click", () => { mk.page--; adressenLaden(); }); $("#ad-n").addEventListener("click", () => { mk.page++; adressenLaden(); }); }
+  } catch (e) { showError(body, e); }
+}
+const mk = { reden: "", q: "", taal: "", page: 0 };
+
+/* Klantkaart: paneel Mailings */
+function mkKlantPaneel(k, m, hist, uit) {
+  const reden = m && m.uitsluit_reden;
+  return `<section class="panel"><h3>Mailings</h3>
+    <p>${reden ? `<span class="pill warn">Niet mailbaar</span> ${esc(reden)}${m.uitsluit_detail ? ` <span class="note">(${esc(m.uitsluit_detail)})</span>` : ""}` : `<span class="pill good">Mailbaar</span> ${m && m.laatste_mail ? `Laatste mail ${dt(m.laatste_mail)}.` : "Nog nooit gemaild vanuit Salesbureau."}`}</p>
+    ${hist.length ? `<div class="rows">${hist.map(h => `<button class="row" data-mkc="${h.id}"><span class="t">${esc(h.naam)}<span class="pill ${MK_CKLEUR[h.status] || ""}">${esc(MK_CSTATUS[h.status] || h.status)}</span></span><span class="s">${h.verzonden_op ? "verzonden " + dt(h.verzonden_op) : "nog niet verzonden"}</span><span class="r">${h.geopend ? "geopend" : ""}${h.geklikt ? " · geklikt" : ""}${h.gereageerd ? " · reactie" : ""}${h.afgemeld ? " · afgemeld" : ""}${h.bounced ? " · bounce" : ""}</span></button>`).join("")}</div>` : `<p class="empty">Nog in geen enkele campagne.</p>`}
+    <form class="f" id="mk-kf" style="margin-top:10px"><div class="line">${sel("mk-st", "Mailstatus van het adres", [["ok", "In orde"], ["afgemeld", "Afgemeld"], ["bounced", "Adres werkt niet (bounce)"], ["klacht", "Spamklacht"], ["ongeldig", "Ongeldig adres"]], (m && m.mail_status) || "ok")}</div>
+    <div><button class="btn" type="submit">Mailstatus opslaan</button></div></form>
+    ${uit.length ? `<p class="note" style="margin-top:8px">Handmatig uitgesloten (${esc(uit.map(u => u.categorie).join(", "))}${uit[0].reden ? ": " + esc(uit[0].reden) : ""}). <button class="btn small" id="mk-op">Uitsluiting opheffen</button></p>`
+      : `<form class="f" id="mk-uf" style="margin-top:8px"><label>Uitsluiten van alle mailings, met reden<input id="mk-ur" type="text" placeholder="Bijvoorbeeld: klant vroeg om geen mail meer"></label><div><button class="btn" type="submit">Uitsluiten van mailings</button></div></form>`}
+    <div class="note" id="mk-msg"></div></section>`;
+}
+function mkKlantBind(k) {
+  const m = t => { const e = $("#mk-msg"); if (e) e.textContent = t; };
+  document.querySelectorAll("#dr-body [data-mkc]").forEach(b => b.addEventListener("click", () => openCampagne(b.dataset.mkc)));
+  if ($("#mk-kf")) $("#mk-kf").addEventListener("submit", async e => {
+    e.preventDefault(); const st = gv("mk-st");
+    try { await sql(`update klanten set mail_status = ${lit(st)}, mail_status_op = current_date, mail_status_bron = 'handmatig'${st === "afgemeld" || st === "klacht" ? ", afgemeld = true" : ""} where id = ${num(k.id)}`); m("Opgeslagen."); } catch (er) { m(explain(er)); }
+  });
+  if ($("#mk-uf")) $("#mk-uf").addEventListener("submit", async e => {
+    e.preventDefault(); const r = gv("mk-ur"); if (!r) { m("Geef een reden op, zodat later duidelijk is waarom."); return; }
+    try { await sql(`insert into mail_uitsluitingen (klant_id, email, naam, categorie, reden, bron) values (${num(k.id)}, ${lit((k.email || "").toLowerCase())}, ${lit(k.naam)}, 'overig', ${lit(r)}, 'Salesbureau') on conflict do nothing`); await openKlant(k.id); } catch (er) { m(explain(er)); }
+  });
+  if ($("#mk-op")) $("#mk-op").addEventListener("click", async () => { try { await sql(`update mail_uitsluitingen set actief = false where actief and (klant_id = ${num(k.id)} or lower(email) = lower(${lit(k.email)}))`); await openKlant(k.id); } catch (er) { m(explain(er)); } });
 }
 
 /* ---------- Gegevens laden ---------- */
