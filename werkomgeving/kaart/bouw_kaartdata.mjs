@@ -1,6 +1,6 @@
 // Bouwt de kaartlagen voor het Kaart-paneel van het Salesbureau (kaartdata.json) uit Natural Earth (publiek domein) en world-atlas.
 // Gebruik: node bouw_kaartdata.mjs <map met bronbestanden> <uitvoer.json>
-// Bronnen: world-atlas countries-50m.json en countries-10m.json; Natural Earth ne_10m_admin_1_states_provinces_lines, ne_10m_lakes, ne_10m_rivers_lake_centerlines, ne_10m_urban_areas (geojson).
+// Bronnen: world-atlas countries-50m.json en countries-10m.json; Natural Earth ne_10m_admin_1_states_provinces_lines, ne_10m_lakes, ne_10m_rivers_lake_centerlines.
 // Elke laag is een SVG-pad in kaarteenheden x100 (wereld = 100.000 breed), met relatieve lijnstukken; de pagina tekent ze met scale(.01).
 import fs from "node:fs";
 const [dir, uit] = process.argv.slice(2);
@@ -37,7 +37,7 @@ function topoLanden(t, obj) { // geeft [{naam, ringen}] terug
   const ring = idx => { const pts = []; idx.forEach(i => { const a = i >= 0 ? arcs[i] : arcs[~i].slice().reverse(); pts.push(...(pts.length ? a.slice(1) : a)); }); return pts; };
   return obj.geometries.filter(g => g.arcs).map(g => ({ naam: (g.properties && g.properties.name) || "", ringen: (g.type === "Polygon" ? [g.arcs] : g.arcs).flatMap(p => p.map(r => ring(r))) }));
 }
-const midden = l => { let a = 1e9, b = -1e9, c = 1e9, d = -1e9; l.ringen.forEach(r => r.forEach(([lo, la]) => { a = Math.min(a, lo); b = Math.max(b, lo); c = Math.min(c, la); d = Math.max(d, la); })); return [(a + b) / 2, (c + d) / 2, b - a]; };
+const midden = l => { let best = null, ba = -1; l.ringen.forEach(r => { let a = 1e9, b = -1e9, c = 1e9, d = -1e9; r.forEach(([lo, la]) => { a = Math.min(a, lo); b = Math.max(b, lo); c = Math.min(c, la); d = Math.max(d, la); }); const opp = (b - a) * (d - c); if (opp > ba) { ba = opp; best = [(a + b) / 2, (c + d) / 2, b - a]; } }); return best || [0, 0, 999]; }; // midden van de grootste ring (Nederland heeft ook eilanden in de Cariben)
 function splitsRing(pts, tol, regio) { // vereenvoudig een ring en breek af bij de datumgrens; ringen buiten de regio vallen weg
   if (regio && !pts.some(([lo, la]) => binnen(regio, lo, la))) return [];
   const delen = []; let cur = [];
@@ -83,7 +83,6 @@ lagen.prov = lijnen("ne_10m_admin_1_states_provinces_lines.geojson", 0.009, EU);
 lagen.landgrens = lijnen("ne_10m_admin_0_boundary_lines_land.geojson", 0.009, EU);
 lagen.rivieren = lijnen("ne_10m_rivers_lake_centerlines.geojson", 0.009, EU, p => p.featurecla === "River" || p.featurecla === "Canal" ? p.scalerank <= 8 : false);
 lagen.meren = vlakken("ne_10m_lakes.geojson", 0.009, EU, p => (p.scalerank ?? 9) <= 8);
-lagen.stad = vlakken("ne_10m_urban_areas.geojson", 0.006, KERN, p => (p.area_sqkm ?? 0) >= 4);
 for (const k in lagen) maat[k] = Math.round(lagen[k].length / 1024) + " KB";
 console.error(JSON.stringify(maat));
 fs.writeFileSync(uit, JSON.stringify(lagen));
