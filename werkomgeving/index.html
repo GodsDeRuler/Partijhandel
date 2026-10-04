@@ -4246,7 +4246,7 @@ async function vMarketing(main) {
     const [tot, redenen, camps, taal, seg, typ, dg] = await Promise.all([
       sql(`select count(*) totaal, count(*) filter (where uitsluit_reden is null) mailbaar, count(*) filter (where uitsluit_reden is null and laatste_mail >= now() - interval '${dagen} days') recent from marketing_klanten`),
       sql(`select uitsluit_reden r, count(*) n from marketing_klanten where uitsluit_reden is not null group by 1 order by 2 desc`),
-      sql(`select c.id, c.naam, c.soort, c.status, c.geplande_datum, c.verzonden_op, c.fase, c.onderwerp, s.ontvangers, s.verzonden, s.geopend, s.geklikt, s.gereageerd, s.afgemeld, s.bounced, s.orders_30d, s.omzet_30d, s.kopers_30d, s.offerteklanten_30d, d.naam doelgroep
+      sql(`select c.id, c.naam, c.soort, c.status, c.geplande_datum, c.verzonden_op, c.onderwerp, s.ontvangers, s.verzonden, s.geopend, s.geklikt, s.gereageerd, s.afgemeld, s.bounced, s.orders_30d, s.omzet_30d, s.kopers_30d, s.offerteklanten_30d, d.naam doelgroep
         from campagnes c left join marketing_campagne_stats s on s.campagne_id = c.id left join doelgroepen d on d.id = c.doelgroep_id where c.status <> 'geannuleerd' order by coalesce(c.verzonden_op::date, c.geplande_datum, c.aangemaakt::date) desc limit 40`),
       sql(`select coalesce(taal, '?') l, count(*) n from marketing_klanten where uitsluit_reden is null group by 1 order by 2 desc`),
       sql(`select segment l, count(*) n from marketing_klanten where uitsluit_reden is null group by 1 order by 2 desc`),
@@ -4277,7 +4277,7 @@ async function vMarketing(main) {
       </div>
       <div class="grid">
         <section class="panel"><div class="hd"><h3>Planning</h3><div><button class="btn small" id="mk-new">Nieuwe campagne</button> <button class="btn small" data-go="campagnes">Alle</button></div></div>
-          ${open.length ? `<div class="rows">${open.slice().sort((a, b) => String(a.geplande_datum || "9999").localeCompare(String(b.geplande_datum || "9999"))).map(c => `<button class="row" data-mkc="${c.id}"><span class="t">${esc(c.naam)}<span class="pill ${MK_CKLEUR[c.status]}">${esc(MK_CSTATUS[c.status])}</span></span><span class="s">${esc(c.doelgroep || "geen doelgroep")}${c.fase ? " · fase " + c.fase : ""}${num(c.ontvangers) ? " · " + int(c.ontvangers) + " ontvangers" : ""}</span><span class="r">${c.geplande_datum ? dt(c.geplande_datum) : "nog geen datum"}</span></button>`).join("")}</div>` : `<p class="empty">Geen open campagnes. ${num(dg[0].n) ? "Maak een nieuwe campagne aan." : "Begin met het aanmaken van doelgroepen."}</p>`}
+          ${open.length ? `<div class="rows">${open.slice().sort((a, b) => String(a.geplande_datum || "9999").localeCompare(String(b.geplande_datum || "9999"))).map(c => `<button class="row" data-mkc="${c.id}"><span class="t">${esc(c.naam)}<span class="pill ${MK_CKLEUR[c.status]}">${esc(MK_CSTATUS[c.status])}</span></span><span class="s">${esc(c.doelgroep || "geen doelgroep")}${num(c.ontvangers) ? " · " + int(c.ontvangers) + " ontvangers" : ""}</span><span class="r">${c.geplande_datum ? dt(c.geplande_datum) : "nog geen datum"}</span></button>`).join("")}</div>` : `<p class="empty">Geen open campagnes. ${num(dg[0].n) ? "Maak een nieuwe campagne aan." : "Begin met het aanmaken van doelgroepen."}</p>`}
           ${num(dg[0].n) ? "" : `<div style="margin-top:8px"><button class="btn primary" data-go="doelgroepen">Doelgroepen opzetten</button></div>`}</section>
         <section class="panel"><div class="hd"><h3>Resultaten</h3></div>
           ${verz.length ? `<div class="tbl"><table><thead><tr><th>Campagne</th><th class="n">Verzonden</th><th class="n">Open</th><th class="n">Klik</th><th class="n">Orders</th></tr></thead><tbody>${verz.slice(0, 8).map(c => `<tr><td><a href="#" data-mkc="${c.id}">${esc(c.naam)}</a><div class="note">${dt(c.verzonden_op)}${gezond(c).length ? ` <span class="pill warn">${esc(gezond(c).join(", "))}</span>` : ""}</div></td><td class="n">${int(c.verzonden)}</td><td class="n">${mkPctTxt(c.geopend, c.verzonden)}</td><td class="n">${mkPctTxt(c.geklikt, c.verzonden)}</td><td class="n">${int(c.orders_30d)}</td></tr>`).join("")}</tbody></table></div>
@@ -4425,7 +4425,7 @@ async function vCampagnes(main) {
 async function vCampagnesLijst() {
   const body = $("#c-body"); if (!body) return;
   try {
-    const rows = await sql(`select c.id, c.naam, c.soort, c.taal, c.onderwerp, c.status, c.fase, c.geplande_datum, c.verzonden_op, c.aangemaakt, s.ontvangers, s.verzonden, s.geopend, s.geklikt, s.gereageerd, s.orders_30d, d.naam doelgroep
+    const rows = await sql(`select c.id, c.naam, c.soort, c.taal, c.onderwerp, c.status, c.geplande_datum, c.verzonden_op, c.aangemaakt, s.ontvangers, s.verzonden, s.geopend, s.geklikt, s.gereageerd, s.orders_30d, d.naam doelgroep
       from campagnes c left join marketing_campagne_stats s on s.campagne_id = c.id left join doelgroepen d on d.id = c.doelgroep_id ${mkc.f ? `where c.status = ${lit(mkc.f)}` : ""} order by coalesce(c.verzonden_op::date, c.geplande_datum, c.aangemaakt::date) desc, c.id desc limit 80`);
     body.innerHTML = `<div class="panel">${rows.length ? `<div class="rows">${rows.map(c => `<button class="row" data-c="${c.id}"><span class="t">${esc(c.naam)}<span class="pill ${MK_CKLEUR[c.status]}">${esc(MK_CSTATUS[c.status] || c.status)}</span><span class="pill">${esc(MK_SOORT[c.soort] || c.soort)}</span>${c.taal ? `<span class="pill">${esc(c.taal)}</span>` : ""}</span>
       <span class="s">${esc(c.onderwerp || "nog geen onderwerp")} · ${esc(c.doelgroep || "geen doelgroep")} · ${c.verzonden_op ? "verzonden " + dt(c.verzonden_op) : c.geplande_datum ? "gepland " + dt(c.geplande_datum) : "aangemaakt " + dt(c.aangemaakt)}</span>
@@ -4457,14 +4457,14 @@ async function openCampagne(id) {
 }
 async function drawCampagneNieuw() {
   const [inst, dg] = [await mkInst(), await sql(`select id, naam from doelgroepen order by naam`)];
-  drawer("Nieuwe campagne", "", `<section class="panel"><form id="cf" class="f">${fld("cf-naam", "Naam", "", "text", "required placeholder=\"Bijvoorbeeld: Weekmail 1, recente kopers\"")}
-    <div class="line">${sel("cf-soort", "Soort", MK_SOORTEN, "weekmail")}${sel("cf-taal", "Taal", ["NL", "EN", "DE"], "NL")}${sel("cf-dg", "Doelgroep", [["", "Nog kiezen"], ...dg.map(d => [d.id, d.naam])], "")}</div>
-    <div class="line">${fld("cf-datum", "Geplande verzenddatum", "", "date")}${fld("cf-fase", "Fase (1, 2, 3)", "", "number", "min=1 max=9")}</div>
-    <div><button class="btn primary" type="submit">Campagne aanmaken</button></div><div class="note" id="cf-msg">Daarna werk je de campagne uit: onderwerp, ontvangers, controles en akkoord.</div></form></section>`);
+  drawer("Nieuwe campagne", "", `<section class="panel"><form id="cf" class="f">${fld("cf-naam", "Naam (alleen voor jezelf)", "", "text", "required placeholder=\"Bijvoorbeeld: Weekmail 1, recente kopers\"")}
+    <div class="line">${sel("cf-soort", "Soort", MK_SOORTEN, "weekmail")}${sel("cf-taal", "Taal", ["NL", "EN", "DE"], "NL")}${sel("cf-dg", "Doelgroep: wie krijgt deze mail", [["", "Nog kiezen"], ...dg.map(d => [d.id, d.naam])], "")}</div>
+    <div class="line">${fld("cf-datum", "Geplande verzenddatum (optioneel)", "", "date")}</div>
+    <div><button class="btn primary" type="submit">Campagne aanmaken</button></div><div class="note" id="cf-msg">Daarna vul je onderwerp in, leg je de ontvangers vast, loop je de controles langs en geef je akkoord. Verstuurd wordt er niets: dat doe je zelf in Mailchimp.</div></form></section>`);
   $("#cf").addEventListener("submit", async e => {
     e.preventDefault(); const m = $("#cf-msg"); m.textContent = "Aanmaken…";
     try {
-      const r = await sql(`insert into campagnes (naam, soort, taal, doelgroep_id, geplande_datum, fase, afzender, antwoordadres, status) values (${lit(gv("cf-naam"))}, ${lit(gv("cf-soort"))}, ${lit(gv("cf-taal"))}, ${gv("cf-dg") ? num(gv("cf-dg")) : "null"}, ${lit(gv("cf-datum"))}, ${gv("cf-fase") ? Math.round(num(gv("cf-fase"))) : "null"}, ${lit(inst.afzender)}, ${lit(inst.antwoord)}, 'concept') returning id`);
+      const r = await sql(`insert into campagnes (naam, soort, taal, doelgroep_id, geplande_datum, afzender, antwoordadres, status) values (${lit(gv("cf-naam"))}, ${lit(gv("cf-soort"))}, ${lit(gv("cf-taal"))}, ${gv("cf-dg") ? num(gv("cf-dg")) : "null"}, ${lit(gv("cf-datum"))}, ${lit(inst.afzender)}, ${lit(inst.antwoord)}, 'concept') returning id`);
       if (tab === "campagnes") vCampagnesLijst(); else if (tab === "marketing") render();
       openCampagne(r[0].id);
     } catch (er) { m.textContent = explain(er); }
@@ -4508,11 +4508,11 @@ function drawCampagne(st) {
         ${s === "akkoord" ? `<p class="note">Leg dit pas vast nadat je de mail in Mailchimp echt hebt verstuurd. Het legt alleen vast, het verstuurt niets.</p>` : ""}`}
       <div class="note" id="mc-msg" aria-live="polite"></div></section>`}
     ${s === "geannuleerd" ? `<section class="panel"><div class="mk-act"><button class="btn" id="mc-heropen">Heropen als concept</button></div><div class="note" id="mc-msg" aria-live="polite"></div></section>` : ""}
-    <section class="panel"><div class="hd"><h3>De mail</h3>${vast ? "" : `<button class="btn small" type="button" id="aim-go" ${sampleApi ? "" : "disabled"}>AI: onderwerp voorstellen</button>`}</div><div id="aim-out"></div><form id="cf" class="f">${fld("cf-naam", "Naam (intern)", c.naam, "text", "required")}
-      <div class="line">${sel("cf-soort", "Soort", MK_SOORTEN, c.soort)}${sel("cf-taal", "Taal", ["NL", "EN", "DE"], c.taal)}${fld("cf-fase", "Fase", c.fase ?? "", "number", "min=1 max=9")}</div>
-      ${fld("cf-ond", "Onderwerp", c.onderwerp)}${fld("cf-pre", "Voorvertoning (preheader)", c.preheader)}${txa("cf-doel", "Doel van deze mail", c.doel, 2)}
-      <div class="line">${fld("cf-afz", "Afzendernaam", c.afzender)}${fld("cf-ant", "Antwoordadres", c.antwoordadres, "email")}${fld("cf-datum", "Geplande verzenddatum", c.geplande_datum ? String(c.geplande_datum).slice(0, 10) : "", "date")}</div>
-      ${fld("cf-mc", "Link naar de campagne in Mailchimp", c.mailchimp_url, "url")}${txa("cf-not", "Notities", c.notities, 2)}
+    <section class="panel"><div class="hd"><h3>De mail</h3>${vast ? "" : `<button class="btn small" type="button" id="aim-go" ${sampleApi ? "" : "disabled"}>AI: onderwerp voorstellen</button>`}</div><div id="aim-out"></div><form id="cf" class="f">${fld("cf-naam", "Naam (alleen voor jezelf)", c.naam, "text", "required")}
+      <div class="line">${sel("cf-soort", "Soort", MK_SOORTEN, c.soort)}${sel("cf-taal", "Taal", ["NL", "EN", "DE"], c.taal)}</div>
+      ${fld("cf-ond", "Onderwerp", c.onderwerp)}${fld("cf-pre", "Voorvertoning: de regel naast het onderwerp in de inbox", c.preheader)}${txa("cf-doel", "Wat wil je met deze mail bereiken? (voor jezelf en voor de AI-voorstellen)", c.doel, 2)}
+      <div class="line">${fld("cf-afz", "Afzendernaam", c.afzender)}${fld("cf-ant", "Antwoordadres", c.antwoordadres, "email")}${fld("cf-datum", "Geplande verzenddatum (optioneel)", c.geplande_datum ? String(c.geplande_datum).slice(0, 10) : "", "date")}</div>
+      ${fld("cf-mc", "Link naar de campagne in Mailchimp (optioneel, voor snel terugvinden)", c.mailchimp_url, "url")}${txa("cf-not", "Notities", c.notities, 2)}
       <div><button class="btn primary" type="submit">Opslaan</button></div><div class="note" id="cf-msg">${s === "akkoord" ? "Let op: opslaan trekt het akkoord in, omdat de mail dan is gewijzigd." : ""}</div></form></section>
     <section class="panel"><div class="hd"><h3>Doelgroep en ontvangers</h3>${dg ? `<button class="btn small" id="mc-dgo">Bekijk doelgroep</button>` : ""}</div>
       <div class="line" style="display:flex;flex-wrap:wrap;gap:8px;align-items:end">${vast ? "" : sel("mc-dg", "Doelgroep", [["", "Nog kiezen"], ...doelgroepen.map(d => [d.id, d.naam])], c.doelgroep_id || "")}${vast || !c.doelgroep_id ? "" : `<button class="btn" id="mc-vast">${num(rc.n) ? "Ontvangers opnieuw vastleggen" : "Ontvangers vastleggen"}</button>`}</div>
@@ -4559,7 +4559,7 @@ function mkCampagneBind(st, { dagen, dg, vast }) {
   $("#cf").addEventListener("submit", async e => {
     e.preventDefault(); const m = $("#cf-msg"); m.textContent = "Opslaan…";
     try {
-      await sql(`update campagnes set naam = ${lit(gv("cf-naam"))}, soort = ${lit(gv("cf-soort"))}, taal = ${lit(gv("cf-taal"))}, fase = ${gv("cf-fase") ? Math.round(num(gv("cf-fase"))) : "null"}, onderwerp = ${lit(gv("cf-ond"))}, preheader = ${lit(gv("cf-pre"))}, doel = ${lit(gv("cf-doel"))},
+      await sql(`update campagnes set naam = ${lit(gv("cf-naam"))}, soort = ${lit(gv("cf-soort"))}, taal = ${lit(gv("cf-taal"))}, onderwerp = ${lit(gv("cf-ond"))}, preheader = ${lit(gv("cf-pre"))}, doel = ${lit(gv("cf-doel"))},
         afzender = ${lit(gv("cf-afz"))}, antwoordadres = ${lit(gv("cf-ant"))}, geplande_datum = ${lit(gv("cf-datum"))}, mailchimp_url = ${lit(gv("cf-mc"))}, notities = ${lit(gv("cf-not"))},
         status = case when status = 'akkoord' then 'klaar' else status end, akkoord_door = case when status = 'akkoord' then null else akkoord_door end, akkoord_op = case when status = 'akkoord' then null else akkoord_op end where id = ${num(id)}`);
       await herlaad();
@@ -4594,7 +4594,7 @@ function mkCampagneBind(st, { dagen, dg, vast }) {
   });
   if ($("#mc-dup")) $("#mc-dup").addEventListener("click", async () => {
     try {
-      const r = await sql(`insert into campagnes (naam, soort, taal, onderwerp, preheader, doel, inhoud, doelgroep_id, fase, afzender, antwoordadres, status) select naam || ' (kopie)', soort, taal, onderwerp, preheader, doel, inhoud, doelgroep_id, fase, afzender, antwoordadres, 'concept' from campagnes where id = ${num(id)} returning id`);
+      const r = await sql(`insert into campagnes (naam, soort, taal, onderwerp, preheader, doel, inhoud, doelgroep_id, afzender, antwoordadres, status) select naam || ' (kopie)', soort, taal, onderwerp, preheader, doel, inhoud, doelgroep_id, afzender, antwoordadres, 'concept' from campagnes where id = ${num(id)} returning id`);
       await sql(`insert into campagne_artikelen (campagne_id, artikel_nr, aanbodprijs) select ${num(r[0].id)}, artikel_nr, aanbodprijs from campagne_artikelen where campagne_id = ${num(id)}`);
       if (tab === "campagnes") vCampagnesLijst(); openCampagne(r[0].id);
     } catch (er) { msg(explain(er)); }
@@ -4929,12 +4929,12 @@ function aiResultaatBind(st) {
     const { c, stat } = st, out = $("#air-out");
     go.disabled = true; out.innerHTML = `<p class="empty">Claude kijkt naar de cijfers…</p>`;
     try {
-      const eerder = await sql(`select c.naam, c.fase, c.soort, c.verzonden_op, s.verzonden, s.geopend, s.geklikt, s.gereageerd, s.afgemeld, s.bounced, s.orders_30d, s.omzet_30d, s.offerteklanten_30d from campagnes c join marketing_campagne_stats s on s.campagne_id = c.id where c.status = 'verzonden' and c.id <> ${num(c.id)} and s.verzonden > 0 order by c.verzonden_op desc limit 6`);
+      const eerder = await sql(`select c.naam, c.soort, c.verzonden_op, s.verzonden, s.geopend, s.geklikt, s.gereageerd, s.afgemeld, s.bounced, s.orders_30d, s.omzet_30d, s.offerteklanten_30d from campagnes c join marketing_campagne_stats s on s.campagne_id = c.id where c.status = 'verzonden' and c.id <> ${num(c.id)} and s.verzonden > 0 order by c.verzonden_op desc limit 6`);
       const reg = (n, s) => `${aiKort(n, 50)}: verzonden ${num(s.verzonden)}, open ${mkPctTxt(s.geopend, s.verzonden)}, klik ${mkPctTxt(s.geklikt, s.verzonden)}, reacties ${num(s.gereageerd)}, afgemeld ${num(s.afgemeld)}, bounces ${num(s.bounced)}, orders binnen 30 dagen ${num(s.orders_30d)} (${eur(s.omzet_30d)}), offerteklanten ${num(s.offerteklanten_30d)}`;
       const prompt = `${AI_BEDRIJF}
 Duid de resultaten van deze e-mailcampagne voor Michel.
 
-Deze campagne (${MK_SOORT[c.soort] || c.soort}, fase ${c.fase ?? "n.v.t."}, verzonden ${dt(c.verzonden_op)}):
+Deze campagne (${MK_SOORT[c.soort] || c.soort}, verzonden ${dt(c.verzonden_op)}):
 ${reg(c.naam, stat)}
 Eerdere campagnes:
 ${eerder.length ? eerder.map(e => reg(e.naam, e)).join("\n") : "geen"}
