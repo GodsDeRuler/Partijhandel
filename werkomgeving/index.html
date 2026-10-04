@@ -318,6 +318,13 @@ tbody tr:hover td{background:var(--surface-2)}
 .mk-ff{display:flex;flex-direction:column;gap:8px}.mk-ff .fg{display:flex;flex-direction:column;gap:3px}.mk-ff .fg>span{font-size:12px;color:var(--fg-soft)}.mk-ff .fg>div{display:flex;gap:12px;flex-wrap:wrap}
 .f label.cbx,.cbx{display:inline-flex;flex-direction:row;align-items:center;gap:5px;font-size:13px;color:var(--fg)}
 .panel h4,.dr-body h4{margin:8px 0 4px}
+
+/* AI-hulp */
+.ai-tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:1px 7px;border-radius:999px;background:var(--accent-soft);color:var(--accent);vertical-align:2px;margin-right:4px}
+.ai-blok{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px dashed var(--line-strong);border-radius:10px;background:var(--surface)}
+.ai-blok>label{font-size:13px;color:var(--fg)}
+.ai-rij{display:flex;flex-wrap:wrap;gap:8px}.ai-rij input{flex:1 1 260px;min-width:0;background:var(--surface);border:1px solid var(--line-strong);border-radius:8px;padding:7px 10px}
+.ai-lijst{margin:0 0 6px;padding-left:18px}.ai-lijst li{margin:2px 0}
 </style>
 
 <div class="top"><div class="top-in">
@@ -602,13 +609,15 @@ async function vKlanten(main) {
     <form class="bar" id="k-bar"><input type="search" id="k-q" placeholder="Zoek klant" value="${esc(kl.q)}">
     <select id="k-seg" aria-label="Segment"><option value="">Alle segmenten</option><option value="actief">Actief</option><option value="slapend">Slapend</option><option value="nooit besteld">Nooit besteld</option></select>
     <select id="k-bron" aria-label="Soort"><option value="">Klanten en prospects</option><option value="prospect">Alleen prospects</option><option value="relaties">Alleen klanten</option></select>
-    <button class="btn primary" type="submit">Zoeken</button><button class="btn" type="button" id="k-new">Nieuwe klant</button><button class="btn" type="button" id="k-dub">Dubbelen zoeken</button></form><div id="k-body"><p class="empty">Laden…</p></div>`);
+    <button class="btn primary" type="submit">Zoeken</button><button class="btn" type="button" id="k-new">Nieuwe klant</button><button class="btn" type="button" id="k-dub">Dubbelen zoeken</button></form>
+    <section class="panel ai-panel">${aiZoekBlok("aik", "Zoek in gewone taal")}<div id="aik-out" style="margin-top:8px"></div></section><div id="k-body"><p class="empty">Laden…</p></div>`);
   $("#k-seg").value = kl.seg; $("#k-bron").value = kl.bron;
   $("#k-bar").addEventListener("submit", e => { e.preventDefault(); kl.q = $("#k-q").value.trim(); kl.seg = $("#k-seg").value; kl.bron = $("#k-bron").value; kl.page = 0; loadKlanten(); });
   $("#k-seg").addEventListener("change", () => { kl.seg = $("#k-seg").value; kl.page = 0; loadKlanten(); });
   $("#k-bron").addEventListener("change", () => { kl.bron = $("#k-bron").value; kl.page = 0; loadKlanten(); });
   $("#k-new").addEventListener("click", () => klantForm(null));
   $("#k-dub").addEventListener("click", () => dubbelenZoeken());
+  aiKlantenZoekBind();
   loadKlanten();
 }
 async function loadKlanten() {
@@ -678,6 +687,7 @@ function drawKlant() {
     ${warn.map(w => `<div class="banner bad">${esc(w)}</div>`).join("")}
     ${kredietRisico(kr, 0).map(t => `<div class="banner bad">${esc(t)} <button class="btn small" data-db="${esc(k.id)}">Bekijk bij Debiteuren</button></div>`).join("")}
     <div class="acts"><button class="btn primary" data-act="b-mail" ${k.email && sampleApi ? "" : "disabled"}>Mail opstellen</button><button class="btn" data-act="b-newof">Nieuwe offerte of order</button><button class="btn" data-act="b-edit">Gegevens wijzigen</button></div>
+    ${aiBriefingBlok()}
     <section class="panel"><div class="hd"><h3>Gegevens</h3><button class="btn small" id="b-edit">Wijzigen</button></div>${kv([["E-mail", k.email], ["Telefoon", k.telefoon], ["Contactpersoon", [k.aanhef, k.contactpersoon].filter(Boolean).join(" ")], ["Adres", [k.adres, [k.postcode, k.plaats].filter(Boolean).join(" ")].filter(Boolean).join(", ")], ["Btw-nummer", k.btw_nr], ["KvK-nummer", k.kvk_nr],
       ["Factuurgegevens", [k.naam_factuur, k.factuur_adres, [k.factuur_postcode, k.factuur_plaats].filter(Boolean).join(" "), k.factuur_land].filter(Boolean).join(", ")], ["Factuur e-mail", k.factuur_email], ["Betaaltermijn", k.betaaltermijn_dagen != null ? k.betaaltermijn_dagen + " dagen" : ""], ["Krediet", kr ? `${eur2(kr.open_bedrag)} openstaand${k.kredietlimiet != null ? " van een limiet van " + eur2(k.kredietlimiet) : ", geen limiet ingesteld"}` : ""],
       ["Taal", k.taal], ["Relatiebeheer", k.relatiebeheer],
@@ -710,7 +720,7 @@ function drawKlant() {
     try { await sql(`insert into opvolging (klant_id, soort, tekst, opvolgdatum) values (${num(k.id)}, ${lit($("#fu-soort").value)}, ${lit($("#fu-txt").value.trim())}, ${lit($("#fu-dat").value)})`); await openKlant(k.id); } catch (er) { alert0(er); } });
   document.querySelectorAll("[data-done]").forEach(b => b.addEventListener("click", async () => { try { await sql(`update opvolging set afgehandeld=true where id=${num(b.dataset.done)}`); await openKlant(k.id); } catch (er) { alert0(er); } }));
   $("#b-mail").addEventListener("click", startMail);
-  mkKlantBind(k);
+  mkKlantBind(k); aiBriefingBind();
   $("#b-newof").addEventListener("click", () => openOfferte(null, { klant: k, lines: [] }));
   document.querySelectorAll("[data-of]").forEach(b => b.addEventListener("click", () => openOfferte(b.dataset.of)));
   $("#b-edit").addEventListener("click", () => klantForm(k));
@@ -4178,7 +4188,9 @@ function mkWhere(f) {
   f = f || {}; const w = [], arr = a => `array[${a.map(lit).join(", ")}]::text[]`;
   if (f.segment && f.segment.length) w.push(`m.segment = any(${arr(f.segment)})`);
   if (f.taal && f.taal.length) w.push(`m.taal = any(${arr(f.taal)})`);
-  if (f.land) w.push(`m.land ilike ${likeLit(f.land)}`);
+  if (f.land) w.push(`translate(lower(m.land), 'éëèï', 'eeei') like translate(lower(${likeLit(f.land)}), 'éëèï', 'eeei')`);
+  if (f.koopt_woord) w.push(`exists (select 1 from orders o where o.klant_id = m.id and o.omschrijving ilike ${likeLit(f.koopt_woord)})`);
+  if (f.groep && f.groep.length) w.push(`exists (select 1 from klanten kk join klant_profielen pp on lower(pp.email) = lower(kk.email) where kk.id = m.id and pp.relevante_productgroepen && ${arr(f.groep)})`);
   if (f.bedrijfstype && f.bedrijfstype.length) w.push(`m.bedrijfstype = any(${arr(f.bedrijfstype)})`);
   if (f.collega === "ja") w.push(`coalesce(m.collega, false)`); else if (f.collega === "nee") w.push(`not coalesce(m.collega, false)`);
   if (f.kocht === "ja") w.push(`m.orders > 0`); else if (f.kocht === "nee") w.push(`m.orders = 0`);
@@ -4200,6 +4212,8 @@ function mkFilterTekst(f) {
   if (num(f.omzet12_min) > 0) t.push(`omzet 12 mnd vanaf ${eur(f.omzet12_min)}`);
   if (f.taal && f.taal.length) t.push("taal " + f.taal.join("/"));
   if (f.land) t.push("land " + f.land);
+  if (f.koopt_woord) t.push(`kocht iets met "${f.koopt_woord}"`);
+  if (f.groep && f.groep.length) t.push("past bij " + f.groep.join(", "));
   if (f.bedrijfstype && f.bedrijfstype.length) t.push(f.bedrijfstype.join(", "));
   if (f.collega === "ja") t.push("collega-handel"); if (f.collega === "nee") t.push("geen collega-handel");
   return t.length ? t.join(" · ") : "alle relaties";
@@ -4320,7 +4334,8 @@ function mkFilterForm(f) {
     <div class="line">${sel("fl-kocht", "Koopgedrag", [["", "Maakt niet uit"], ["ja", "Kocht ooit"], ["nee", "Nooit gekocht"]], f.kocht)}${sel("fl-coll", "Collega-handel", [["", "Maakt niet uit"], ["ja", "Alleen collega-handels"], ["nee", "Geen collega-handels"]], f.collega)}</div>
     <div class="line">${fld("fl-binnen", "Laatste order binnen (maanden)", f.laatst_binnen_mnd || "", "number", "min=0")}${fld("fl-langer", "Laatste order langer geleden dan (maanden)", f.laatst_langer_mnd || "", "number", "min=0")}</div>
     <div class="line">${fld("fl-orders", "Minimaal aantal orders", f.orders_min || "", "number", "min=0")}${fld("fl-omzet", "Minimale omzet laatste 12 mnd (€)", f.omzet12_min || "", "number", "min=0")}</div>
-    <div class="line">${fld("fl-land", "Land bevat", f.land || "")}${fld("fl-type", "Soort bedrijf bevat (bijv. webshop)", (f.bedrijfstype || []).join(", "))}</div></div>`;
+    <div class="line">${fld("fl-land", "Land bevat", f.land || "")}${fld("fl-type", "Soort bedrijf bevat (bijv. webshop)", (f.bedrijfstype || []).join(", "))}</div>
+    <div class="line">${fld("fl-woord", "Kocht ooit iets met (woord in de order)", f.koopt_woord || "")}${fld("fl-groep", "Past volgens onderzoek bij productgroep", (f.groep || []).join(", "))}</div></div>`;
 }
 const mkLeesFilters = () => {
   const f = {}, rij = n => [...document.querySelectorAll(`[data-f="${n}"]:checked`)].map(x => x.value);
@@ -4328,6 +4343,8 @@ const mkLeesFilters = () => {
   if (gv("fl-kocht")) f.kocht = gv("fl-kocht"); if (gv("fl-coll")) f.collega = gv("fl-coll");
   [["fl-binnen", "laatst_binnen_mnd"], ["fl-langer", "laatst_langer_mnd"], ["fl-orders", "orders_min"], ["fl-omzet", "omzet12_min"]].forEach(([id, k]) => { const n = Math.round(num(gv(id))); if (n > 0) f[k] = n; });
   if (gv("fl-land")) f.land = gv("fl-land");
+  if (gv("fl-woord")) f.koopt_woord = gv("fl-woord");
+  const gr = gv("fl-groep").split(",").map(x => x.trim()).filter(Boolean); if (gr.length) f.groep = gr;
   const ty = gv("fl-type").split(",").map(x => x.trim()).filter(Boolean); if (ty.length) f.bedrijfstype = ty;
   return f;
 };
@@ -4364,6 +4381,7 @@ async function openDoelgroep(id) {
     const gebruikt = id ? await sql(`select id, naam, status from campagnes where doelgroep_id = ${num(id)} order by id desc`) : [];
     drawer(d.naam || "Nieuwe doelgroep", id ? `${gebruikt.length} campagne(s) gebruiken deze groep` : "", `
       <section class="panel"><form id="dgf" class="f">${fld("dg-naam", "Naam", d.naam, "text", "required")}${fld("dg-om", "Omschrijving", d.omschrijving)}
+        ${aiZoekBlok("aid", "Beschrijf de groep in gewone taal en laat de filters invullen")}
         <h4 style="margin:8px 0 0">Filters</h4>${mkFilterForm(d.filters)}
         <div class="note">Hoeveel je er ook aanvinkt, niet-mailbare relaties (afgemeld, bounce, gesloten, LET OP, besluiten van Michel) vallen er altijd uit.</div>
         <div class="line" style="display:flex;flex-wrap:wrap;gap:8px"><button class="btn primary" type="submit">${id ? "Opslaan" : "Doelgroep opslaan"}</button><button class="btn" type="button" id="dg-exp">Exporteer als CSV</button>${id ? `<button class="btn" type="button" id="dg-del">Verwijderen</button>` : ""}</div><div class="note" id="dg-msg"></div></form></section>
@@ -4372,7 +4390,7 @@ async function openDoelgroep(id) {
     let timer = null, laatst = null;
     const herreken = () => { clearTimeout(timer); timer = setTimeout(async () => { const el = $("#dg-tel"); if (el) laatst = await mkToon(mkLeesFilters(), el, dagen, alle); }, 350); };
     document.querySelectorAll("#dgf input, #dgf select").forEach(x => x.addEventListener("input", herreken));
-    herreken();
+    herreken(); aiDoelgroepBind();
     document.querySelectorAll("[data-mkc]").forEach(b => b.addEventListener("click", () => openCampagne(b.dataset.mkc)));
     $("#dgf").addEventListener("submit", async e => {
       e.preventDefault(); const m = $("#dg-msg"); m.textContent = "Opslaan…";
@@ -4490,7 +4508,7 @@ function drawCampagne(st) {
         ${s === "akkoord" ? `<p class="note">Leg dit pas vast nadat je de mail in Mailchimp echt hebt verstuurd. Het legt alleen vast, het verstuurt niets.</p>` : ""}`}
       <div class="note" id="mc-msg" aria-live="polite"></div></section>`}
     ${s === "geannuleerd" ? `<section class="panel"><div class="mk-act"><button class="btn" id="mc-heropen">Heropen als concept</button></div><div class="note" id="mc-msg" aria-live="polite"></div></section>` : ""}
-    <section class="panel"><h3>De mail</h3><form id="cf" class="f">${fld("cf-naam", "Naam (intern)", c.naam, "text", "required")}
+    <section class="panel"><div class="hd"><h3>De mail</h3>${vast ? "" : `<button class="btn small" type="button" id="aim-go" ${sampleApi ? "" : "disabled"}>AI: onderwerp voorstellen</button>`}</div><div id="aim-out"></div><form id="cf" class="f">${fld("cf-naam", "Naam (intern)", c.naam, "text", "required")}
       <div class="line">${sel("cf-soort", "Soort", MK_SOORTEN, c.soort)}${sel("cf-taal", "Taal", ["NL", "EN", "DE"], c.taal)}${fld("cf-fase", "Fase", c.fase ?? "", "number", "min=1 max=9")}</div>
       ${fld("cf-ond", "Onderwerp", c.onderwerp)}${fld("cf-pre", "Voorvertoning (preheader)", c.preheader)}${txa("cf-doel", "Doel van deze mail", c.doel, 2)}
       <div class="line">${fld("cf-afz", "Afzendernaam", c.afzender)}${fld("cf-ant", "Antwoordadres", c.antwoordadres, "email")}${fld("cf-datum", "Geplande verzenddatum", c.geplande_datum ? String(c.geplande_datum).slice(0, 10) : "", "date")}</div>
@@ -4503,7 +4521,7 @@ function drawCampagne(st) {
       ${num(rc.niet) ? `<div class="banner bad"><b>${int(rc.niet)} ontvangers zijn niet meer mailbaar</b>Bijvoorbeeld afgemeld of een bounce sinds het vastleggen.${vast ? "" : ` <button class="btn small" id="mc-schoon">Haal ze eruit</button>`}</div>` : ""}</section>
     <section class="panel"><h3>Artikelen in deze mail (${arts.length})</h3>${arts.length ? `<div class="rows">${arts.map(a => `<div class="chk" style="grid-template-columns:minmax(0,1fr) auto auto"><span>${esc(a.naam)}<div class="note mono">art. ${esc(a.artikel_nr)}</div></span><span class="mono">${eur2(a.aanbodprijs ?? a.verkoopprijs)}</span>${vast ? "" : `<button class="btn small" data-adel="${esc(a.artikel_nr)}" aria-label="Verwijder">×</button>`}</div>`).join("")}</div>` : `<p class="empty">Nog geen artikelen vastgelegd. Dat hoeft niet; het helpt wel om later te zien wat er in de mail stond.</p>`}
       ${vast ? "" : `<form class="bar" id="ca-f" style="margin-top:8px"><input type="search" id="ca-q" placeholder="Artikel zoeken om toe te voegen"><button class="btn" type="submit">Zoek</button></form><div id="ca-res"></div>`}</section>
-    ${num(rc.n) ? `<section class="panel"><div class="hd"><h3>Resultaat</h3></div>
+    ${num(rc.n) ? `<section class="panel"><div class="hd"><h3>Resultaat</h3>${verzonden ? `<button class="btn small" id="air-go" ${sampleApi ? "" : "disabled"}>AI: duiding</button>` : ""}</div><div id="air-out"></div>
       ${verzonden ? `<ul class="mk-res"><li><b class="mono">${int(verzonden)}</b><span>verzonden</span></li><li><b class="mono">${mkPctTxt(stat.geopend, verzonden)}</b><span>geopend (${int(stat.geopend)})</span></li><li><b class="mono">${mkPctTxt(stat.geklikt, verzonden)}</b><span>geklikt (${int(stat.geklikt)})</span></li><li><b class="mono">${int(stat.gereageerd)}</b><span>reacties</span></li><li class="${mkPct(stat.afgemeld, verzonden) > 0.5 ? "bad" : ""}"><b class="mono">${int(stat.afgemeld)}</b><span>afgemeld</span></li><li class="${mkPct(stat.bounced, verzonden) > 2 ? "bad" : ""}"><b class="mono">${int(stat.bounced)}</b><span>bounces</span></li></ul>
         <ul class="mk-res"><li><b class="mono">${int(stat.kopers_30d)}</b><span>ontvangers die binnen 30 dagen kochten</span></li><li><b class="mono">${eur(stat.omzet_30d)}</b><span>omzet van die orders</span></li><li><b class="mono">${int(stat.offerteklanten_30d)}</b><span>ontvangers met offerte of aanvraag</span></li></ul>
         <p class="note">Kopen en offertes zijn gekoppeld op tijd (binnen 30 dagen na verzending), niet bewezen door de mail. Gebruik het als richting.</p>
@@ -4593,6 +4611,7 @@ function mkCampagneBind(st, { dagen, dg, vast }) {
     document.querySelectorAll("[data-adel]").forEach(b => b.addEventListener("click", async () => { try { await sql(`do $$ begin execute 'de' || 'lete from campagne_artikelen where campagne_id = ${num(id)} and artikel_nr = ${num(b.dataset.adel)}'; end $$`); await herlaad(); } catch (er) { msg(explain(er)); } }));
   }
   if ($("#mc-imp")) mkImportPaneel($("#mc-imp"), id, herlaad);
+  aiMailBind(st, dg); aiResultaatBind(st);
 }
 
 /* ---------- Mailchimp-export inladen: opens, kliks, afmeldingen, bounces ---------- */
@@ -4712,6 +4731,222 @@ function mkKlantBind(k) {
     try { await sql(`insert into mail_uitsluitingen (klant_id, email, naam, categorie, reden, bron) values (${num(k.id)}, ${lit((k.email || "").toLowerCase())}, ${lit(k.naam)}, 'overig', ${lit(r)}, 'Salesbureau') on conflict do nothing`); await openKlant(k.id); } catch (er) { m(explain(er)); }
   });
   if ($("#mk-op")) $("#mk-op").addEventListener("click", async () => { try { await sql(`update mail_uitsluitingen set actief = false where actief and (klant_id = ${num(k.id)} or lower(email) = lower(${lit(k.email)}))`); await openKlant(k.id); } catch (er) { m(explain(er)); } });
+}
+
+/* ---------- AI-hulp ---------- */
+/* Alles hier is een voorstel. De pagina legt niets vast en verstuurt niets zonder jouw klik. Elke vraag telt mee voor je Claude-gebruikslimiet, daarom start niets vanzelf. */
+const aiFout = e => e && e.code === "not_granted" ? "Je hebt Claude voor deze pagina niet toegestaan." : e && e.code === "rate_limited" ? "Je zit aan je gebruikslimiet. Probeer het later opnieuw." : e && e.code === "no_sample" ? "AI-hulp werkt alleen in claude.ai." : "Het is niet gelukt. Probeer het opnieuw.";
+async function aiVraag(prompt) {
+  if (!sampleApi) throw { code: "no_sample" };
+  return sampleApi.json(prompt, { cache: false });
+}
+const aiMelding = e => ["not_granted", "rate_limited", "no_sample"].includes(e && e.code) ? aiFout(e) : explain(e);
+const aiKort = (t, n) => String(t ?? "").replace(/\s+/g, " ").trim().slice(0, n);
+const AI_BEDRIJF = `Je werkt voor Frank van de Wijgert Partijhandel (Tilburg): zakelijke handel in non-food restpartijen. Verkoop alleen aan bedrijven, per omdoos of pallet, op = op. Het aanbod wisselt, er wordt niet bijbesteld.`;
+const AI_STIJL = `Schrijf in helder, gewoon Nederlands (of de gevraagde taal), kort en zakelijk. Geen emoji's, geen gedachtestreepjes, geen opsmuk. Verzin niets: gebruik alleen wat hierboven staat en zeg het als iets onbekend is.`;
+
+/* ---------- Slim zoeken: vraag in gewone taal naar filters ---------- */
+let aiWaarden = null;
+async function aiWaardenLaden() {
+  if (aiWaarden) return aiWaarden;
+  const [t, g] = await Promise.all([
+    sql(`select bedrijfstype l, count(*) n from marketing_klanten where bedrijfstype is not null group by 1 order by 2 desc limit 40`),
+    sql(`select g l, count(*) n from klant_profielen, unnest(relevante_productgroepen) g where g !~ '\\(' group by 1 order by 2 desc limit 30`),
+  ]);
+  aiWaarden = { types: t.map(x => x.l), groepen: g.map(x => x.l) };
+  return aiWaarden;
+}
+function aiSchoonFilters(f) {
+  f = f && typeof f === "object" ? f : {}; const o = {}, lijst = (v, ok) => (Array.isArray(v) ? v : v ? [v] : []).map(String).filter(x => !ok || ok.includes(x));
+  const seg = lijst(f.segment, ["actief", "slapend", "nooit besteld"]), taal = lijst(f.taal, ["NL", "EN", "DE"]), typ = lijst(f.bedrijfstype), grp = lijst(f.groep);
+  if (seg.length) o.segment = seg; if (taal.length) o.taal = taal; if (typ.length) o.bedrijfstype = typ; if (grp.length) o.groep = grp;
+  if (f.land) o.land = aiKort(f.land, 40);
+  if (f.koopt_woord) o.koopt_woord = aiKort(f.koopt_woord, 40);
+  if (f.collega === "ja" || f.collega === "nee") o.collega = f.collega;
+  if (f.kocht === "ja" || f.kocht === "nee") o.kocht = f.kocht;
+  ["laatst_binnen_mnd", "laatst_langer_mnd", "orders_min", "omzet12_min"].forEach(k => { const n = Math.round(num(f[k])); if (n > 0 && n < 1000000) o[k] = n; });
+  return o;
+}
+async function aiFiltersUitTekst(vraag) {
+  const w = await aiWaardenLaden();
+  const prompt = `${AI_BEDRIJF}
+Zet de vraag hieronder om naar filters voor een selectie van relaties in het Salesbureau. Neem alleen op wat de vraag echt noemt; vul niets extra in.
+
+Velden die je mag gebruiken:
+- segment: lijst uit "actief" (kocht in de laatste 12 maanden), "slapend" (kocht ooit, maar niet de laatste 12 maanden), "nooit besteld"
+- taal: lijst uit "NL", "EN", "DE"
+- land: Nederlandse landnaam als tekst, zoals "Duitsland" of "Belgie" (zonder accenten)
+- bedrijfstype: lijst, alleen waarden uit: ${w.types.join(" | ")}
+- groep: lijst productgroepen waarbij het bedrijf volgens het onderzoek past, alleen uit: ${w.groepen.join(" | ")}
+- koopt_woord: één woord dat in de omschrijving van eerdere orders voorkomt (bijvoorbeeld "kleding"); alleen als de vraag om iets eerder gekochts vraagt
+- collega: "ja" of "nee" (collega-partijhandel)
+- kocht: "ja" (kocht ooit) of "nee" (nooit gekocht)
+- laatst_binnen_mnd: getal, laatste order is jonger dan zoveel maanden
+- laatst_langer_mnd: getal, laatste order is ouder dan zoveel maanden
+- orders_min: getal, minimaal aantal orders
+- omzet12_min: getal in euro, minimale omzet laatste 12 maanden
+
+De vraag: """${aiKort(vraag, 500)}"""
+
+Antwoord alleen met JSON: {"filters": {...}, "uitleg": "één korte zin die zegt hoe je de vraag hebt begrepen, en wat je niet kon omzetten"}`;
+  const r = await aiVraag(prompt);
+  return { filters: aiSchoonFilters(r.filters), uitleg: aiKort(r.uitleg, 300) };
+}
+function aiZoekBlok(id, ondertitel) {
+  return `<div class="ai-blok"><label for="${id}-t"><span class="ai-tag">AI-hulp</span> ${esc(ondertitel)}</label>
+    <div class="ai-rij"><input id="${id}-t" type="text" placeholder="Bijvoorbeeld: slapende groothandels in Duitsland die kleding kochten" autocomplete="off"><button class="btn" type="button" id="${id}-go">Slim zoeken</button></div>
+    <div class="note" id="${id}-m" aria-live="polite"></div></div>`;
+}
+function mkVulFilters(f) {
+  f = f || {};
+  document.querySelectorAll("[data-f]").forEach(c => { c.checked = (f[c.dataset.f] || []).includes(c.value); });
+  const set = (id, v) => { const e = $("#" + id); if (e) e.value = v ?? ""; };
+  set("fl-kocht", f.kocht); set("fl-coll", f.collega); set("fl-binnen", f.laatst_binnen_mnd); set("fl-langer", f.laatst_langer_mnd);
+  set("fl-orders", f.orders_min); set("fl-omzet", f.omzet12_min); set("fl-land", f.land); set("fl-type", (f.bedrijfstype || []).join(", "));
+  set("fl-woord", f.koopt_woord); set("fl-groep", (f.groep || []).join(", "));
+}
+/* In de doelgroep: vult het formulier in en telt direct, zodat je ziet wie meedoet en wie niet */
+function aiDoelgroepBind() {
+  const go = $("#aid-go"); if (!go) return;
+  const doe = async () => {
+    const v = gv("aid-t"), m = $("#aid-m"); if (!v) { m.textContent = "Beschrijf eerst welke groep je zoekt."; return; }
+    go.disabled = true; m.textContent = "Claude denkt mee…";
+    try {
+      const r = await aiFiltersUitTekst(v); mkVulFilters(r.filters);
+      document.querySelector("#dgf input, #dgf select").dispatchEvent(new Event("input", { bubbles: true }));
+      m.textContent = (Object.keys(r.filters).length ? "Ingevuld: " + mkFilterTekst(r.filters) + ". " : "Geen filters herkend. ") + r.uitleg + " Controleer de filters hieronder.";
+    } catch (e) { m.textContent = aiFout(e); }
+    go.disabled = false;
+  };
+  go.addEventListener("click", doe); $("#aid-t").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); doe(); } });
+}
+/* In het Klanten-tabblad: toont direct de resultaten, ook wie niet mailbaar is, met reden */
+function aiKlantenZoekBind() {
+  const go = $("#aik-go"); if (!go) return;
+  const doe = async () => {
+    const v = gv("aik-t"), m = $("#aik-m"), out = $("#aik-out"); if (!v) { m.textContent = "Typ eerst wat je zoekt."; return; }
+    go.disabled = true; m.textContent = "Claude denkt mee…"; out.innerHTML = "";
+    try {
+      const r = await aiFiltersUitTekst(v), f2 = await mkLosTypeOp(r.filters);
+      if (!Object.keys(r.filters).length) { m.textContent = "Ik kon hier geen filters van maken. " + r.uitleg; go.disabled = false; return; }
+      const [tel, rows] = await Promise.all([
+        sql(`select count(*) n, count(*) filter (where m.uitsluit_reden is null) mailbaar ${mkFrom(f2)}`),
+        sql(`select m.id, m.naam, m.plaats, m.land, m.orders, m.omzet, m.laatste_order, m.segment, m.prioriteit, m.bedrijfstype, m.uitsluit_reden ${mkFrom(f2)} order by m.omzet desc nulls last limit 50`),
+      ]);
+      const n = num(tel[0].n), mb = num(tel[0].mailbaar);
+      m.textContent = `Begrepen als: ${mkFilterTekst(r.filters)}. ${r.uitleg}`;
+      out.innerHTML = `<p><b>${int(n)}</b> relaties gevonden, waarvan <b>${int(mb)}</b> mailbaar${n - mb ? ` en <b>${int(n - mb)}</b> niet (reden staat erbij)` : ""}.${n > rows.length ? ` De ${rows.length} met de meeste omzet staan hieronder.` : ""}</p>
+        <div class="rows">${rows.map(k => klantRow(k, k.uitsluit_reden ? `<span class="pill warn">${esc(k.uitsluit_reden)}</span>` : undefined)).join("")}</div>
+        <div style="margin-top:8px"><button class="btn" id="aik-save">Bewaar als doelgroep</button> <span class="note" id="aik-sm"></span></div>`;
+      wireRows(out);
+      $("#aik-save").addEventListener("click", async () => {
+        const nm = aiKort(v, 60);
+        try { await sql(`insert into doelgroepen (naam, omschrijving, filters) values (${lit(nm)}, ${lit("Slim gezocht: " + v)}, ${lit(JSON.stringify(r.filters))}::jsonb)`); $("#aik-sm").textContent = "Bewaard bij Marketing > Doelgroepen."; } catch (er) { $("#aik-sm").textContent = explain(er); }
+      });
+    } catch (e) { m.textContent = aiMelding(e); }
+    go.disabled = false;
+  };
+  go.addEventListener("click", doe); $("#aik-t").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); doe(); } });
+}
+
+/* ---------- Klantbriefing ---------- */
+function aiBriefingBlok() {
+  return `<section class="panel ai-panel"><div class="hd"><h3><span class="ai-tag">AI-hulp</span> Briefing</h3><button class="btn small" id="aib-go" ${sampleApi ? "" : "disabled"}>Maak briefing</button></div>
+    <div id="aib-out"><p class="note">${sampleApi ? "Een korte samenvatting van wie dit is, wat deze klant kocht en wat nu aandacht vraagt. Alleen gebaseerd op de gegevens in deze kaart." : "AI-hulp werkt alleen in claude.ai."}</p></div></section>`;
+}
+function aiBriefingBind() {
+  const go = $("#aib-go"); if (!go) return;
+  go.addEventListener("click", async () => {
+    const { k, p, orders, ofs, fk, fu, kr, pa, mkk, mkv } = cur, out = $("#aib-out");
+    go.disabled = true; out.innerHTML = `<p class="empty">Claude schrijft de briefing…</p>`;
+    const open = fk.filter(f => f.status === "definitief").map(f => ({ rest: num(f.totaal_incl) - num(f.betaald), laat: f.vervaldatum && String(f.vervaldatum).slice(0, 10) < plusDays(0) }));
+    const profiel = p ? Object.entries({ type: p.bedrijfstype, sector: p.sector, verkoopt: p.wat_ze_verkopen, doelgroep: p.doelgroep, kanalen: fromList(p.verkoopkanalen), landen: fromList(p.landen_actief), past_bij: fromList(p.relevante_productgroepen), past_niet_bij: fromList(p.niet_relevant), status: p.status_bedrijf, zekerheid: p.zekerheid, samenvatting: p.samenvatting, notitie: p.eigen_notitie }).filter(([, v]) => v).map(([a, b]) => `${a}: ${aiKort(b, 400)}`).join("\n") : "geen onderzoeksprofiel";
+    const prompt = `${AI_BEDRIJF}
+Schrijf een korte briefing voor Michel over één klant, zodat hij in een halve minuut weet wie dit is en wat hij nu moet doen.
+
+Klant: ${k.naam}${k.plaats ? ", " + k.plaats : ""}${k.land ? " (" + k.land + ")" : ""}. Taal: ${k.taal || "onbekend"}. Segment: ${k.segment || "onbekend"}${k.prioriteit ? " " + k.prioriteit : ""}.
+Orders: ${num(k.orders)}, totaal ${eur(k.omzet)}, laatste 12 maanden ${eur(k.omzet_12m)}, laatste order ${k.laatste_order ? dt(k.laatste_order) : "geen"}.
+Onderzoeksprofiel:
+${profiel}
+Laatste orders: ${orders.slice(0, 10).map(o => `${dt(o.datum)} ${aiKort(o.omschrijving, 80)} ${eur(o.prijs)}`).join(" | ") || "geen"}
+Offertes: ${ofs.slice(0, 6).map(o => `${dt(o.datum)} ${statusNaam(o.status)} ${eur(o.waarde)}`).join(" | ") || "geen"}
+Facturen: ${open.length ? `${open.length} openstaand, ${eur(open.reduce((t, x) => t + x.rest, 0))}${open.some(x => x.laat) ? ", waarvan te laat" : ""}` : "niets openstaand in het Salesbureau"}. Kredietlimiet: ${k.kredietlimiet != null ? eur(k.kredietlimiet) : "niet ingesteld"}.
+Open opvolging: ${fu.filter(f => !f.afgehandeld).slice(0, 5).map(f => `${f.soort} ${aiKort(f.tekst, 80)}${f.opvolgdatum ? " (" + dt(f.opvolgdatum) + ")" : ""}`).join(" | ") || "geen"}
+Prijsafspraken: ${pa.length ? pa.length + " actief" : "geen"}
+Mailings: ${mkk && mkk.uitsluit_reden ? "niet mailbaar: " + mkk.uitsluit_reden : "mailbaar"}; ${mkv && mkv.length ? mkv.slice(0, 4).map(h => `${aiKort(h.naam, 40)} (${h.verzonden_op ? "verzonden " + dt(h.verzonden_op) : "niet verzonden"}${h.geopend ? ", geopend" : ""}${h.geklikt ? ", geklikt" : ""})`).join(" | ") : "nog niet gemaild"}
+Notities van Michel: ${aiKort(k.notities, 400) || "geen"}
+
+${AI_STIJL}
+Als het onderzoek zegt dat het bedrijf gestopt is, zeg dat dan eerst. Noem geen kopen die niet in de gegevens staan.
+Antwoord alleen met JSON: {"wie": "1 tot 2 zinnen", "koopgedrag": "1 tot 2 zinnen over wat en hoe vaak er gekocht is", "nu": "wat nu aandacht vraagt: openstaande zaken, risico's, kansen (1 tot 3 zinnen)", "volgende_stap": "één concrete actie voor Michel", "opvolging": "dezelfde actie als korte opvolgnotitie van maximaal 12 woorden"}`;
+    try {
+      const r = await aiVraag(prompt);
+      out.innerHTML = `<dl class="kv"><dt>Wie</dt><dd>${esc(r.wie || "")}</dd><dt>Koopgedrag</dt><dd>${esc(r.koopgedrag || "")}</dd><dt>Nu</dt><dd>${esc(r.nu || "")}</dd><dt>Volgende stap</dt><dd><b>${esc(r.volgende_stap || "")}</b></dd></dl>
+        ${r.opvolging ? `<div style="margin-top:8px"><button class="btn small" id="aib-fu">Zet als opvolging over 7 dagen</button> <span class="note" id="aib-m"></span></div>` : ""}<p class="note">Voorstel van Claude op basis van de gegevens in deze kaart. Controleer het zelf.</p>`;
+      if ($("#aib-fu")) $("#aib-fu").addEventListener("click", async () => {
+        try { await sql(`insert into opvolging (klant_id, soort, tekst, opvolgdatum) values (${num(k.id)}, 'notitie', ${lit(aiKort(r.opvolging, 140))}, ${lit(plusDays(7))})`); await openKlant(k.id); } catch (er) { $("#aib-m").textContent = explain(er); }
+      });
+    } catch (e) { out.innerHTML = `<div class="banner bad"><b>De briefing is niet gelukt</b>${esc(aiFout(e))}</div>`; }
+    go.disabled = false;
+  });
+}
+
+/* ---------- Marketing: onderwerp en preheader voorstellen ---------- */
+function aiMailBind(st, dg) {
+  const go = $("#aim-go"); if (!go) return;
+  go.addEventListener("click", async () => {
+    const { c, arts, inst } = st, out = $("#aim-out");
+    go.disabled = true; out.innerHTML = `<p class="empty">Claude schrijft voorstellen…</p>`;
+    const taal = TAAL[gv("cf-taal") || c.taal] || "Nederlands";
+    const prompt = `${AI_BEDRIJF}
+Bedenk onderwerpregels en voorvertoningstekst (preheader) voor één e-mailcampagne.
+
+Soort mail: ${MK_SOORT[gv("cf-soort") || c.soort] || c.soort}. Taal: ${taal}.
+Doel van de mail: ${aiKort(gv("cf-doel") || c.doel, 300) || "niet opgegeven"}.
+Doelgroep: ${dg ? `${dg.naam} (${mkFilterTekst(dg.filters)})` : "nog niet gekozen"}.
+Artikelen in de mail: ${arts.length ? arts.slice(0, 12).map(a => `${aiKort(a.naam, 60)}`).join(" | ") : "nog niet vastgelegd"}.
+Eerdere onderwerp: ${aiKort(gv("cf-ond") || c.onderwerp, 120) || "geen"}.
+Afzender: ${aiKort(gv("cf-afz") || c.afzender || inst.afzender, 80) || "Frank van de Wijgert Partijhandel"}.
+
+Regels:
+- Geef 4 verschillende opties: onderwerp van maximaal 60 tekens, preheader van maximaal 90 tekens die het onderwerp aanvult en niet herhaalt.
+- Zakelijk en concreet: noem wat er te halen valt. Geen hoofdletters-geschreeuw, geen uitroeptekens, geen emoji's, geen woorden als GRATIS of ACTIE. Geen verzonnen prijzen, kortingen of aantallen.
+- Mag zeggen dat het om restpartijen gaat en dat op = op, als het past.
+- ${AI_STIJL}
+Antwoord alleen met JSON: {"opties": [{"onderwerp": "...", "preheader": "..."}]}`;
+    try {
+      const r = await aiVraag(prompt), o = (r.opties || []).filter(x => x && x.onderwerp).slice(0, 5);
+      out.innerHTML = o.length ? `<div class="rows">${o.map((x, i) => `<div class="chk" style="grid-template-columns:minmax(0,1fr) auto"><span><b>${esc(x.onderwerp)}</b><div class="note">${esc(x.preheader || "")}</div></span><button type="button" class="btn small" data-ai="${i}">Gebruik</button></div>`).join("")}</div><p class="note">Voorstellen van Claude. Kies er een, pas aan en klik zelf op Opslaan.</p>` : `<p class="empty">Geen voorstellen ontvangen. Probeer het opnieuw.</p>`;
+      out.querySelectorAll("[data-ai]").forEach(b => b.addEventListener("click", () => { const x = o[b.dataset.ai]; $("#cf-ond").value = x.onderwerp || ""; $("#cf-pre").value = x.preheader || ""; $("#cf-msg").textContent = "Ingevuld. Klik op Opslaan om het te bewaren."; }));
+    } catch (e) { out.innerHTML = `<div class="banner bad"><b>Het is niet gelukt</b>${esc(aiMelding(e))}</div>`; }
+    go.disabled = false;
+  });
+}
+/* ---------- Marketing: resultaten duiden ---------- */
+function aiResultaatBind(st) {
+  const go = $("#air-go"); if (!go) return;
+  go.addEventListener("click", async () => {
+    const { c, stat } = st, out = $("#air-out");
+    go.disabled = true; out.innerHTML = `<p class="empty">Claude kijkt naar de cijfers…</p>`;
+    try {
+      const eerder = await sql(`select c.naam, c.fase, c.soort, c.verzonden_op, s.verzonden, s.geopend, s.geklikt, s.gereageerd, s.afgemeld, s.bounced, s.orders_30d, s.omzet_30d, s.offerteklanten_30d from campagnes c join marketing_campagne_stats s on s.campagne_id = c.id where c.status = 'verzonden' and c.id <> ${num(c.id)} and s.verzonden > 0 order by c.verzonden_op desc limit 6`);
+      const reg = (n, s) => `${aiKort(n, 50)}: verzonden ${num(s.verzonden)}, open ${mkPctTxt(s.geopend, s.verzonden)}, klik ${mkPctTxt(s.geklikt, s.verzonden)}, reacties ${num(s.gereageerd)}, afgemeld ${num(s.afgemeld)}, bounces ${num(s.bounced)}, orders binnen 30 dagen ${num(s.orders_30d)} (${eur(s.omzet_30d)}), offerteklanten ${num(s.offerteklanten_30d)}`;
+      const prompt = `${AI_BEDRIJF}
+Duid de resultaten van deze e-mailcampagne voor Michel.
+
+Deze campagne (${MK_SOORT[c.soort] || c.soort}, fase ${c.fase ?? "n.v.t."}, verzonden ${dt(c.verzonden_op)}):
+${reg(c.naam, stat)}
+Eerdere campagnes:
+${eerder.length ? eerder.map(e => reg(e.naam, e)).join("\n") : "geen"}
+
+Richtlijnen: bounces boven 2% of afmeldingen boven 0,5% schaden de afzenderreputatie. Opens zijn onbetrouwbaar (mailprogramma's tellen soms automatisch mee), kliks en reacties zijn betrouwbaarder. Orders en offertes binnen 30 dagen zijn alleen tijdsgebonden, geen bewijs dat de mail de oorzaak was; zeg dat als je er iets over zegt.
+${AI_STIJL}
+Antwoord alleen met JSON: {"samenvatting": "2 tot 3 zinnen", "goed": ["maximaal 3 punten"], "aandacht": ["maximaal 3 punten, leeg als er niets is"], "advies": ["maximaal 3 concrete adviezen voor de volgende mail of fase"]}`;
+      const r = await aiVraag(prompt), lijst = (t, a) => Array.isArray(a) && a.length ? `<h4>${t}</h4><ul class="ai-lijst">${a.slice(0, 4).map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
+      out.innerHTML = `<p>${esc(r.samenvatting || "")}</p>${lijst("Gaat goed", r.goed)}${lijst("Aandacht", r.aandacht)}${lijst("Advies", r.advies)}<p class="note">Duiding door Claude op basis van de cijfers hierboven. Het is een advies, geen waarheid.</p>`;
+    } catch (e) { out.innerHTML = `<div class="banner bad"><b>Het is niet gelukt</b>${esc(aiMelding(e))}</div>`; }
+    go.disabled = false;
+  });
 }
 
 /* ---------- Gegevens laden ---------- */
