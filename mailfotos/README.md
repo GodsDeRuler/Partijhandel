@@ -1,0 +1,1 @@
+Kleine productfoto's (126 px) voor de weekmails van Frank van de Wijgert Partijhandel, voor artikelen waarvan MyBusiness geen foto uitlevert en die geen webshopfoto hebben. Bestandsnaam = artikelnummer. Geen prijzen of klantgegevens.
