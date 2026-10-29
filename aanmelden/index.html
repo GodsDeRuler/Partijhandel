@@ -62,7 +62,7 @@ button:hover{background:var(--blue)}
 </div>
 <script>
 // Taal volgt de instelling van de telefoon: Nederlands bij een Nederlandstalig toestel, anders Engels.
-// Met ?lang=nl of ?lang=en kan de bezoeker zelf wisselen; ?bron=... komt in het verborgen veld BRON.
+// Met ?lang=nl of ?lang=en kan de bezoeker zelf wisselen; ?bron=... komt (via BRONNEN) in het verborgen veld BRON.
 var T = {
   nl: {
     kop: "Ontvang onze nieuwste partijen",
@@ -107,7 +107,10 @@ WAARDEN.forEach(function (w, i) {
   l.appendChild(r); l.appendChild(s); fs.appendChild(l);
 });
 document.getElementById("taal").value = t.taal;
-document.getElementById("bron").value = (q.get("bron") || "QR-code").slice(0, 50);
+// De gedrukte QR van kaartje en bordje gebruikt ?bron=beurs; in Mailchimp krijgt die de beursnaam met datum.
+var BRONNEN = { beurs: "Beurs SVG Fair 4-5 nov 2026" };
+var bron = q.get("bron") || "QR-code";
+document.getElementById("bron").value = (BRONNEN[bron.toLowerCase()] || bron).slice(0, 50);
 
 document.getElementById("f").addEventListener("submit", function (e) {
   var mail = document.getElementById("email"), bedrijf = document.getElementById("bedrijf");
