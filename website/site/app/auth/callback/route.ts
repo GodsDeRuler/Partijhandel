@@ -18,12 +18,15 @@ export async function GET(req: NextRequest) {
   if (code) fout = (await sb.auth.exchangeCodeForSession(code)).error?.message ?? null;
   else if (tokenHash && type) fout = (await sb.auth.verifyOtp({ type: type as EmailOtpType, token_hash: tokenHash })).error?.message ?? null;
   const url = req.nextUrl.clone();
+  const intern = sp.get("next") === "intern"; // medewerkers van het Salesbureau
   url.search = "";
   if (fout) {
+    if (intern) { url.pathname = "/intern/inloggen/"; url.searchParams.set("fout", "1"); return NextResponse.redirect(url); }
     url.pathname = href(lang, "/inloggen/");
     url.searchParams.set("fout", "1");
     return NextResponse.redirect(url);
   }
+  if (intern) { url.pathname = "/intern/"; return NextResponse.redirect(url); }
   await sb.rpc("site_koppel_account"); // koppelt (of herkent) de klant en bepaalt of hij direct toegang krijgt
   url.pathname = href(lang, "/mijn/");
   return NextResponse.redirect(url);

@@ -55,6 +55,16 @@ Niets hiervan is al gebeurd. De site is gebouwd en getest tegen de echte databas
 8. **Foto's.** 230 zichtbare artikelen hebben alleen de grijze standaardfoto (de site toont dan "Foto volgt"). De overige foto's worden via `/foto/<nr>/<maat>/` doorgestuurd naar MyBusiness; uploaden naar eigen opslag kan later via het Salesbureau.
 9. **Agenda** is leeg; Michel vult die in het Salesbureau.
 
+## Medewerkersomgeving (Salesbureau op /intern/)
+
+Het Salesbureau draait ook als webapp op dezelfde site, met inlog per medewerker. De bron blijft `werkomgeving/index.html`; `node scripts/sync-salesbureau.mjs` (in `website/site`) kopieert hem naar `private/salesbureau.html`, het bestand dat `/intern/` uitserveert. Draai dat na elke wijziging aan het Salesbureau.
+
+- **Inloggen:** `/intern/inloggen/`, met een inloglink per mail (Supabase Auth). Alleen een e-mailadres in de tabel `medewerkers` (actief, met een rol) komt binnen. Rollen: `beheer`, `verkoop`, `magazijn`, `alleen_lezen` (die laatste kan niets wijzigen).
+- **Hoe de pagina praat:** `lib/intern-shim.ts` zet de aanroepen die het Salesbureau in claude.ai deed (database, AI, bestanden opslaan) om naar `/intern/api/sql/` en `/intern/api/ai/`. De browser krijgt nooit een sleutel. Schrijfopdrachten komen in het logboek `intern_log`.
+- **Database:** de server verbindt met de gebruiker `salesbureau_app` (`SUPABASE_DB_URL`). Migratie `supabase/migrations/20261029b_intern_toegang.sql` maakt die gebruiker, het logboek en de regels per tabel (draai `select intern_policies();` na elke migratie die een tabel toevoegt). Het wachtwoord van de gebruiker kiest Michel zelf in de SQL-editor van Supabase: `alter role salesbureau_app with password '...';`.
+- **Eerste medewerkers:** `insert into medewerkers (naam, email, rol) values ('Naam', 'mail@adres.nl', 'beheer');`
+- **Nog niet:** projectbestanden lezen (import vanuit de projectmap) werkt alleen in claude.ai; op de site komt daar een uploadknop voor. Rechten per rol gelden nu alleen voor alleen_lezen; menu's verbergen per rol volgt.
+
 ## Bekende beperkingen
 
 - Pagina's worden per bezoek opgebouwd (geen caching of ISR). Dat is bewust eenvoudig begonnen; later te verbeteren.

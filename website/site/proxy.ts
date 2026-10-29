@@ -21,8 +21,10 @@ export async function proxy(req: NextRequest) {
     }
   }
 
+  const intern = pathname === "/intern" || pathname.startsWith("/intern/"); // Salesbureau: geen taalroute, wel de sessie verversen
   const build = () => {
     const headers = new Headers(req.headers);
+    if (intern) return NextResponse.next({ request: { headers } });
     headers.set("x-lang", lang);
     headers.set("x-path", rest + req.nextUrl.search);
     if (m) return NextResponse.next({ request: { headers } });

@@ -415,6 +415,7 @@ async function boot() {
   try { sampleApi = await claude.use("sample"); } catch { sampleApi = null; }
   booted = true;
   render();
+  if (window.INTERN) { const f = document.querySelector(".foot-in"); if (f) f.insertAdjacentHTML("beforeend", `<span>Ingelogd als ${esc(window.INTERN.naam)} · <a href="/intern/uit/">Uitloggen</a></span>`); }
   belVerversen(); webVerversen(true);
   if (mcp) autoTaken(false).catch(() => { });
   if (mcp) sql(`select distinct trim(locatie) l from artikelen where coalesce(trim(locatie), '') <> '' order by 1 limit 400`).then(r => { window.__locs = r.map(z => z.l); }).catch(() => { });

@@ -18,19 +18,20 @@ const config: NextConfig = {
   // De bestaande site gebruikt overal een slash aan het eind (/product/<naam>/); zo blijven alle adressen gelijk.
   trailingSlash: true,
   poweredByHeader: false,
+  // Het Salesbureau (private/salesbureau.html) wordt door de route /intern/ uit het bestandssysteem gelezen; Vercel moet het meenemen.
+  outputFileTracingIncludes: { "/intern": ["./private/**/*"] },
   async headers() {
+    const algemeen = [
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      { key: "X-Frame-Options", value: "DENY" },
+      { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+      { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
+    ];
     return [
-      {
-        source: "/:path*",
-        headers: [
-          { key: "Content-Security-Policy", value: csp },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-          { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
-        ],
-      },
+      { source: "/:path*", headers: algemeen },
+      // /intern (het Salesbureau) stuurt zijn eigen Content-Security-Policy mee, zie lib/intern-shim.ts; een tweede zou het strengere van de twee laten winnen.
+      { source: "/((?!intern/?$).*)", headers: [{ key: "Content-Security-Policy", value: csp }] },
     ];
   },
 };
