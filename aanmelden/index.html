@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aanmelden | Sign up - Frank van de Wijgert Partijhandel</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap">
+<style>
+:root{--blue:#0060F0;--navy:#0E2B5D;--cyan:#4BD7E3;--ice:#EDF8FF;--muted:#5B6B84;--line:#BFCDE0;--err:#B61A37}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ice);color:var(--navy);font-family:Montserrat,Arial,sans-serif;font-size:16px;line-height:1.5}
+.card{max-width:600px;margin:0 auto;background:#fff;min-height:100vh}
+.top{display:flex;justify-content:flex-end;padding:10px 16px 0;font-size:14px}
+.top a{color:var(--muted);text-decoration:none;padding:4px 6px}
+.top a.on{color:var(--blue);font-weight:800}
+img.kop{display:block;width:100%;height:auto}
+.in{padding:20px 16px 32px}
+h1{color:var(--blue);font-size:26px;font-weight:800;line-height:1.2;margin:0 0 10px}
+p{margin:0 0 10px}
+.klein{color:var(--muted);font-size:13px}
+label{display:block;font-weight:600;margin:18px 0 6px}
+.req{color:var(--err)}
+input[type=email],input[type=text]{width:100%;font:inherit;padding:12px;border:1px solid var(--line);border-radius:6px;color:var(--navy)}
+input:focus{outline:2px solid var(--blue);border-color:var(--blue)}
+fieldset{border:0;margin:0;padding:0}
+legend{font-weight:600;margin:18px 0 6px;padding:0}
+.opt{display:flex;gap:10px;align-items:flex-start;font-weight:400;margin:8px 0}
+.opt input{margin-top:4px}
+button{margin-top:24px;width:100%;background:var(--navy);color:#fff;border:0;border-radius:6px;font:inherit;font-weight:800;font-size:17px;padding:14px;cursor:pointer}
+button:hover{background:var(--blue)}
+.fout{color:var(--err);font-size:14px;margin-top:6px}
+.hp{position:absolute;left:-5000px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="top"><a href="?lang=nl" data-l="nl">NL</a><a href="?lang=en" data-l="en">EN</a></div>
+  <img class="kop" src="https://mcusercontent.com/0cea989ae2e1bd6ca6c110141/images/da1d54ea-e612-098c-ff44-e19bf0525a17.jpg" alt="Frank van de Wijgert Partijhandel" width="600" height="200">
+  <div class="in">
+    <h1 data-t="kop"></h1>
+    <p data-t="intro"></p>
+    <p class="klein" data-t="privacy"></p>
+    <form id="f" method="post" action="https://fvdwpartijhandel.us2.list-manage.com/subscribe/post?u=0cea989ae2e1bd6ca6c110141&amp;id=e0b5895075" novalidate>
+      <label for="email"><span data-t="email"></span> <span class="req">*</span></label>
+      <input type="email" id="email" name="EMAIL" autocomplete="email" required>
+      <label for="bedrijf"><span data-t="bedrijf"></span> <span class="req">*</span></label>
+      <input type="text" id="bedrijf" name="BEDRIJF" autocomplete="organization" required>
+      <fieldset id="type">
+        <legend data-t="type"></legend>
+      </fieldset>
+      <label for="ander" data-t="ander"></label>
+      <input type="text" id="ander" name="TYPE_ANDER">
+      <input type="hidden" name="TAAL" id="taal">
+      <input type="hidden" name="BRON" id="bron">
+      <div class="hp" aria-hidden="true"><input type="text" name="b_0cea989ae2e1bd6ca6c110141_e0b5895075" tabindex="-1" value=""></div>
+      <div class="fout" id="fout" role="alert"></div>
+      <button type="submit" data-t="knop"></button>
+    </form>
+  </div>
+</div>
+<script>
+// Taal volgt de instelling van de telefoon: Nederlands bij een Nederlandstalig toestel, anders Engels.
+// Met ?lang=nl of ?lang=en kan de bezoeker zelf wisselen; ?bron=... komt in het verborgen veld BRON.
+var T = {
+  nl: {
+    kop: "Ontvang onze nieuwste partijen",
+    intro: "Met ruim tien jaar ervaring in de partijhandel weten wij waar de mooie partijen zitten. Meld u aan en mis geen enkele kans.",
+    privacy: "Afmelden kan altijd via de link in elke mail. Wij geven uw gegevens nooit aan anderen.",
+    email: "E-mailadres", bedrijf: "Bedrijfsnaam", type: "Wat voor bedrijf heeft u?", ander: "Anders, namelijk",
+    knop: "Aanmelden", taal: "Nederlands",
+    fout: "Vul een geldig e-mailadres en uw bedrijfsnaam in.",
+    keuzes: ["Partijhandel & export","Groothandel & import","Discount & outlet","Supermarkt & drogisterij","Tuincentrum & bouwmarkt","Winkel & winkelketen","Webshop & marketplace","Kerstpakketten & relatiegeschenken","Overig"]
+  },
+  en: {
+    kop: "Receive our latest stock lots",
+    intro: "With more than ten years of experience in the stock lot trade, we know where the best deals are. Sign up and never miss an opportunity.",
+    privacy: "You can unsubscribe at any time via the link in every email. We never share your details with anyone.",
+    email: "Email address", bedrijf: "Company name", type: "Type of business", ander: "Other, please specify",
+    knop: "Sign up", taal: "English",
+    fout: "Please enter a valid email address and your company name.",
+    keuzes: ["Stock lots & export","Wholesale & import","Discount & outlet","Supermarket & drugstore","Garden centre & DIY store","Shop & retail chain","Online shop & marketplace","Christmas hampers & corporate gifts","Other"]
+  }
+};
+// De waarden die Mailchimp opslaat blijven Nederlands, zodat ze overeenkomen met het veld TYPE.
+var WAARDEN = T.nl.keuzes;
+
+var q = new URLSearchParams(location.search);
+var gevraagd = (q.get("lang") || "").toLowerCase();
+var toestel = (navigator.languages && navigator.languages.length ? navigator.languages[0] : navigator.language || "").toLowerCase();
+var taal = gevraagd === "nl" || gevraagd === "en" ? gevraagd : (toestel.indexOf("nl") === 0 ? "nl" : "en");
+var t = T[taal];
+
+document.documentElement.lang = taal;
+document.querySelectorAll("[data-t]").forEach(function (el) { el.textContent = t[el.getAttribute("data-t")]; });
+document.querySelectorAll(".top a").forEach(function (a) {
+  var p = new URLSearchParams(location.search); p.set("lang", a.getAttribute("data-l"));
+  a.href = "?" + p.toString();
+  if (a.getAttribute("data-l") === taal) a.className = "on";
+});
+var fs = document.getElementById("type");
+WAARDEN.forEach(function (w, i) {
+  var l = document.createElement("label"); l.className = "opt";
+  var r = document.createElement("input"); r.type = "radio"; r.name = "TYPE"; r.value = w;
+  var s = document.createElement("span"); s.textContent = t.keuzes[i];
+  l.appendChild(r); l.appendChild(s); fs.appendChild(l);
+});
+document.getElementById("taal").value = t.taal;
+document.getElementById("bron").value = (q.get("bron") || "QR-code").slice(0, 50);
+
+document.getElementById("f").addEventListener("submit", function (e) {
+  var mail = document.getElementById("email"), bedrijf = document.getElementById("bedrijf");
+  if (!mail.checkValidity() || !mail.value.trim() || !bedrijf.value.trim()) {
+    e.preventDefault();
+    document.getElementById("fout").textContent = t.fout;
+  }
+});
+</script>
+</body>
+</html>
