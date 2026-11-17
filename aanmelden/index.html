@@ -54,6 +54,7 @@ button:hover{background:var(--blue)}
       <input type="text" id="ander" name="TYPE_ANDER">
       <input type="hidden" name="TAAL" id="taal">
       <input type="hidden" name="BRON" id="bron">
+      <input type="hidden" name="BEURS" id="beurs">
       <div class="hp" aria-hidden="true"><input type="text" name="b_0cea989ae2e1bd6ca6c110141_e0b5895075" tabindex="-1" value=""></div>
       <div class="fout" id="fout" role="alert"></div>
       <button type="submit" data-t="knop"></button>
@@ -107,10 +108,45 @@ WAARDEN.forEach(function (w, i) {
   l.appendChild(r); l.appendChild(s); fs.appendChild(l);
 });
 document.getElementById("taal").value = t.taal;
-// De gedrukte QR van kaartje en bordje gebruikt ?bron=beurs; in Mailchimp krijgt die de beursnaam met datum.
-var BRONNEN = { beurs: "Beurs SVG Fair 4-5 nov 2026" };
+// De gedrukte QR van kaartje en bordje gebruikt ?bron=beurs. De pagina kiest de beurs op datum (Nederlandse tijd):
+// van de eerste beursdag tot en met NA_DAGEN dagen na de laatste dag (kaartjes worden ook thuis gescand).
+// BRON = beursnaam met datum (meten), BEURS = naam zoals die in de welkomstmail staat ("Op ... heeft u zich aangemeld").
+// Nieuwe beurs: alleen een regel aan BEURZEN toevoegen (bron max. 50 tekens). Buiten een beursperiode: BRON "Beurs", BEURS leeg.
+var BEURZEN = [
+  { van: "2026-11-04", tot: "2026-11-05", bron: "Beurs SVG Fair 4-5 nov 2026",          naam: "de SVG Fair in Winterswijk" },
+  { van: "2027-01-13", tot: "2027-01-14", bron: "Beurs SVG Fair 13-14 jan 2027",        naam: "de SVG Fair in Winterswijk" },
+  { van: "2027-01-20", tot: "2027-01-21", bron: "Beurs Goodies Messe 20-21 jan 2027",   naam: "de Goodies Messe in Ankum" },
+  { van: "2027-03-09", tot: "2027-03-11", bron: "Beurs IAW Keulen 9-11 mrt 2027",       naam: "de IAW in Keulen" },
+  { van: "2027-04-14", tot: "2027-04-15", bron: "Beurs SVG Fair Salzburg 14-15 apr 2027", naam: "de SVG Fair in Salzburg" },
+  { van: "2027-05-12", tot: "2027-05-13", bron: "Beurs Goodies Messe 12-13 mei 2027",   naam: "de Goodies Messe in Ankum" },
+  { van: "2027-06-02", tot: "2027-06-03", bron: "Beurs SVG Fair 2-3 jun 2027",          naam: "de SVG Fair in Winterswijk" },
+  { van: "2027-09-07", tot: "2027-09-09", bron: "Beurs IAW Keulen 7-9 sep 2027",        naam: "de IAW in Keulen" },
+  { van: "2027-11-10", tot: "2027-11-11", bron: "Beurs SVG Fair 10-11 nov 2027",        naam: "de SVG Fair in Winterswijk" }
+];
+var NA_DAGEN = 6;
+function vandaagNL() {
+  var d = q.get("datum"); // alleen om te testen, bv. ?datum=2027-01-20
+  if (/^\d{4}-\d{2}-\d{2}$/.test(d || "")) return d;
+  try { return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Amsterdam" }).format(new Date()); }
+  catch (err) { return new Date().toISOString().slice(0, 10); }
+}
+function plusDagen(iso, n) {
+  var d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10);
+}
+function huidigeBeurs() {
+  var v = vandaagNL(), gekozen = null;
+  BEURZEN.forEach(function (b) { if (b.van <= v && v <= plusDagen(b.tot, NA_DAGEN)) gekozen = b; }); // bij overlap de laatst begonnen
+  return gekozen;
+}
 var bron = q.get("bron") || "QR-code";
-document.getElementById("bron").value = (BRONNEN[bron.toLowerCase()] || bron).slice(0, 50);
+var bronWaarde = bron, beursNaam = "";
+if (bron.toLowerCase() === "beurs") {
+  var b = huidigeBeurs();
+  bronWaarde = b ? b.bron : "Beurs";
+  beursNaam = b ? b.naam : "";
+}
+document.getElementById("bron").value = bronWaarde.slice(0, 50);
+document.getElementById("beurs").value = beursNaam;
 
 document.getElementById("f").addEventListener("submit", function (e) {
   var mail = document.getElementById("email"), bedrijf = document.getElementById("bedrijf");
